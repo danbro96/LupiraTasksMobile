@@ -8,6 +8,8 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "fetch:openapi": "node scripts/fetch-openapi.mjs",
     "gen:api": "orval --config ./orval.config.ts"
   },
@@ -22,6 +24,7 @@
     "expo-secure-store": "~55.0.13",
     "expo-sqlite": "~55.0.14",
     "expo-status-bar": "~55.0.6",
+    "fractional-indexing": "^3.2.0",
     "react": "19.2.0",
     "react-native": "0.83.6",
     "react-native-safe-area-context": "~5.6.0",
@@ -32,7 +35,8 @@
   "devDependencies": {
     "@types/react": "~19.2.10",
     "orval": "^8.9.1",
-    "typescript": "~5.9.2"
+    "typescript": "6.0.3",
+    "vitest": "^3.2.4"
   },
   "private": true
 }
