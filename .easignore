@@ -1,0 +1,12 @@
+# Keep the EAS Build upload lean — exclude local build outputs / caches.
+# (android/ source IS uploaded; only its generated artifacts are excluded.)
+android/.gradle/
+android/build/
+android/app/build/
+android/app/.cxx/
+android/.kotlin/
+.expo/
+*.apk
+*.aab
+*.keystore
+ios/
