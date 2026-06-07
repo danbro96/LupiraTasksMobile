@@ -156,11 +156,12 @@ export async function replayOp(op: ClientOp): Promise<void> {
       await postListsListIdMembers(op.listId, { email: op.email, role: op.role }, idem);
       return;
     case 'list.memberRoleChange':
-      await patchListsListIdMembersMemberEmail(op.listId, op.email, { role: op.role }, idem);
+      // The email is a URL path segment — must be percent-encoded ('@', '+', etc.).
+      await patchListsListIdMembersMemberEmail(op.listId, encodeURIComponent(op.email), { role: op.role }, idem);
       return;
     case 'list.memberRemove':
     case 'list.leave':
-      await deleteListsListIdMembersMemberEmail(op.listId, op.email, idem);
+      await deleteListsListIdMembersMemberEmail(op.listId, encodeURIComponent(op.email), idem);
       return;
   }
 }

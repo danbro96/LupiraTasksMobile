@@ -120,12 +120,19 @@ async function runDrain(): Promise<void> {
             continue;
           }
           if (e.status === 0) status.setServerReachable(false); // timeout / unreachable
+          // network / 5xx (transient): keep pending, stop, retry on next trigger
+          await bumpOutboxFailure(db, row.seq, 'pending', String(e));
+          logDebug('replay:retry', `${op.kind} ${String(e).slice(0, 200)}`);
+          status.setLastError(e.message);
+          break;
         }
-        // network / 5xx: keep pending, stop, retry on next trigger
-        await bumpOutboxFailure(db, row.seq, 'pending', String(e));
-        logDebug('replay:retry', `${op.kind} ${String(e).slice(0, 200)}`);
-        status.setLastError(e instanceof Error ? e.message : String(e));
-        break;
+        // A non-HTTP error is a client bug — it fails identically on every retry, so PARK it
+        // (don't wedge the queue at "Syncing…"); surface it and log the stack to pin the cause.
+        const stack = e instanceof Error && e.stack ? e.stack.split('\n').slice(0, 4).join(' | ') : '';
+        await bumpOutboxFailure(db, row.seq, 'parked', String(e));
+        logDebug('replay:bug', `${op.kind} ${String(e)} :: ${stack}`);
+        status.setLastError(String(e));
+        continue;
       }
     }
   } finally {
