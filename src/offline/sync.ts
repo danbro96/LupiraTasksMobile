@@ -4,13 +4,13 @@ import { useAuth } from '../store/auth-store';
 import { getListsListIdSync } from '../api/generated/sync/sync';
 import { getLists } from '../api/generated/lists/lists';
 import { getMe } from '../api/generated/me/me';
-import type { ItemResponse } from '../api/generated/models';
 import {
   getDb, getItemState, putItemState, putListDoc, pendingOutbox, pendingOutboxForList, setCursor,
   getListIds, deleteListLocal,
 } from './db';
 import { listIdsOf } from './outboxScope';
-import { type ItemState, ZERO_GUID, emptyItemState } from './itemState';
+import { itemResponseToState } from './itemMap';
+import { emptyItemState } from './itemState';
 import { applyItemEvent } from './itemLww';
 import { type ClientOp, opToEvents } from './ops';
 import { bumpMirror, useSyncStatus } from './syncStatus';
@@ -18,38 +18,6 @@ import { drainOutbox, refreshPending } from './outbox';
 import { listsToPrune } from './pruneLists';
 import { logDebug } from '../debug/log';
 import { isNetworkError } from '../api/mutator';
-
-function num(v: number | string | null | undefined): number | null {
-  if (v === null || v === undefined) return null;
-  return typeof v === 'string' ? Number(v) : v;
-}
-
-/**
- * Server snapshot → mirror ItemState. The /sync endpoint returns current values, not
- * events, so we seed every per-field guard at the item's `updatedAt`: a pending local
- * edit with a later `occurredAt` then wins on rebase, an older one loses (v1 uses a single
- * uniform guard per item — good enough at family scale; per-field guards are a later refinement).
- */
-function itemResponseToState(r: ItemResponse): ItemState {
-  const ts = r.updatedAt;
-  const tagTs: Record<string, string> = {};
-  const tagCmd: Record<string, string> = {};
-  for (const t of r.tags) { tagTs[t] = ts; tagCmd[t] = ZERO_GUID; }
-  return {
-    id: r.id, listId: r.listId, parentItemId: r.parentItemId ?? null,
-    title: r.title, notes: r.notes ?? null,
-    completed: r.completed, completedAt: r.completedAt ?? null, completedBy: r.completedBy ?? null,
-    assignedTo: r.assignedTo ?? null, dueAt: r.dueAt ?? null,
-    quantity: num(r.quantity), unit: r.unit ?? null,
-    tags: [...r.tags], sortOrder: r.sortOrder,
-    createdBy: r.createdBy ?? null, createdAt: r.createdAt, updatedAt: r.updatedAt,
-    deleted: false,
-    nameTs: ts, nameCmd: ZERO_GUID, notesTs: ts, notesCmd: ZERO_GUID,
-    assigneeTs: ts, assigneeCmd: ZERO_GUID, dueTs: ts, dueCmd: ZERO_GUID,
-    qtyTs: ts, qtyCmd: ZERO_GUID, completedTs: ts, completedCmd: ZERO_GUID, moveTs: ts, moveCmd: ZERO_GUID,
-    tagTs, tagCmd,
-  };
-}
 
 /** Provision + cache the caller's `/me` profile (best-effort; non-fatal on failure). */
 export async function pullMe(): Promise<void> {

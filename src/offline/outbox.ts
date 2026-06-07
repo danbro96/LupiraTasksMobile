@@ -1,5 +1,5 @@
 import { useAuth } from '../store/auth-store';
-import { ApiError } from '../api/mutator';
+import { classifyReplayError, type ReplayDecision } from './replayError';
 import { applyItemEvent } from './itemLww';
 import { emptyItemState } from './itemState';
 import {
@@ -118,6 +118,16 @@ export async function enqueue(op: ClientOp): Promise<void> {
   void drainOutbox();
 }
 
+/** Reconstruct the original per-outcome debug detail (the bug case needs the live stack). */
+function replayLogDetail(d: ReplayDecision, e: unknown, opKind: string): string {
+  if (d.logTag === 'replay:401') return opKind;
+  if (d.logTag === 'replay:bug') {
+    const stack = e instanceof Error && e.stack ? e.stack.split('\n').slice(0, 4).join(' | ') : '';
+    return `${opKind} ${String(e)} :: ${stack}`;
+  }
+  return `${opKind} ${(d.rowError ?? '').slice(0, 200)}`;
+}
+
 // Serialized replay: one in-flight request, strict seq order, so causal chains stay ordered.
 let draining: Promise<void> | null = null;
 
@@ -143,29 +153,14 @@ async function runDrain(): Promise<void> {
         await deleteOutbox(db, row.seq);
         logDebug('replay:ok', op.kind);
       } catch (e) {
+        // Classify (pure, tested in replayError.test.ts), then apply the decision.
         const status = useSyncStatus.getState();
-        if (e instanceof ApiError) {
-          if (e.status === 401) { logDebug('replay:401', op.kind); break; } // token expired — keep pending, stop until re-auth
-          if (e.status >= 400 && e.status < 500) {
-            // semantic conflict (404/409/400): park so it doesn't wedge the queue
-            await bumpOutboxFailure(db, row.seq, 'parked', `${e.status} ${e.message}`);
-            logDebug('replay:parked', `${op.kind} ${e.status} ${String(e.message).slice(0, 200)}`);
-            status.setLastError(`${op.kind}: ${e.status} ${String(e.message).slice(0, 120)}`);
-            continue;
-          }
-          if (e.status === 0) status.setServerReachable(false); // timeout / unreachable
-          // network / 5xx (transient): keep pending, stop, retry on next trigger
-          await bumpOutboxFailure(db, row.seq, 'pending', String(e));
-          logDebug('replay:retry', `${op.kind} ${String(e).slice(0, 200)}`);
-          status.setLastError(e.message);
-          break;
-        }
-        // A non-HTTP error is a client bug — it fails identically on every retry, so PARK it
-        // (don't wedge the queue at "Syncing…"); surface it and log the stack to pin the cause.
-        const stack = e instanceof Error && e.stack ? e.stack.split('\n').slice(0, 4).join(' | ') : '';
-        await bumpOutboxFailure(db, row.seq, 'parked', String(e));
-        logDebug('replay:bug', `${op.kind} ${String(e)} :: ${stack}`);
-        status.setLastError(String(e));
+        const d = classifyReplayError(e, op.kind);
+        if (d.rowStatus) await bumpOutboxFailure(db, row.seq, d.rowStatus, d.rowError ?? '');
+        if (d.serverUnreachable) status.setServerReachable(false);
+        if (d.lastError !== null) status.setLastError(d.lastError);
+        logDebug(d.logTag, replayLogDetail(d, e, op.kind));
+        if (d.stop) break;
         continue;
       }
     }

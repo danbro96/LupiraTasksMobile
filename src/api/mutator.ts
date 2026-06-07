@@ -1,35 +1,17 @@
 import { useAuth } from '../store/auth-store';
+import { ApiError, isNetworkError, REQUEST_TIMEOUT_MS } from './apiError';
 
-/**
- * Single-axis error class thrown for every non-2xx response. Consumers
- * downstream check `err.status` to branch on specific HTTP codes (e.g. a 409
- * conflict handler), so the contract stays stable as the generated client
- * grows.
- */
-export class ApiError extends Error {
-  status: number;
-
-  constructor(status: number, message: string) {
-    super(message);
-    this.status = status;
-    this.name = 'ApiError';
-  }
-}
-
-/** True for transport-level failures (timeout / unreachable host) — status 0, no HTTP response. */
-export function isNetworkError(e: unknown): boolean {
-  return e instanceof ApiError && e.status === 0;
-}
-
-/** Requests abort after this long so a dead/slow server fails fast instead of hanging forever. */
-export const REQUEST_TIMEOUT_MS = 10_000;
+// Error primitives live in ./apiError (dependency-free, so pure consumers can import them
+// without pulling in native modules). Re-exported here so existing `from '../api/mutator'`
+// importers keep working.
+export { ApiError, isNetworkError, REQUEST_TIMEOUT_MS };
 
 /**
  * Custom fetch invoked by every Orval-generated request.
  *
- * Returns the **envelope shape** Orval's `client: 'react-query'` mode expects
- * from its mutator: `{ status, data, headers }`. Consumers access
- * `result.data?.data` (one `.data` from react-query, one from this envelope).
+ * Returns the **envelope shape** `{ status, data, headers }` — Orval's `client: 'fetch'`
+ * mode returns the mutator's value directly, so callers read `result.status` and
+ * `result.data` (e.g. `getLists()` → `r.data.lists`).
  *
  * Owns:
  *  - base URL prefix (read live from `useAuth.getState().apiUrl` so the
@@ -69,12 +51,9 @@ export async function apiFetch<T>(
     headers.set('Content-Type', 'application/json');
   }
 
-  // Idempotency-Key placeholder: mutating offline-replayable requests will
-  // stamp a stable per-operation key here so the backend can dedupe retries
-  // once the offline outbox lands (WF-1b). Left unset for now.
-  // if (init?.method && isReplayable(init.method) && !headers.has('Idempotency-Key')) {
-  //   headers.set('Idempotency-Key', <stable-operation-id>);
-  // }
+  // Idempotency-Key: set per-operation by the outbox replay layer (see replayOp in
+  // src/offline/ops.ts), which passes it via `init.headers` so redelivered commands are
+  // server-side no-ops. Nothing to do here — it flows through `init` untouched.
 
   const fullUrl = apiUrl.replace(/\/$/, '') + url;
 
