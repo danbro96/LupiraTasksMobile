@@ -7,6 +7,7 @@ import { NavigationContainer, DefaultTheme, DarkTheme, type Theme } from '@react
 import { RootStack } from './src/navigation/RootStack';
 import { ToastHost } from './src/components/Toast';
 import { useAuth } from './src/store/auth-store';
+import { usePrefs } from './src/store/prefs-store';
 import { startSync, syncAll } from './src/offline/sync';
 import { SENTRY_DSN } from './src/config';
 import { lightColors, darkColors } from './src/theme';
@@ -35,6 +36,7 @@ function App() {
   const scheme = useColorScheme();
 
   useEffect(() => {
+    void usePrefs.getState().load();
     void (async () => {
       await useAuth.getState().load();
       await useAuth.getState().refreshIfNeeded();

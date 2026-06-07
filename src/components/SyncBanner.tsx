@@ -2,6 +2,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSyncStatus } from '../offline/syncStatus';
+import { usePrefs } from '../store/prefs-store';
 import { bannerState } from '../offline/bannerState';
 import type { RootStackParamList } from '../navigation/types';
 import { colors, spacing } from '../theme';
@@ -13,9 +14,13 @@ export function SyncBanner() {
   const serverReachable = useSyncStatus(s => s.serverReachable);
   const pending = useSyncStatus(s => s.pending);
   const failed = useSyncStatus(s => s.failed);
+  const debugEnabled = usePrefs(s => s.debugEnabled);
 
   const state = bannerState({ online, serverReachable, pending, failed });
   if (!state) return null;
+  // The routine "Syncing…" banner is noise on every action — show it only in debug mode.
+  // Connectivity/failure states always show.
+  if (state.kind === 'syncing' && !debugEnabled) return null;
 
   // Failed changes are the only state with a recovery action — tap to open "Sync issues".
   if (state.kind === 'failed') {
