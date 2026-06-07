@@ -99,7 +99,15 @@ export async function putListDoc(
 
 export async function getListDocs<T = unknown>(db: SQLite.SQLiteDatabase): Promise<T[]> {
   const rows = await db.getAllAsync<{ doc_json: string }>(
-    `SELECT doc_json FROM lists WHERE deleted = 0 ORDER BY updated_at DESC`,
+    `SELECT doc_json FROM lists WHERE deleted = 0 AND archived = 0 ORDER BY updated_at DESC`,
+  );
+  return rows.map(r => JSON.parse(r.doc_json) as T);
+}
+
+/** Archived (but not deleted) lists, for the "Archived lists" view. */
+export async function getArchivedListDocs<T = unknown>(db: SQLite.SQLiteDatabase): Promise<T[]> {
+  const rows = await db.getAllAsync<{ doc_json: string }>(
+    `SELECT doc_json FROM lists WHERE deleted = 0 AND archived = 1 ORDER BY updated_at DESC`,
   );
   return rows.map(r => JSON.parse(r.doc_json) as T);
 }

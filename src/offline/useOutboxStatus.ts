@@ -15,6 +15,9 @@ function aggregateId(op: ClientOp): string {
     case 'list.memberRoleChange':
     case 'list.memberRemove':
     case 'list.leave':
+    case 'list.delete':
+    case 'list.archive':
+    case 'list.restore':
       return op.listId;
     default:
       return op.itemId; // all item.* ops

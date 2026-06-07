@@ -52,6 +52,15 @@ export function applyListOp(doc: ListResponse, op: ClientOp, actorEmail: string 
       return { ...doc, members: remaining, updatedAt: op.occurredAt };
     }
 
+    case 'list.archive':
+      return { ...doc, isArchived: true, updatedAt: op.occurredAt };
+
+    case 'list.restore':
+      return { ...doc, isArchived: false, updatedAt: op.occurredAt };
+
+    case 'list.delete':
+      return null; // owner-initiated delete removes the list locally (and for everyone on replay)
+
     default:
       return doc; // item ops + list.create don't patch an existing list doc here
   }

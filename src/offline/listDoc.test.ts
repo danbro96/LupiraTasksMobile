@@ -74,4 +74,17 @@ describe('applyListOp', () => {
     expect(d).not.toBeNull();
     expect(d!.members.some(m => m.email === 'owner@x')).toBe(false);
   });
+
+  it('archives and restores (toggles isArchived, keeps the list)', () => {
+    const archive = { ...base, kind: 'list.archive', listId: LIST } as ClientOp;
+    const restore = { ...base, kind: 'list.restore', listId: LIST } as ClientOp;
+    const archived = applyListOp(doc([owner()]), archive, 'owner@x');
+    expect(archived?.isArchived).toBe(true);
+    expect(applyListOp(archived!, restore, 'owner@x')?.isArchived).toBe(false);
+  });
+
+  it('deletes the list (null) regardless of co-owners', () => {
+    const op = { ...base, kind: 'list.delete', listId: LIST } as ClientOp;
+    expect(applyListOp(doc([owner(), member('bob@x', ListRole.Owner)]), op, 'owner@x')).toBeNull();
+  });
 });

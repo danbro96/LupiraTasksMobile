@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, HIT_SLOP } from '../theme';
+import { HIT_SLOP, useColors } from '../theme';
 
 interface Props {
   checked: boolean;
@@ -11,6 +11,7 @@ interface Props {
 
 /** Accessible checkbox using a vector icon (replaces the ☑/☐ emoji glyphs). */
 export function Checkbox({ checked, onPress, disabled, accessibilityLabel }: Props) {
+  const c = useColors();
   return (
     <Pressable
       onPress={onPress}
@@ -24,7 +25,7 @@ export function Checkbox({ checked, onPress, disabled, accessibilityLabel }: Pro
       <Ionicons
         name={checked ? 'checkbox' : 'square-outline'}
         size={24}
-        color={disabled ? colors.textDisabled : checked ? colors.primary : colors.textSubtle}
+        color={disabled ? c.textDisabled : checked ? c.primary : c.textSubtle}
       />
     </Pressable>
   );

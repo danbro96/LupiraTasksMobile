@@ -8,4 +8,6 @@ export type RootStackParamList = {
   TaskDetail: { listId: string; itemId: string };
   Account: undefined;
   SyncIssues: undefined;
+  CreateList: undefined;
+  ArchivedLists: undefined;
 };

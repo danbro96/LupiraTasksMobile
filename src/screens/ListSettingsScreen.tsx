@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -11,11 +11,11 @@ import {
 } from 'react-native';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Ionicons } from '@expo/vector-icons';
 import { ListRole } from '../api/generated/models';
 import type { RootStackParamList } from '../navigation/types';
 import { Button } from '../components/Button';
 import { TextField } from '../components/TextField';
+import { ColorSwatches } from '../components/ColorSwatches';
 import { toast } from '../components/Toast';
 import { SyncBanner } from '../components/SyncBanner';
 import { useLists } from '../offline/useMirror';
@@ -23,7 +23,7 @@ import { useMyRole } from '../offline/useMyRole';
 import { useAuth } from '../store/auth-store';
 import { enqueue } from '../offline/outbox';
 import { stamp } from '../offline/ops';
-import { colors, listColorOptions, radii, spacing, type } from '../theme';
+import { makeType, radii, spacing, useColors, type Palette } from '../theme';
 
 const ROLES: ListRole[] = [ListRole.Owner, ListRole.Editor, ListRole.Viewer];
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -40,6 +40,8 @@ export function ListSettingsScreen() {
   const [name, setName] = useState(list?.name ?? '');
   const [newEmail, setNewEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<ListRole>(ListRole.Editor);
+  const c = useColors();
+  const styles = useMemo(() => makeStyles(c), [c]);
 
   // Seed the name field once the list loads from the mirror (loaded asynchronously, so `list`
   // is undefined on first render). Keyed on the list id so a remote rename doesn't clobber an edit.
@@ -58,8 +60,6 @@ export function ListSettingsScreen() {
   }
 
   const isOwner = myRole === ListRole.Owner;
-  const ownerCount = list.members.filter(m => m.role === ListRole.Owner).length;
-  const isSoleOwner = isOwner && ownerCount === 1;
 
   async function run(action: () => Promise<void>, failMsg: string, successMsg?: string) {
     try {
@@ -117,20 +117,40 @@ export function ListSettingsScreen() {
     ]);
   }
 
-  function leaveOrDelete() {
-    const doLeave = () =>
-      run(async () => {
-        await enqueue({ ...stamp(), kind: 'list.leave', listId, email: me });
-        nav.popToTop();
-      }, isSoleOwner ? "Couldn't delete list" : "Couldn't leave list");
+  function archive() {
+    void run(async () => {
+      await enqueue({ ...stamp(), kind: 'list.archive', listId });
+      nav.popToTop();
+    }, "Couldn't archive list");
+  }
 
-    const [title, body, confirmLabel] = isSoleOwner
-      ? ['Delete list?', 'You are the last owner — this deletes the list for everyone.', 'Delete']
-      : ['Leave list?', "You'll lose access to this shared list.", 'Leave'];
-
-    Alert.alert(title, body, [
+  function confirmDelete() {
+    Alert.alert('Delete list?', 'This permanently deletes the list for everyone.', [
       { text: 'Cancel', style: 'cancel' },
-      { text: confirmLabel, style: 'destructive', onPress: () => void doLeave() },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: () =>
+          void run(async () => {
+            await enqueue({ ...stamp(), kind: 'list.delete', listId });
+            nav.popToTop();
+          }, "Couldn't delete list"),
+      },
+    ]);
+  }
+
+  function confirmLeave() {
+    Alert.alert('Leave list?', "You'll lose access to this shared list.", [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Leave',
+        style: 'destructive',
+        onPress: () =>
+          void run(async () => {
+            await enqueue({ ...stamp(), kind: 'list.leave', listId, email: me });
+            nav.popToTop();
+          }, "Couldn't leave list"),
+      },
     ]);
   }
 
@@ -145,24 +165,7 @@ export function ListSettingsScreen() {
         </View>
 
         <Text style={styles.section}>COLOR</Text>
-        <View style={styles.swatchRow}>
-          {listColorOptions.map(c => {
-            const selected = (list.color ?? null) === c;
-            return (
-              <Pressable
-                key={c ?? 'none'}
-                onPress={() => void setColor(c)}
-                accessibilityRole="button"
-                accessibilityLabel={c ? `Color ${c}` : 'No color'}
-                accessibilityState={{ selected }}
-                style={[styles.swatch, { backgroundColor: c ?? colors.bg }, c === null && styles.swatchNone, selected && styles.swatchSelected]}
-              >
-                {c === null && !selected ? <Ionicons name="ban-outline" size={16} color={colors.textSubtle} /> : null}
-                {selected ? <Ionicons name="checkmark" size={18} color={c ? colors.onPrimary : colors.primary} /> : null}
-              </Pressable>
-            );
-          })}
-        </View>
+        <ColorSwatches value={list.color ?? null} onChange={c => void setColor(c)} />
 
         <Text style={styles.section}>MEMBERS</Text>
         {list.members.map(m => {
@@ -214,18 +217,22 @@ export function ListSettingsScreen() {
           </View>
         ) : null}
 
-        <Button
-          title={isSoleOwner ? 'Delete list' : 'Leave list'}
-          variant="destructive"
-          onPress={leaveOrDelete}
-          style={styles.leaveBtn}
-        />
+        {isOwner ? (
+          <>
+            <Button title="Archive list" variant="secondary" onPress={archive} style={styles.archiveBtn} />
+            <Button title="Delete list" variant="destructive" onPress={confirmDelete} style={styles.deleteBtn} />
+          </>
+        ) : (
+          <Button title="Leave list" variant="destructive" onPress={confirmLeave} style={styles.leaveBtn} />
+        )}
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
 function RoleChip({ role, selected, onPress }: { role: ListRole; selected: boolean; onPress: () => void }) {
+  const c = useColors();
+  const styles = useMemo(() => makeChipStyles(c), [c]);
   return (
     <Pressable
       onPress={onPress}
@@ -239,28 +246,33 @@ function RoleChip({ role, selected, onPress }: { role: ListRole; selected: boole
   );
 }
 
-const styles = StyleSheet.create({
-  fill: { flex: 1, backgroundColor: colors.bg },
-  content: { padding: spacing.lg, paddingBottom: 48 },
-  section: { ...type.sectionLabel, marginTop: spacing.xl, marginBottom: spacing.sm },
-  row: { flexDirection: 'row', gap: spacing.sm },
-  inlineBtn: { paddingVertical: 0 },
-  swatchRow: { flexDirection: 'row', gap: spacing.md, flexWrap: 'wrap' },
-  swatch: { width: 36, height: 36, borderRadius: radii.pill, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
-  swatchNone: {},
-  swatchSelected: { borderWidth: 3, borderColor: colors.primary },
-  member: { paddingVertical: spacing.md, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.divider },
-  memberHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  memberEmail: { fontSize: 15, color: colors.text, flex: 1 },
-  remove: { color: colors.danger, fontSize: 13 },
-  invite: { marginTop: spacing.lg },
-  inviteAs: { ...type.small, alignSelf: 'center' },
-  roleRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm, alignItems: 'center', flexWrap: 'wrap' },
-  roleChip: { paddingHorizontal: spacing.md, paddingVertical: 5, borderRadius: radii.lg, borderWidth: 1, borderColor: colors.border },
-  roleChipOn: { backgroundColor: colors.primary, borderColor: colors.primary },
-  roleText: { fontSize: 13, color: colors.textMuted },
-  roleTextOn: { color: colors.onPrimary, fontWeight: '600' },
-  roleLabel: { marginTop: spacing.xs, fontSize: 13, color: colors.textSubtle },
-  leaveBtn: { marginTop: spacing.xxl },
-  empty: { textAlign: 'center', color: colors.textSubtle, marginTop: 40 },
-});
+const makeChipStyles = (c: Palette) =>
+  StyleSheet.create({
+    roleChip: { paddingHorizontal: spacing.md, paddingVertical: 5, borderRadius: radii.lg, borderWidth: 1, borderColor: c.border },
+    roleChipOn: { backgroundColor: c.primary, borderColor: c.primary },
+    roleText: { fontSize: 13, color: c.textMuted },
+    roleTextOn: { color: c.onPrimary, fontWeight: '600' },
+  });
+
+const makeStyles = (c: Palette) => {
+  const t = makeType(c);
+  return StyleSheet.create({
+    fill: { flex: 1, backgroundColor: c.bg },
+    content: { padding: spacing.lg, paddingBottom: 48 },
+    section: { ...t.sectionLabel, marginTop: spacing.xl, marginBottom: spacing.sm },
+    row: { flexDirection: 'row', gap: spacing.sm },
+    inlineBtn: { paddingVertical: 0 },
+    member: { paddingVertical: spacing.md, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: c.divider },
+    memberHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    memberEmail: { fontSize: 15, color: c.text, flex: 1 },
+    remove: { color: c.danger, fontSize: 13 },
+    invite: { marginTop: spacing.lg },
+    inviteAs: { ...t.small, alignSelf: 'center' },
+    roleRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm, alignItems: 'center', flexWrap: 'wrap' },
+    roleLabel: { marginTop: spacing.xs, fontSize: 13, color: c.textSubtle },
+    archiveBtn: { marginTop: spacing.xxl },
+    deleteBtn: { marginTop: spacing.md },
+    leaveBtn: { marginTop: spacing.xxl },
+    empty: { textAlign: 'center', color: c.textSubtle, marginTop: 40 },
+  });
+};

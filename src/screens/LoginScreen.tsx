@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
@@ -7,7 +7,7 @@ import { decodeJwt, exchangeAuthCode } from '../auth/oidc';
 import { logAuth, clearAuthLog } from '../auth/authDebug';
 import { DebugPanel } from '../debug/DebugPanel';
 import { useAuth } from '../store/auth-store';
-import { colors, radii, spacing, type } from '../theme';
+import { makeType, radii, spacing, useColors, type Palette } from '../theme';
 
 // Required so the auth redirect back into the app dismisses the in-app browser.
 WebBrowser.maybeCompleteAuthSession();
@@ -21,6 +21,8 @@ export function LoginScreen() {
   );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const c = useColors();
+  const styles = useMemo(() => makeStyles(c), [c]);
 
   // Surface the static config once so it can be compared to the Authentik provider.
   useEffect(() => {
@@ -134,7 +136,7 @@ export function LoginScreen() {
         disabled={!request || busy}
         onPress={() => void handleSignIn()}
       >
-        {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Sign in with Authentik</Text>}
+        {busy ? <ActivityIndicator color={c.onPrimary} /> : <Text style={styles.buttonText}>Sign in with Authentik</Text>}
       </Pressable>
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -145,13 +147,16 @@ export function LoginScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl, backgroundColor: colors.bg },
-  title: { ...type.title },
-  subtitle: { marginTop: spacing.sm, marginBottom: 28, fontSize: 15, color: colors.textMuted },
-  button: { backgroundColor: colors.primary, borderRadius: radii.lg, paddingVertical: 14, paddingHorizontal: 28, minWidth: 240, alignItems: 'center' },
-  buttonDisabled: { opacity: 0.5 },
-  buttonText: { color: colors.onPrimary, fontSize: 16, fontWeight: '600' },
-  error: { marginTop: spacing.lg, color: colors.danger, textAlign: 'center' },
-  hint: { marginTop: spacing.md, fontSize: 11, color: colors.textDisabled },
-});
+const makeStyles = (c: Palette) => {
+  const t = makeType(c);
+  return StyleSheet.create({
+    container: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl, backgroundColor: c.bg },
+    title: { ...t.title },
+    subtitle: { marginTop: spacing.sm, marginBottom: 28, fontSize: 15, color: c.textMuted },
+    button: { backgroundColor: c.primary, borderRadius: radii.lg, paddingVertical: 14, paddingHorizontal: 28, minWidth: 240, alignItems: 'center' },
+    buttonDisabled: { opacity: 0.5 },
+    buttonText: { color: c.onPrimary, fontSize: 16, fontWeight: '600' },
+    error: { marginTop: spacing.lg, color: c.danger, textAlign: 'center' },
+    hint: { marginTop: spacing.md, fontSize: 11, color: c.textDisabled },
+  });
+};

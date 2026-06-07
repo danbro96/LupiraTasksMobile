@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { ListResponse } from '../api/generated/models';
 import type { ItemState } from './itemState';
-import { getDb, getItemsByList, getListDocs } from './db';
+import { getDb, getItemsByList, getListDocs, getArchivedListDocs } from './db';
 import { useSyncStatus } from './syncStatus';
 import { logDebug } from '../debug/log';
 
@@ -18,6 +18,21 @@ export function useLists(): { lists: ListResponse[]; loading: boolean } {
     const docs = await getListDocs<ListResponse>(db);
     logDebug('useLists', `count=${docs.length}`); // diagnostic: is the optimistic list in the mirror?
     setLists(docs);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { void reload(); }, [reload, rev]);
+  return { lists, loading };
+}
+
+export function useArchivedLists(): { lists: ListResponse[]; loading: boolean } {
+  const rev = useSyncStatus(s => s.mirrorRevision);
+  const [lists, setLists] = useState<ListResponse[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const reload = useCallback(async () => {
+    const db = await getDb();
+    setLists(await getArchivedListDocs<ListResponse>(db));
     setLoading(false);
   }, []);
 

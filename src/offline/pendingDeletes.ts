@@ -8,7 +8,7 @@ import { toast } from '../components/Toast';
 // (no re-create, ids and history preserved). Lives outside the screens so the delete can be
 // triggered from the task detail screen yet undone via a toast over the list screen.
 
-const UNDO_MS = 5000;
+const UNDO_MS = 6000;
 
 interface PendingDeletesState {
   ids: Set<string>;
@@ -36,6 +36,10 @@ function commit(listId: string, itemId: string) {
  * tapping Undo cancels the delete entirely.
  */
 export function requestItemDelete(listId: string, itemId: string, label = 'Item deleted'): void {
+  // Re-entrant on the same item (e.g. long-press then delete again): drop the prior timer so it
+  // can't fire after an Undo and resurrect the delete. One timer per item id at any moment.
+  const existing = timers.get(itemId);
+  if (existing) clearTimeout(existing);
   setIds(s => s.add(itemId));
   timers.set(itemId, setTimeout(() => commit(listId, itemId), UNDO_MS));
   toast(label, {

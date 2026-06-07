@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Button } from '../components/Button';
@@ -6,7 +6,7 @@ import { toast } from '../components/Toast';
 import { listParked, retryParked, discardParked, type ParkedOp } from '../offline/outbox';
 import { useSyncStatus } from '../offline/syncStatus';
 import type { ClientOp } from '../offline/ops';
-import { colors, radii, spacing, type, HIT_SLOP } from '../theme';
+import { HIT_SLOP, makeType, radii, spacing, useColors, type Palette } from '../theme';
 
 // Human label per op kind. A Record over the union forces every new op kind to get a label.
 const OP_LABELS: Record<ClientOp['kind'], string> = {
@@ -29,6 +29,9 @@ const OP_LABELS: Record<ClientOp['kind'], string> = {
   'list.memberRoleChange': 'Change member role',
   'list.memberRemove': 'Remove member',
   'list.leave': 'Leave list',
+  'list.delete': 'Delete list',
+  'list.archive': 'Archive list',
+  'list.restore': 'Restore list',
 };
 
 /**
@@ -41,6 +44,8 @@ export function SyncIssuesScreen() {
   const failed = useSyncStatus(s => s.failed);
   const rev = useSyncStatus(s => s.mirrorRevision);
   const [rows, setRows] = useState<ParkedOp[]>([]);
+  const c = useColors();
+  const styles = useMemo(() => makeStyles(c), [c]);
 
   const reload = useCallback(() => {
     void listParked().then(setRows);
@@ -60,7 +65,7 @@ export function SyncIssuesScreen() {
   if (rows.length === 0) {
     return (
       <View style={styles.empty}>
-        <Ionicons name="checkmark-circle-outline" size={48} color={colors.textDisabled} />
+        <Ionicons name="checkmark-circle-outline" size={48} color={c.textDisabled} />
         <Text style={styles.emptyText}>All changes are synced.</Text>
       </View>
     );
@@ -74,7 +79,7 @@ export function SyncIssuesScreen() {
         contentContainerStyle={styles.list}
         ListHeaderComponent={
           <View style={styles.header}>
-            <Text style={type.small}>
+            <Text style={styles.headerText}>
               These changes couldn&apos;t be saved to the server. Retry them, or discard ones you no longer want.
             </Text>
             <Button title="Retry all" onPress={onRetryAll} style={styles.retry} />
@@ -84,7 +89,7 @@ export function SyncIssuesScreen() {
         renderItem={({ item }) => (
           <View style={styles.row}>
             <View style={styles.rowText}>
-              <Text style={type.body}>{OP_LABELS[item.op.kind]}</Text>
+              <Text style={styles.opLabel}>{OP_LABELS[item.op.kind]}</Text>
               {item.lastError ? <Text style={styles.error} numberOfLines={2}>{item.lastError}</Text> : null}
             </View>
             <Pressable
@@ -103,18 +108,23 @@ export function SyncIssuesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  fill: { flex: 1, backgroundColor: colors.bg },
-  list: { padding: spacing.lg },
-  header: { gap: spacing.md, marginBottom: spacing.lg },
-  retry: { alignSelf: 'stretch' },
-  sep: { height: 1, backgroundColor: colors.divider },
-  row: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.md, gap: spacing.md },
-  rowText: { flex: 1, gap: spacing.xs },
-  error: { ...type.hint, color: colors.danger },
-  discard: { borderWidth: 1, borderColor: colors.danger, borderRadius: radii.md, paddingVertical: spacing.sm, paddingHorizontal: spacing.md },
-  discardText: { ...type.button, color: colors.danger },
-  pressed: { opacity: 0.6 },
-  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md, backgroundColor: colors.bg },
-  emptyText: { ...type.body, color: colors.textMuted },
-});
+const makeStyles = (c: Palette) => {
+  const t = makeType(c);
+  return StyleSheet.create({
+    fill: { flex: 1, backgroundColor: c.bg },
+    list: { padding: spacing.lg },
+    header: { gap: spacing.md, marginBottom: spacing.lg },
+    headerText: { ...t.small },
+    opLabel: { ...t.body },
+    retry: { alignSelf: 'stretch' },
+    sep: { height: 1, backgroundColor: c.divider },
+    row: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.md, gap: spacing.md },
+    rowText: { flex: 1, gap: spacing.xs },
+    error: { ...t.hint, color: c.danger },
+    discard: { borderWidth: 1, borderColor: c.danger, borderRadius: radii.md, paddingVertical: spacing.sm, paddingHorizontal: spacing.md },
+    discardText: { ...t.button, color: c.danger },
+    pressed: { opacity: 0.6 },
+    empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md, backgroundColor: c.bg },
+    emptyText: { ...t.body, color: c.textMuted },
+  });
+};

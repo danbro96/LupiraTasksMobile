@@ -11,6 +11,9 @@ import {
 import {
   postLists,
   patchListsListId,
+  deleteListsListId,
+  postListsListIdArchive,
+  postListsListIdRestore,
   postListsListIdMembers,
   patchListsListIdMembersMemberEmail,
   deleteListsListIdMembersMemberEmail,
@@ -46,7 +49,10 @@ export type ClientOp =
   | (Base & { kind: 'list.memberAdd'; listId: Guid; email: string; role: ListRole })
   | (Base & { kind: 'list.memberRoleChange'; listId: Guid; email: string; role: ListRole })
   | (Base & { kind: 'list.memberRemove'; listId: Guid; email: string })
-  | (Base & { kind: 'list.leave'; listId: Guid; email: string });
+  | (Base & { kind: 'list.leave'; listId: Guid; email: string })
+  | (Base & { kind: 'list.delete'; listId: Guid })
+  | (Base & { kind: 'list.archive'; listId: Guid })
+  | (Base & { kind: 'list.restore'; listId: Guid });
 
 /** Stamp a fresh command id + client wall-clock for a new op. */
 export function stamp(): Base {
@@ -98,6 +104,9 @@ export function opToEvents(op: ClientOp): ItemEvent[] {
     case 'list.memberRoleChange':
     case 'list.memberRemove':
     case 'list.leave':
+    case 'list.delete':
+    case 'list.archive':
+    case 'list.restore':
       return [];
   }
 }
@@ -162,6 +171,15 @@ export async function replayOp(op: ClientOp): Promise<void> {
     case 'list.memberRemove':
     case 'list.leave':
       await deleteListsListIdMembersMemberEmail(op.listId, encodeURIComponent(op.email), idem);
+      return;
+    case 'list.delete':
+      await deleteListsListId(op.listId, idem);
+      return;
+    case 'list.archive':
+      await postListsListIdArchive(op.listId, idem);
+      return;
+    case 'list.restore':
+      await postListsListIdRestore(op.listId, idem);
       return;
   }
 }

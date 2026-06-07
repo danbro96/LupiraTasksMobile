@@ -1,13 +1,25 @@
 import { useEffect } from 'react';
+import { useColorScheme } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as Sentry from '@sentry/react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme, DarkTheme, type Theme } from '@react-navigation/native';
 import { RootStack } from './src/navigation/RootStack';
 import { ToastHost } from './src/components/Toast';
 import { useAuth } from './src/store/auth-store';
 import { startSync, syncAll } from './src/offline/sync';
 import { SENTRY_DSN } from './src/config';
+import { lightColors, darkColors } from './src/theme';
+
+/** React Navigation theme derived from our palette so headers/backgrounds match the app. */
+function navTheme(scheme: string | null | undefined): Theme {
+  const p = scheme === 'dark' ? darkColors : lightColors;
+  const base = scheme === 'dark' ? DarkTheme : DefaultTheme;
+  return {
+    ...base,
+    colors: { ...base.colors, primary: p.primary, background: p.bg, card: p.bg, text: p.text, border: p.divider, notification: p.danger },
+  };
+}
 
 // Crash analytics. SENTRY_DSN is a public client key in src/config.ts — Sentry no-ops when empty.
 const sentryDsn = SENTRY_DSN;
@@ -20,6 +32,7 @@ Sentry.init({
 
 function App() {
   const loaded = useAuth(s => s.loaded);
+  const scheme = useColorScheme();
 
   useEffect(() => {
     void (async () => {
@@ -37,11 +50,11 @@ function App() {
 
   return (
     <SafeAreaProvider>
-      <NavigationContainer>
+      <NavigationContainer theme={navTheme(scheme)}>
         <RootStack />
       </NavigationContainer>
       <ToastHost />
-      <StatusBar style="dark" />
+      <StatusBar style="auto" />
     </SafeAreaProvider>
   );
 }
