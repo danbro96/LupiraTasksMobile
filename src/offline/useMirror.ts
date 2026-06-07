@@ -25,15 +25,17 @@ export function useLists(): { lists: ListResponse[]; loading: boolean } {
   return { lists, loading };
 }
 
-export function useItems(listId: string): { items: ItemState[] } {
+export function useItems(listId: string): { items: ItemState[]; loading: boolean } {
   const rev = useSyncStatus(s => s.mirrorRevision);
   const [items, setItems] = useState<ItemState[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const reload = useCallback(async () => {
     const db = await getDb();
     setItems(await getItemsByList(db, listId));
+    setLoading(false);
   }, [listId]);
 
   useEffect(() => { void reload(); }, [reload, rev]);
-  return { items };
+  return { items, loading };
 }

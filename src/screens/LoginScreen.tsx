@@ -7,6 +7,7 @@ import { decodeJwt, exchangeAuthCode } from '../auth/oidc';
 import { logAuth, clearAuthLog } from '../auth/authDebug';
 import { DebugPanel } from '../debug/DebugPanel';
 import { useAuth } from '../store/auth-store';
+import { colors, radii, spacing, type } from '../theme';
 
 // Required so the auth redirect back into the app dismisses the in-app browser.
 WebBrowser.maybeCompleteAuthSession();
@@ -145,12 +146,12 @@ export function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, backgroundColor: '#fff' },
-  title: { fontSize: 26, fontWeight: '700' },
-  subtitle: { marginTop: 8, marginBottom: 28, fontSize: 15, color: '#6e7686' },
-  button: { backgroundColor: '#1d3a5f', borderRadius: 10, paddingVertical: 14, paddingHorizontal: 28, minWidth: 240, alignItems: 'center' },
+  container: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl, backgroundColor: colors.bg },
+  title: { ...type.title },
+  subtitle: { marginTop: spacing.sm, marginBottom: 28, fontSize: 15, color: colors.textMuted },
+  button: { backgroundColor: colors.primary, borderRadius: radii.lg, paddingVertical: 14, paddingHorizontal: 28, minWidth: 240, alignItems: 'center' },
   buttonDisabled: { opacity: 0.5 },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  error: { marginTop: 16, color: '#b3261e', textAlign: 'center' },
-  hint: { marginTop: 12, fontSize: 11, color: '#aab0bc' },
+  buttonText: { color: colors.onPrimary, fontSize: 16, fontWeight: '600' },
+  error: { marginTop: spacing.lg, color: colors.danger, textAlign: 'center' },
+  hint: { marginTop: spacing.md, fontSize: 11, color: colors.textDisabled },
 });

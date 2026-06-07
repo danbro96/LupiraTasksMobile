@@ -1,9 +1,11 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Pressable, Text } from 'react-native';
 import { ListsScreen } from '../screens/ListsScreen';
 import { ListDetailScreen } from '../screens/ListDetailScreen';
 import { ListSettingsScreen } from '../screens/ListSettingsScreen';
+import { TaskDetailScreen } from '../screens/TaskDetailScreen';
+import { AccountScreen } from '../screens/AccountScreen';
 import { LoginScreen } from '../screens/LoginScreen';
+import { IconButton } from '../components/IconButton';
 import { useAuth } from '../store/auth-store';
 import type { RootStackParamList } from './types';
 
@@ -19,25 +21,17 @@ export function RootStack() {
           <Stack.Screen
             name="Lists"
             component={ListsScreen}
-            options={{
+            options={({ navigation }) => ({
               title: 'Lupira Tasks',
               headerRight: () => (
-                <Pressable onPress={() => void useAuth.getState().clearSession()} hitSlop={8}>
-                  <Text style={{ color: '#1d3a5f', fontSize: 15 }}>Sign out</Text>
-                </Pressable>
+                <IconButton name="person-circle-outline" accessibilityLabel="Account" onPress={() => navigation.navigate('Account')} />
               ),
-            }}
+            })}
           />
-          <Stack.Screen
-            name="ListDetail"
-            component={ListDetailScreen}
-            options={({ route }) => ({ title: route.params.name })}
-          />
-          <Stack.Screen
-            name="ListSettings"
-            component={ListSettingsScreen}
-            options={{ title: 'List settings' }}
-          />
+          <Stack.Screen name="ListDetail" component={ListDetailScreen} options={({ route }) => ({ title: route.params.name })} />
+          <Stack.Screen name="ListSettings" component={ListSettingsScreen} options={{ title: 'List settings' }} />
+          <Stack.Screen name="TaskDetail" component={TaskDetailScreen} options={{ title: 'Task' }} />
+          <Stack.Screen name="Account" component={AccountScreen} options={{ title: 'Account' }} />
         </>
       ) : (
         <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />

@@ -14,11 +14,15 @@ interface SyncStatus {
   lastError: string | null;
   pending: number;
   mirrorRevision: number;
+  /** True once the first full sync attempt of this session has completed (success OR failure).
+   *  Lets screens show a spinner instead of an "empty" state before the first pull lands. */
+  firstSyncDone: boolean;
   setOnline: (online: boolean) => void;
   setServerReachable: (reachable: boolean) => void;
   setFailed: (failed: number) => void;
   setLastError: (lastError: string | null) => void;
   setPending: (pending: number) => void;
+  setFirstSyncDone: (done: boolean) => void;
   bump: () => void;
 }
 
@@ -29,11 +33,13 @@ export const useSyncStatus = create<SyncStatus>(set => ({
   lastError: null,
   pending: 0,
   mirrorRevision: 0,
+  firstSyncDone: false,
   setOnline: online => set({ online }),
   setServerReachable: serverReachable => set({ serverReachable }),
   setFailed: failed => set({ failed }),
   setLastError: lastError => set({ lastError }),
   setPending: pending => set({ pending }),
+  setFirstSyncDone: done => set({ firstSyncDone: done }),
   bump: () => set(s => ({ mirrorRevision: s.mirrorRevision + 1 })),
 }));
 

@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import * as SecureStore from 'expo-secure-store';
 import { DEFAULT_API_URL } from '../config';
 import { refreshTokens } from '../auth/oidc';
+import { useSyncStatus } from '../offline/syncStatus';
 
 const KEY_API_URL = 'lupira.tasks.apiUrl';
 const KEY_TOKEN = 'lupira.tasks.token';
@@ -123,6 +124,8 @@ export const useAuth = create<AuthState & AuthActions>((set, get) => ({
       SecureStore.deleteItemAsync(KEY_USER_NAME),
     ]);
     set({ token: null, refreshToken: null, expiresAt: null, user: null });
+    // Next signed-in user starts fresh: show the initial-load spinner until their first sync.
+    useSyncStatus.getState().setFirstSyncDone(false);
   },
 
   refreshIfNeeded: async () => {

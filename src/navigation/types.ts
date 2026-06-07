@@ -5,4 +5,6 @@ export type RootStackParamList = {
   Lists: undefined;
   ListDetail: { listId: string; name: string };
   ListSettings: { listId: string; name: string };
+  TaskDetail: { listId: string; itemId: string };
+  Account: undefined;
 };

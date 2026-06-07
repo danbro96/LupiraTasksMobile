@@ -1,5 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 import type { OpStatus } from '../offline/useOutboxStatus';
+import { colors } from '../theme';
 
 /** Tiny per-row sync indicator: amber = queued (pending), red = failed to sync. Nothing when synced. */
 export function SyncDot({ status }: { status?: OpStatus }) {
@@ -14,6 +15,6 @@ export function SyncDot({ status }: { status?: OpStatus }) {
 
 const styles = StyleSheet.create({
   dot: { width: 9, height: 9, borderRadius: 5 },
-  pending: { backgroundColor: '#d8a200' },
-  failed: { backgroundColor: '#b3261e' },
+  pending: { backgroundColor: colors.pending },
+  failed: { backgroundColor: colors.failed },
 });

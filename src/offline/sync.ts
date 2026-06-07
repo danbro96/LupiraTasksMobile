@@ -169,6 +169,10 @@ async function runSync(): Promise<void> {
     if (isNetworkError(e)) status.setServerReachable(false);
     status.setLastError(msg);
     logDebug('sync:error', msg);
+  } finally {
+    // Whether the sync succeeded or failed, the first attempt is done — screens can stop
+    // showing the initial-load spinner and fall back to cached data / empty states.
+    status.setFirstSyncDone(true);
   }
 }
 
