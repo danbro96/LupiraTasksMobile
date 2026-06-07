@@ -4,7 +4,7 @@ import { applyItemEvent } from './itemLww';
 import { emptyItemState } from './itemState';
 import {
   getDb, getItemState, putItemState, putListDoc, insertOutbox,
-  pendingOutbox, pendingCount, deleteOutbox, bumpOutboxFailure, parkedCount,
+  pendingOutbox, pendingCount, deleteOutbox, bumpOutboxFailure, parkedCount, parkedOutbox, requeueOutbox,
   getListDoc, deleteListLocal,
 } from './db';
 import { type ClientOp, opToEvents } from './ops';
@@ -18,6 +18,40 @@ export { bumpMirror } from './syncStatus';
 export async function refreshPending(): Promise<void> {
   const db = await getDb();
   useSyncStatus.getState().setPending(await pendingCount(db));
+}
+
+export async function refreshFailed(): Promise<void> {
+  const db = await getDb();
+  useSyncStatus.getState().setFailed(await parkedCount(db));
+}
+
+/** A parked op surfaced to the "Sync issues" recovery UI: its id, the action, and why it failed. */
+export interface ParkedOp {
+  seq: number;
+  op: ClientOp;
+  lastError: string | null;
+}
+
+export async function listParked(): Promise<ParkedOp[]> {
+  const db = await getDb();
+  return (await parkedOutbox(db)).map(r => ({ seq: r.seq, op: JSON.parse(r.op_json) as ClientOp, lastError: r.last_error }));
+}
+
+/** Re-queue every parked op (reset attempts) and kick a fresh drain. */
+export async function retryParked(): Promise<void> {
+  const db = await getDb();
+  for (const r of await parkedOutbox(db)) await requeueOutbox(db, r.seq);
+  await refreshPending();
+  await refreshFailed();
+  void drainOutbox();
+}
+
+/** Permanently drop a parked op the user has chosen to abandon. */
+export async function discardParked(seq: number): Promise<void> {
+  const db = await getDb();
+  await deleteOutbox(db, seq);
+  await refreshFailed();
+  bumpMirror();
 }
 
 function actor(): string | null {

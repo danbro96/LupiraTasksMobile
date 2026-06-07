@@ -5,27 +5,12 @@
  * Task and command processing backend for Lupira. Authenticate with a Bearer token issued by the OIDC provider (Authentik).
  * OpenAPI spec version: v1
  */
-import {
-  useMutation
-} from '@tanstack/react-query';
-import type {
-  MutationFunction,
-  QueryClient,
-  UseMutationOptions,
-  UseMutationResult
-} from '@tanstack/react-query';
-
 import type {
   GetListsListIdSyncParams,
   SyncResponse
 } from '../models';
 
 import { apiFetch } from '../../mutator';
-
-
-type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
-
-
 
 export type getListsListIdSyncResponse200 = {
   data: SyncResponse
@@ -87,49 +72,3 @@ export const getListsListIdSync = async (listId: string,
 );}
 
 
-
-
-export const getGetListsListIdSyncMutationOptions = <TError = void,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof getListsListIdSync>>, TError,{listId: string;params?: GetListsListIdSyncParams}, TContext>, request?: SecondParameter<typeof apiFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof getListsListIdSync>>, TError,{listId: string;params?: GetListsListIdSyncParams}, TContext> => {
-
-const mutationKey = ['getListsListIdSync'];
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof getListsListIdSync>>, {listId: string;params?: GetListsListIdSyncParams}> = (props) => {
-          const {listId,params} = props ?? {};
-
-          return  getListsListIdSync(listId,params,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type GetListsListIdSyncMutationResult = NonNullable<Awaited<ReturnType<typeof getListsListIdSync>>>
-
-    export type GetListsListIdSyncMutationError = void
-
-    /**
- * @summary Offline delta-pull for a list (Viewer+).
- */
-export const useGetListsListIdSync = <TError = void,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof getListsListIdSync>>, TError,{listId: string;params?: GetListsListIdSyncParams}, TContext>, request?: SecondParameter<typeof apiFetch>}
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof getListsListIdSync>>,
-        TError,
-        {listId: string;params?: GetListsListIdSyncParams},
-        TContext
-      > => {
-      return useMutation(getGetListsListIdSyncMutationOptions(options), queryClient);
-    }

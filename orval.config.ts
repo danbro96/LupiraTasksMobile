@@ -10,7 +10,10 @@ import { defineConfig } from 'orval';
  * Output mode: `tags-split` — one file per OpenAPI tag, giving cleaner imports
  * and tighter PR diffs.
  *
- * Client: `react-query` — generates typed hooks that wrap react-query directly.
+ * Client: `fetch` — generates plain typed fetch functions (no react-query hooks). The app
+ * reads through the offline SQLite mirror and calls these raw fetchers directly from the
+ * sync/outbox layer, so react-query's cache is unused; keeping it out avoids a second,
+ * mirror-unaware cache and a redundant dependency.
  *
  * Mutator: `./src/api/mutator.ts#apiFetch` — owns base URL, auth token, and
  * error normalisation. Reads `useAuth.getState()` at call time so the API URL
@@ -23,16 +26,10 @@ export default defineConfig({
       mode: 'tags-split',
       target: './src/api/generated/api.ts',
       schemas: './src/api/generated/models',
-      client: 'react-query',
-      httpClient: 'fetch',
+      client: 'fetch',
       baseUrl: '',
       override: {
         mutator: { path: './src/api/mutator.ts', name: 'apiFetch' },
-        query: {
-          useQuery: true,
-          useMutation: true,
-          signal: true,
-        },
       },
       clean: true,
     },

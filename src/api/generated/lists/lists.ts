@@ -5,25 +5,6 @@
  * Task and command processing backend for Lupira. Authenticate with a Bearer token issued by the OIDC provider (Authentik).
  * OpenAPI spec version: v1
  */
-import {
-  useMutation,
-  useQuery
-} from '@tanstack/react-query';
-import type {
-  DataTag,
-  DefinedInitialDataOptions,
-  DefinedUseQueryResult,
-  MutationFunction,
-  QueryClient,
-  QueryFunction,
-  QueryKey,
-  UndefinedInitialDataOptions,
-  UseMutationOptions,
-  UseMutationResult,
-  UseQueryOptions,
-  UseQueryResult
-} from '@tanstack/react-query';
-
 import type {
   AddMemberRequest,
   CreateListRequest,
@@ -36,11 +17,6 @@ import type {
 } from '../models';
 
 import { apiFetch } from '../../mutator';
-
-
-type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
-
-
 
 export type getListsResponse200 = {
   data: ListCollectionResponse
@@ -92,53 +68,7 @@ export const getLists = async (params?: GetListsParams, options?: RequestInit): 
 );}
 
 
-
-
-export const getGetListsMutationOptions = <TError = void,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof getLists>>, TError,{params?: GetListsParams}, TContext>, request?: SecondParameter<typeof apiFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof getLists>>, TError,{params?: GetListsParams}, TContext> => {
-
-const mutationKey = ['getLists'];
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof getLists>>, {params?: GetListsParams}> = (props) => {
-          const {params} = props ?? {};
-
-          return  getLists(params,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type GetListsMutationResult = NonNullable<Awaited<ReturnType<typeof getLists>>>
-
-    export type GetListsMutationError = void
-
-    /**
- * @summary List the lists the caller is a member of.
- */
-export const useGetLists = <TError = void,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof getLists>>, TError,{params?: GetListsParams}, TContext>, request?: SecondParameter<typeof apiFetch>}
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof getLists>>,
-        TError,
-        {params?: GetListsParams},
-        TContext
-      > => {
-      return useMutation(getGetListsMutationOptions(options), queryClient);
-    }
-    export type postListsResponse200 = {
+export type postListsResponse200 = {
   data: ListResponse
   status: 200
 }
@@ -184,83 +114,6 @@ export const postLists = async (createListRequest: CreateListRequest, options?: 
     body: JSON.stringify(createListRequest)
   }
 );}
-
-
-
-
-
-export const getPostListsQueryKey = (createListRequest?: CreateListRequest,) => {
-    return [
-    'POST', `/lists`, createListRequest
-    ] as const;
-    }
-
-
-export const getPostListsQueryOptions = <TData = Awaited<ReturnType<typeof postLists>>, TError = ProblemDetails | void>(createListRequest: CreateListRequest, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof postLists>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getPostListsQueryKey(createListRequest);
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof postLists>>> = ({ signal }) => postLists(createListRequest, { signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof postLists>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type PostListsQueryResult = NonNullable<Awaited<ReturnType<typeof postLists>>>
-export type PostListsQueryError = ProblemDetails | void
-
-
-export function usePostLists<TData = Awaited<ReturnType<typeof postLists>>, TError = ProblemDetails | void>(
- createListRequest: CreateListRequest, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof postLists>>, TError, TData>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof postLists>>,
-          TError,
-          Awaited<ReturnType<typeof postLists>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof apiFetch>}
- , queryClient?: QueryClient
-  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function usePostLists<TData = Awaited<ReturnType<typeof postLists>>, TError = ProblemDetails | void>(
- createListRequest: CreateListRequest, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof postLists>>, TError, TData>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof postLists>>,
-          TError,
-          Awaited<ReturnType<typeof postLists>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof apiFetch>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function usePostLists<TData = Awaited<ReturnType<typeof postLists>>, TError = ProblemDetails | void>(
- createListRequest: CreateListRequest, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof postLists>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-/**
- * @summary Create a list; the caller becomes Owner.
- */
-
-export function usePostLists<TData = Awaited<ReturnType<typeof postLists>>, TError = ProblemDetails | void>(
- createListRequest: CreateListRequest, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof postLists>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
- , queryClient?: QueryClient
- ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getPostListsQueryOptions(createListRequest,options)
-
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
-
-
-
 
 
 export type getListsListIdResponse200 = {
@@ -310,53 +163,7 @@ export const getListsListId = async (listId: string, options?: RequestInit): Pro
 );}
 
 
-
-
-export const getGetListsListIdMutationOptions = <TError = void,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof getListsListId>>, TError,{listId: string}, TContext>, request?: SecondParameter<typeof apiFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof getListsListId>>, TError,{listId: string}, TContext> => {
-
-const mutationKey = ['getListsListId'];
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof getListsListId>>, {listId: string}> = (props) => {
-          const {listId} = props ?? {};
-
-          return  getListsListId(listId,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type GetListsListIdMutationResult = NonNullable<Awaited<ReturnType<typeof getListsListId>>>
-
-    export type GetListsListIdMutationError = void
-
-    /**
- * @summary Get a list with its members and tags (Viewer+).
- */
-export const useGetListsListId = <TError = void,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof getListsListId>>, TError,{listId: string}, TContext>, request?: SecondParameter<typeof apiFetch>}
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof getListsListId>>,
-        TError,
-        {listId: string},
-        TContext
-      > => {
-      return useMutation(getGetListsListIdMutationOptions(options), queryClient);
-    }
-    export type patchListsListIdResponse200 = {
+export type patchListsListIdResponse200 = {
   data: ListResponse
   status: 200
 }
@@ -410,89 +217,6 @@ export const patchListsListId = async (listId: string,
 );}
 
 
-
-
-
-export const getPatchListsListIdQueryKey = (listId: string,
-    updateListRequest?: UpdateListRequest,) => {
-    return [
-    'PATCH', `/lists/${listId}`, updateListRequest
-    ] as const;
-    }
-
-
-export const getPatchListsListIdQueryOptions = <TData = Awaited<ReturnType<typeof patchListsListId>>, TError = ProblemDetails | void>(listId: string,
-    updateListRequest: UpdateListRequest, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof patchListsListId>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getPatchListsListIdQueryKey(listId,updateListRequest);
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof patchListsListId>>> = ({ signal }) => patchListsListId(listId,updateListRequest, { signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, enabled: listId !== null && listId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof patchListsListId>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type PatchListsListIdQueryResult = NonNullable<Awaited<ReturnType<typeof patchListsListId>>>
-export type PatchListsListIdQueryError = ProblemDetails | void
-
-
-export function usePatchListsListId<TData = Awaited<ReturnType<typeof patchListsListId>>, TError = ProblemDetails | void>(
- listId: string,
-    updateListRequest: UpdateListRequest, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof patchListsListId>>, TError, TData>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof patchListsListId>>,
-          TError,
-          Awaited<ReturnType<typeof patchListsListId>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof apiFetch>}
- , queryClient?: QueryClient
-  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function usePatchListsListId<TData = Awaited<ReturnType<typeof patchListsListId>>, TError = ProblemDetails | void>(
- listId: string,
-    updateListRequest: UpdateListRequest, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof patchListsListId>>, TError, TData>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof patchListsListId>>,
-          TError,
-          Awaited<ReturnType<typeof patchListsListId>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof apiFetch>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function usePatchListsListId<TData = Awaited<ReturnType<typeof patchListsListId>>, TError = ProblemDetails | void>(
- listId: string,
-    updateListRequest: UpdateListRequest, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof patchListsListId>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-/**
- * @summary Rename / recolor a list (Editor+).
- */
-
-export function usePatchListsListId<TData = Awaited<ReturnType<typeof patchListsListId>>, TError = ProblemDetails | void>(
- listId: string,
-    updateListRequest: UpdateListRequest, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof patchListsListId>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
- , queryClient?: QueryClient
- ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getPatchListsListIdQueryOptions(listId,updateListRequest,options)
-
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
-
-
-
-
-
 export type deleteListsListIdResponse204 = {
   data: void
   status: 204
@@ -538,83 +262,6 @@ export const deleteListsListId = async (listId: string, options?: RequestInit): 
 
   }
 );}
-
-
-
-
-
-export const getDeleteListsListIdQueryKey = (listId: string,) => {
-    return [
-    'DELETE', `/lists/${listId}`
-    ] as const;
-    }
-
-
-export const getDeleteListsListIdQueryOptions = <TData = Awaited<ReturnType<typeof deleteListsListId>>, TError = void>(listId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof deleteListsListId>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getDeleteListsListIdQueryKey(listId);
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof deleteListsListId>>> = ({ signal }) => deleteListsListId(listId, { signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, enabled: listId !== null && listId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof deleteListsListId>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type DeleteListsListIdQueryResult = NonNullable<Awaited<ReturnType<typeof deleteListsListId>>>
-export type DeleteListsListIdQueryError = void
-
-
-export function useDeleteListsListId<TData = Awaited<ReturnType<typeof deleteListsListId>>, TError = void>(
- listId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof deleteListsListId>>, TError, TData>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof deleteListsListId>>,
-          TError,
-          Awaited<ReturnType<typeof deleteListsListId>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof apiFetch>}
- , queryClient?: QueryClient
-  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useDeleteListsListId<TData = Awaited<ReturnType<typeof deleteListsListId>>, TError = void>(
- listId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof deleteListsListId>>, TError, TData>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof deleteListsListId>>,
-          TError,
-          Awaited<ReturnType<typeof deleteListsListId>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof apiFetch>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useDeleteListsListId<TData = Awaited<ReturnType<typeof deleteListsListId>>, TError = void>(
- listId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof deleteListsListId>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-/**
- * @summary Delete a list (Owner). Tombstone — stream retained.
- */
-
-export function useDeleteListsListId<TData = Awaited<ReturnType<typeof deleteListsListId>>, TError = void>(
- listId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof deleteListsListId>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
- , queryClient?: QueryClient
- ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getDeleteListsListIdQueryOptions(listId,options)
-
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
-
-
-
 
 
 export type postListsListIdArchiveResponse200 = {
@@ -664,83 +311,6 @@ export const postListsListIdArchive = async (listId: string, options?: RequestIn
 );}
 
 
-
-
-
-export const getPostListsListIdArchiveQueryKey = (listId: string,) => {
-    return [
-    'POST', `/lists/${listId}/archive`
-    ] as const;
-    }
-
-
-export const getPostListsListIdArchiveQueryOptions = <TData = Awaited<ReturnType<typeof postListsListIdArchive>>, TError = void>(listId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof postListsListIdArchive>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getPostListsListIdArchiveQueryKey(listId);
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof postListsListIdArchive>>> = ({ signal }) => postListsListIdArchive(listId, { signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, enabled: listId !== null && listId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof postListsListIdArchive>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type PostListsListIdArchiveQueryResult = NonNullable<Awaited<ReturnType<typeof postListsListIdArchive>>>
-export type PostListsListIdArchiveQueryError = void
-
-
-export function usePostListsListIdArchive<TData = Awaited<ReturnType<typeof postListsListIdArchive>>, TError = void>(
- listId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof postListsListIdArchive>>, TError, TData>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof postListsListIdArchive>>,
-          TError,
-          Awaited<ReturnType<typeof postListsListIdArchive>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof apiFetch>}
- , queryClient?: QueryClient
-  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function usePostListsListIdArchive<TData = Awaited<ReturnType<typeof postListsListIdArchive>>, TError = void>(
- listId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof postListsListIdArchive>>, TError, TData>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof postListsListIdArchive>>,
-          TError,
-          Awaited<ReturnType<typeof postListsListIdArchive>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof apiFetch>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function usePostListsListIdArchive<TData = Awaited<ReturnType<typeof postListsListIdArchive>>, TError = void>(
- listId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof postListsListIdArchive>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-/**
- * @summary Archive a list (Owner). Soft — items retained.
- */
-
-export function usePostListsListIdArchive<TData = Awaited<ReturnType<typeof postListsListIdArchive>>, TError = void>(
- listId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof postListsListIdArchive>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
- , queryClient?: QueryClient
- ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getPostListsListIdArchiveQueryOptions(listId,options)
-
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
-
-
-
-
-
 export type postListsListIdRestoreResponse200 = {
   data: ListResponse
   status: 200
@@ -786,83 +356,6 @@ export const postListsListIdRestore = async (listId: string, options?: RequestIn
 
   }
 );}
-
-
-
-
-
-export const getPostListsListIdRestoreQueryKey = (listId: string,) => {
-    return [
-    'POST', `/lists/${listId}/restore`
-    ] as const;
-    }
-
-
-export const getPostListsListIdRestoreQueryOptions = <TData = Awaited<ReturnType<typeof postListsListIdRestore>>, TError = void>(listId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof postListsListIdRestore>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getPostListsListIdRestoreQueryKey(listId);
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof postListsListIdRestore>>> = ({ signal }) => postListsListIdRestore(listId, { signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, enabled: listId !== null && listId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof postListsListIdRestore>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type PostListsListIdRestoreQueryResult = NonNullable<Awaited<ReturnType<typeof postListsListIdRestore>>>
-export type PostListsListIdRestoreQueryError = void
-
-
-export function usePostListsListIdRestore<TData = Awaited<ReturnType<typeof postListsListIdRestore>>, TError = void>(
- listId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof postListsListIdRestore>>, TError, TData>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof postListsListIdRestore>>,
-          TError,
-          Awaited<ReturnType<typeof postListsListIdRestore>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof apiFetch>}
- , queryClient?: QueryClient
-  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function usePostListsListIdRestore<TData = Awaited<ReturnType<typeof postListsListIdRestore>>, TError = void>(
- listId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof postListsListIdRestore>>, TError, TData>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof postListsListIdRestore>>,
-          TError,
-          Awaited<ReturnType<typeof postListsListIdRestore>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof apiFetch>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function usePostListsListIdRestore<TData = Awaited<ReturnType<typeof postListsListIdRestore>>, TError = void>(
- listId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof postListsListIdRestore>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-/**
- * @summary Restore an archived list (Owner).
- */
-
-export function usePostListsListIdRestore<TData = Awaited<ReturnType<typeof postListsListIdRestore>>, TError = void>(
- listId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof postListsListIdRestore>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
- , queryClient?: QueryClient
- ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getPostListsListIdRestoreQueryOptions(listId,options)
-
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
-
-
-
 
 
 export type postListsListIdMembersResponse200 = {
@@ -917,89 +410,6 @@ export const postListsListIdMembers = async (listId: string,
     body: JSON.stringify(addMemberRequest)
   }
 );}
-
-
-
-
-
-export const getPostListsListIdMembersQueryKey = (listId: string,
-    addMemberRequest?: AddMemberRequest,) => {
-    return [
-    'POST', `/lists/${listId}/members`, addMemberRequest
-    ] as const;
-    }
-
-
-export const getPostListsListIdMembersQueryOptions = <TData = Awaited<ReturnType<typeof postListsListIdMembers>>, TError = ProblemDetails | void>(listId: string,
-    addMemberRequest: AddMemberRequest, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof postListsListIdMembers>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getPostListsListIdMembersQueryKey(listId,addMemberRequest);
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof postListsListIdMembers>>> = ({ signal }) => postListsListIdMembers(listId,addMemberRequest, { signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, enabled: listId !== null && listId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof postListsListIdMembers>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type PostListsListIdMembersQueryResult = NonNullable<Awaited<ReturnType<typeof postListsListIdMembers>>>
-export type PostListsListIdMembersQueryError = ProblemDetails | void
-
-
-export function usePostListsListIdMembers<TData = Awaited<ReturnType<typeof postListsListIdMembers>>, TError = ProblemDetails | void>(
- listId: string,
-    addMemberRequest: AddMemberRequest, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof postListsListIdMembers>>, TError, TData>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof postListsListIdMembers>>,
-          TError,
-          Awaited<ReturnType<typeof postListsListIdMembers>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof apiFetch>}
- , queryClient?: QueryClient
-  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function usePostListsListIdMembers<TData = Awaited<ReturnType<typeof postListsListIdMembers>>, TError = ProblemDetails | void>(
- listId: string,
-    addMemberRequest: AddMemberRequest, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof postListsListIdMembers>>, TError, TData>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof postListsListIdMembers>>,
-          TError,
-          Awaited<ReturnType<typeof postListsListIdMembers>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof apiFetch>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function usePostListsListIdMembers<TData = Awaited<ReturnType<typeof postListsListIdMembers>>, TError = ProblemDetails | void>(
- listId: string,
-    addMemberRequest: AddMemberRequest, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof postListsListIdMembers>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-/**
- * @summary Add a member by email (any member; defaults to Editor).
- */
-
-export function usePostListsListIdMembers<TData = Awaited<ReturnType<typeof postListsListIdMembers>>, TError = ProblemDetails | void>(
- listId: string,
-    addMemberRequest: AddMemberRequest, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof postListsListIdMembers>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
- , queryClient?: QueryClient
- ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getPostListsListIdMembersQueryOptions(listId,addMemberRequest,options)
-
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
-
-
-
 
 
 export type patchListsListIdMembersMemberEmailResponse200 = {
@@ -1062,95 +472,6 @@ export const patchListsListIdMembersMemberEmail = async (listId: string,
 );}
 
 
-
-
-
-export const getPatchListsListIdMembersMemberEmailQueryKey = (listId: string,
-    memberEmail: string,
-    updateMemberRoleRequest?: UpdateMemberRoleRequest,) => {
-    return [
-    'PATCH', `/lists/${listId}/members/${memberEmail}`, updateMemberRoleRequest
-    ] as const;
-    }
-
-
-export const getPatchListsListIdMembersMemberEmailQueryOptions = <TData = Awaited<ReturnType<typeof patchListsListIdMembersMemberEmail>>, TError = ProblemDetails | void>(listId: string,
-    memberEmail: string,
-    updateMemberRoleRequest: UpdateMemberRoleRequest, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof patchListsListIdMembersMemberEmail>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getPatchListsListIdMembersMemberEmailQueryKey(listId,memberEmail,updateMemberRoleRequest);
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof patchListsListIdMembersMemberEmail>>> = ({ signal }) => patchListsListIdMembersMemberEmail(listId,memberEmail,updateMemberRoleRequest, { signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, enabled: listId !== null && listId !== undefined && memberEmail !== null && memberEmail !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof patchListsListIdMembersMemberEmail>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type PatchListsListIdMembersMemberEmailQueryResult = NonNullable<Awaited<ReturnType<typeof patchListsListIdMembersMemberEmail>>>
-export type PatchListsListIdMembersMemberEmailQueryError = ProblemDetails | void
-
-
-export function usePatchListsListIdMembersMemberEmail<TData = Awaited<ReturnType<typeof patchListsListIdMembersMemberEmail>>, TError = ProblemDetails | void>(
- listId: string,
-    memberEmail: string,
-    updateMemberRoleRequest: UpdateMemberRoleRequest, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof patchListsListIdMembersMemberEmail>>, TError, TData>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof patchListsListIdMembersMemberEmail>>,
-          TError,
-          Awaited<ReturnType<typeof patchListsListIdMembersMemberEmail>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof apiFetch>}
- , queryClient?: QueryClient
-  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function usePatchListsListIdMembersMemberEmail<TData = Awaited<ReturnType<typeof patchListsListIdMembersMemberEmail>>, TError = ProblemDetails | void>(
- listId: string,
-    memberEmail: string,
-    updateMemberRoleRequest: UpdateMemberRoleRequest, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof patchListsListIdMembersMemberEmail>>, TError, TData>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof patchListsListIdMembersMemberEmail>>,
-          TError,
-          Awaited<ReturnType<typeof patchListsListIdMembersMemberEmail>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof apiFetch>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function usePatchListsListIdMembersMemberEmail<TData = Awaited<ReturnType<typeof patchListsListIdMembersMemberEmail>>, TError = ProblemDetails | void>(
- listId: string,
-    memberEmail: string,
-    updateMemberRoleRequest: UpdateMemberRoleRequest, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof patchListsListIdMembersMemberEmail>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-/**
- * @summary Change a member's role (Owner only).
- */
-
-export function usePatchListsListIdMembersMemberEmail<TData = Awaited<ReturnType<typeof patchListsListIdMembersMemberEmail>>, TError = ProblemDetails | void>(
- listId: string,
-    memberEmail: string,
-    updateMemberRoleRequest: UpdateMemberRoleRequest, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof patchListsListIdMembersMemberEmail>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
- , queryClient?: QueryClient
- ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getPatchListsListIdMembersMemberEmailQueryOptions(listId,memberEmail,updateMemberRoleRequest,options)
-
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
-
-
-
-
-
 export type deleteListsListIdMembersMemberEmailResponse204 = {
   data: void
   status: 204
@@ -1208,88 +529,5 @@ export const deleteListsListIdMembersMemberEmail = async (listId: string,
 
   }
 );}
-
-
-
-
-
-export const getDeleteListsListIdMembersMemberEmailQueryKey = (listId: string,
-    memberEmail: string,) => {
-    return [
-    'DELETE', `/lists/${listId}/members/${memberEmail}`
-    ] as const;
-    }
-
-
-export const getDeleteListsListIdMembersMemberEmailQueryOptions = <TData = Awaited<ReturnType<typeof deleteListsListIdMembersMemberEmail>>, TError = ProblemDetails | void>(listId: string,
-    memberEmail: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof deleteListsListIdMembersMemberEmail>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getDeleteListsListIdMembersMemberEmailQueryKey(listId,memberEmail);
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof deleteListsListIdMembersMemberEmail>>> = ({ signal }) => deleteListsListIdMembersMemberEmail(listId,memberEmail, { signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, enabled: listId !== null && listId !== undefined && memberEmail !== null && memberEmail !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof deleteListsListIdMembersMemberEmail>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type DeleteListsListIdMembersMemberEmailQueryResult = NonNullable<Awaited<ReturnType<typeof deleteListsListIdMembersMemberEmail>>>
-export type DeleteListsListIdMembersMemberEmailQueryError = ProblemDetails | void
-
-
-export function useDeleteListsListIdMembersMemberEmail<TData = Awaited<ReturnType<typeof deleteListsListIdMembersMemberEmail>>, TError = ProblemDetails | void>(
- listId: string,
-    memberEmail: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof deleteListsListIdMembersMemberEmail>>, TError, TData>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof deleteListsListIdMembersMemberEmail>>,
-          TError,
-          Awaited<ReturnType<typeof deleteListsListIdMembersMemberEmail>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof apiFetch>}
- , queryClient?: QueryClient
-  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useDeleteListsListIdMembersMemberEmail<TData = Awaited<ReturnType<typeof deleteListsListIdMembersMemberEmail>>, TError = ProblemDetails | void>(
- listId: string,
-    memberEmail: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof deleteListsListIdMembersMemberEmail>>, TError, TData>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof deleteListsListIdMembersMemberEmail>>,
-          TError,
-          Awaited<ReturnType<typeof deleteListsListIdMembersMemberEmail>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof apiFetch>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useDeleteListsListIdMembersMemberEmail<TData = Awaited<ReturnType<typeof deleteListsListIdMembersMemberEmail>>, TError = ProblemDetails | void>(
- listId: string,
-    memberEmail: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof deleteListsListIdMembersMemberEmail>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-/**
- * @summary Remove a member, or leave (self). Last owner leaving deletes the list for everyone.
- */
-
-export function useDeleteListsListIdMembersMemberEmail<TData = Awaited<ReturnType<typeof deleteListsListIdMembersMemberEmail>>, TError = ProblemDetails | void>(
- listId: string,
-    memberEmail: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof deleteListsListIdMembersMemberEmail>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
- , queryClient?: QueryClient
- ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getDeleteListsListIdMembersMemberEmailQueryOptions(listId,memberEmail,options)
-
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
-
-
-
 
 

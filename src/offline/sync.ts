@@ -1,15 +1,15 @@
 import { AppState } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
-import { onlineManager } from '@tanstack/react-query';
 import { useAuth } from '../store/auth-store';
 import { getListsListIdSync } from '../api/generated/sync/sync';
 import { getLists } from '../api/generated/lists/lists';
 import { getMe } from '../api/generated/me/me';
 import type { ItemResponse } from '../api/generated/models';
 import {
-  getDb, getItemState, putItemState, putListDoc, pendingOutbox, setCursor,
-  getListIds, deleteListLocal, allOutboxOps,
+  getDb, getItemState, putItemState, putListDoc, pendingOutbox, pendingOutboxForList, setCursor,
+  getListIds, deleteListLocal,
 } from './db';
+import { listIdsOf } from './outboxScope';
 import { type ItemState, ZERO_GUID, emptyItemState } from './itemState';
 import { applyItemEvent } from './itemLww';
 import { type ClientOp, opToEvents } from './ops';
@@ -80,12 +80,11 @@ export async function pullLists(): Promise<string[]> {
   const serverIds = serverLists.map(l => l.id);
   const mirrorIds = await getListIds(db);
 
-  // Lists referenced by ANY un-acked outbox row (pending OR parked) must survive a prune —
-  // otherwise a freshly-created list whose push hasn't succeeded yet would be wiped.
-  const protectedIds = new Set<string>();
-  for (const row of await allOutboxOps(db)) {
-    protectedIds.add((JSON.parse(row.op_json) as ClientOp).listId);
-  }
+  // Lists referenced by a PENDING outbox row must survive a prune — otherwise a freshly-created
+  // list whose push hasn't succeeded yet would be wiped. Parked rows do NOT protect: a parked op
+  // on a server-deleted list would otherwise zombie that list forever (it can never reconcile);
+  // the user clears parked ops from the "Sync issues" view instead.
+  const protectedIds = listIdsOf(await pendingOutbox(db));
 
   const toPrune = listsToPrune(mirrorIds, serverIds, protectedIds);
   logDebug('pullLists', `server=${serverIds.length} mirror=${mirrorIds.length} protected=${protectedIds.size} prune=${toPrune.length}`);
@@ -123,8 +122,9 @@ export async function pullList(listId: string): Promise<void> {
       await putItemState(db, itemResponseToState(it));
     }
 
-    // Rebase: re-apply non-acked local ops on top of the server base.
-    for (const row of await pendingOutbox(db)) {
+    // Rebase: re-apply this list's not-yet-acked local ops on top of the server base. Scoped to
+    // the list so pulling N lists doesn't re-apply (and re-write) every other list's ops N times.
+    for (const row of await pendingOutboxForList(db, listId)) {
       const op = JSON.parse(row.op_json) as ClientOp;
       if (op.kind === 'list.create') continue;
       for (const ev of opToEvents(op)) {
@@ -177,13 +177,10 @@ async function runSync(): Promise<void> {
 }
 
 /**
- * Wire connectivity + lifecycle to sync: feed react-query's onlineManager from NetInfo, and
- * run a full sync on regained connectivity and on app foreground. Returns an unsubscribe.
+ * Wire connectivity + lifecycle to sync: track online state from NetInfo and run a full sync
+ * on regained connectivity and on app foreground. Returns an unsubscribe.
  */
 export function startSync(): () => void {
-  onlineManager.setEventListener(setOnline =>
-    NetInfo.addEventListener(state => setOnline(!!state.isConnected)),
-  );
   const netSub = NetInfo.addEventListener(state => {
     const online = !!state.isConnected;
     useSyncStatus.getState().setOnline(online);

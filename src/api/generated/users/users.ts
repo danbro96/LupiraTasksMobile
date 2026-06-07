@@ -5,27 +5,12 @@
  * Task and command processing backend for Lupira. Authenticate with a Bearer token issued by the OIDC provider (Authentik).
  * OpenAPI spec version: v1
  */
-import {
-  useMutation
-} from '@tanstack/react-query';
-import type {
-  MutationFunction,
-  QueryClient,
-  UseMutationOptions,
-  UseMutationResult
-} from '@tanstack/react-query';
-
 import type {
   DirectoryResponse,
   GetUsersDirectoryParams
 } from '../models';
 
 import { apiFetch } from '../../mutator';
-
-
-type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
-
-
 
 export type getUsersDirectoryResponse200 = {
   data: DirectoryResponse
@@ -77,49 +62,3 @@ export const getUsersDirectory = async (params?: GetUsersDirectoryParams, option
 );}
 
 
-
-
-export const getGetUsersDirectoryMutationOptions = <TError = void,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof getUsersDirectory>>, TError,{params?: GetUsersDirectoryParams}, TContext>, request?: SecondParameter<typeof apiFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof getUsersDirectory>>, TError,{params?: GetUsersDirectoryParams}, TContext> => {
-
-const mutationKey = ['getUsersDirectory'];
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof getUsersDirectory>>, {params?: GetUsersDirectoryParams}> = (props) => {
-          const {params} = props ?? {};
-
-          return  getUsersDirectory(params,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type GetUsersDirectoryMutationResult = NonNullable<Awaited<ReturnType<typeof getUsersDirectory>>>
-
-    export type GetUsersDirectoryMutationError = void
-
-    /**
- * @summary People seen across the caller's shared lists (for adding members).
- */
-export const useGetUsersDirectory = <TError = void,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof getUsersDirectory>>, TError,{params?: GetUsersDirectoryParams}, TContext>, request?: SecondParameter<typeof apiFetch>}
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof getUsersDirectory>>,
-        TError,
-        {params?: GetUsersDirectoryParams},
-        TContext
-      > => {
-      return useMutation(getGetUsersDirectoryMutationOptions(options), queryClient);
-    }

@@ -7,4 +7,5 @@ export type RootStackParamList = {
   ListSettings: { listId: string; name: string };
   TaskDetail: { listId: string; itemId: string };
   Account: undefined;
+  SyncIssues: undefined;
 };

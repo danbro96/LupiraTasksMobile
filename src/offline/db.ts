@@ -1,5 +1,6 @@
 import * as SQLite from 'expo-sqlite';
 import type { ItemState } from './itemState';
+import { rowsForList } from './outboxScope';
 
 // One SQLite database holds the offline read-model mirror (lists + items as JSON docs)
 // and the durable mutation outbox, so an optimistic apply + enqueue commit atomically.
@@ -150,20 +151,38 @@ export async function pendingOutbox(db: SQLite.SQLiteDatabase): Promise<OutboxRo
   );
 }
 
+/** Pending rows that target a single list — used to scope a list's rebase to its own ops. */
+export async function pendingOutboxForList(db: SQLite.SQLiteDatabase, listId: string): Promise<OutboxRow[]> {
+  return rowsForList(await pendingOutbox(db), listId);
+}
+
 export async function pendingCount(db: SQLite.SQLiteDatabase): Promise<number> {
   const row = await db.getFirstAsync<{ n: number }>(`SELECT COUNT(*) AS n FROM outbox WHERE status = 'pending'`);
   return row?.n ?? 0;
-}
-
-/** op_json of every un-acked outbox row (pending OR parked) — used to protect lists from prune. */
-export async function allOutboxOps(db: SQLite.SQLiteDatabase): Promise<{ op_json: string }[]> {
-  return db.getAllAsync<{ op_json: string }>(`SELECT op_json FROM outbox`);
 }
 
 /** Count of outbox rows parked after a non-retryable failure (surfaced to the user). */
 export async function parkedCount(db: SQLite.SQLiteDatabase): Promise<number> {
   const row = await db.getFirstAsync<{ n: number }>(`SELECT COUNT(*) AS n FROM outbox WHERE status = 'parked'`);
   return row?.n ?? 0;
+}
+
+export interface ParkedRow {
+  seq: number;
+  op_json: string;
+  last_error: string | null;
+}
+
+/** Parked rows with their error, for the "Sync issues" recovery UI. */
+export async function parkedOutbox(db: SQLite.SQLiteDatabase): Promise<ParkedRow[]> {
+  return db.getAllAsync<ParkedRow>(
+    `SELECT seq, op_json, last_error FROM outbox WHERE status = 'parked' ORDER BY seq ASC`,
+  );
+}
+
+/** Move a parked row back to pending (reset attempts) so the next drain re-attempts it. */
+export async function requeueOutbox(db: SQLite.SQLiteDatabase, seq: number): Promise<void> {
+  await db.runAsync(`UPDATE outbox SET status = 'pending', attempts = 0, last_error = NULL WHERE seq = ?`, [seq]);
 }
 
 /** Every outbox row's op + status — used to badge mirror rows as pending/failed. */

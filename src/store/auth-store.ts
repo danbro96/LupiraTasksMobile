@@ -4,6 +4,10 @@ import { DEFAULT_API_URL } from '../config';
 import { refreshTokens } from '../auth/oidc';
 import { useSyncStatus } from '../offline/syncStatus';
 
+// One shared in-flight refresh. Concurrent callers await it instead of each POSTing the
+// refresh token (mirrors the syncing/draining guards). See refreshIfNeeded for why.
+let refreshing: Promise<string | null> | null = null;
+
 const KEY_API_URL = 'lupira.tasks.apiUrl';
 const KEY_TOKEN = 'lupira.tasks.token';
 const KEY_REFRESH = 'lupira.tasks.refreshToken';
@@ -133,21 +137,29 @@ export const useAuth = create<AuthState & AuthActions>((set, get) => ({
     if (!token) return null;
     const fresh = expiresAt ? Date.now() < expiresAt - 60_000 : false;
     if (fresh || !refreshToken || !user) return token;
-    try {
-      const t = await refreshTokens(refreshToken);
-      if (!t.accessToken) return token;
-      const next: Session = {
-        accessToken: t.accessToken,
-        refreshToken: t.refreshToken ?? refreshToken,
-        expiresAt: Date.now() + (t.expiresIn ?? 3600) * 1000,
-      };
-      await get().setSession(next, user);
-      return next.accessToken;
-    } catch {
-      // Refresh failed (revoked/expired) — drop the session so the user re-authenticates.
-      await get().clearSession();
-      return null;
-    }
+    // Coalesce concurrent refreshes: an enqueue-triggered drain firing while a foreground
+    // sync is already mid-refresh must NOT POST the refresh token a second time — with
+    // Authentik rotation the second send replays an already-rotated token, which fails and
+    // forces an unexpected logout. The first caller owns the request; the rest await it.
+    if (refreshing) return refreshing;
+    refreshing = (async (): Promise<string | null> => {
+      try {
+        const t = await refreshTokens(refreshToken);
+        if (!t.accessToken) return token;
+        const next: Session = {
+          accessToken: t.accessToken,
+          refreshToken: t.refreshToken ?? refreshToken,
+          expiresAt: Date.now() + (t.expiresIn ?? 3600) * 1000,
+        };
+        await get().setSession(next, user);
+        return next.accessToken;
+      } catch {
+        // Refresh failed (revoked/expired) — drop the session so the user re-authenticates.
+        await get().clearSession();
+        return null;
+      }
+    })().finally(() => { refreshing = null; });
+    return refreshing;
   },
 
   isAuthenticated: () => !!get().token && !!get().user,

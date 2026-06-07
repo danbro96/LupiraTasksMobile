@@ -4,6 +4,7 @@ import { ListDetailScreen } from '../screens/ListDetailScreen';
 import { ListSettingsScreen } from '../screens/ListSettingsScreen';
 import { TaskDetailScreen } from '../screens/TaskDetailScreen';
 import { AccountScreen } from '../screens/AccountScreen';
+import { SyncIssuesScreen } from '../screens/SyncIssuesScreen';
 import { LoginScreen } from '../screens/LoginScreen';
 import { IconButton } from '../components/IconButton';
 import { useAuth } from '../store/auth-store';
@@ -32,6 +33,7 @@ export function RootStack() {
           <Stack.Screen name="ListSettings" component={ListSettingsScreen} options={{ title: 'List settings' }} />
           <Stack.Screen name="TaskDetail" component={TaskDetailScreen} options={{ title: 'Task' }} />
           <Stack.Screen name="Account" component={AccountScreen} options={{ title: 'Account' }} />
+          <Stack.Screen name="SyncIssues" component={SyncIssuesScreen} options={{ title: 'Sync issues' }} />
         </>
       ) : (
         <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />

@@ -5,26 +5,11 @@
  * Task and command processing backend for Lupira. Authenticate with a Bearer token issued by the OIDC provider (Authentik).
  * OpenAPI spec version: v1
  */
-import {
-  useMutation
-} from '@tanstack/react-query';
-import type {
-  MutationFunction,
-  QueryClient,
-  UseMutationOptions,
-  UseMutationResult
-} from '@tanstack/react-query';
-
 import type {
   MeResponse
 } from '../models';
 
 import { apiFetch } from '../../mutator';
-
-
-type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
-
-
 
 export type getMeResponse200 = {
   data: MeResponse
@@ -71,49 +56,3 @@ export const getMe = async ( options?: RequestInit): Promise<getMeResponse> => {
 );}
 
 
-
-
-export const getGetMeMutationOptions = <TError = void,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof getMe>>, TError,void, TContext>, request?: SecondParameter<typeof apiFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof getMe>>, TError,void, TContext> => {
-
-const mutationKey = ['getMe'];
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof getMe>>, void> = () => {
-
-
-          return  getMe(requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type GetMeMutationResult = NonNullable<Awaited<ReturnType<typeof getMe>>>
-
-    export type GetMeMutationError = void
-
-    /**
- * @summary Provision and return the caller's profile.
- */
-export const useGetMe = <TError = void,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof getMe>>, TError,void, TContext>, request?: SecondParameter<typeof apiFetch>}
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof getMe>>,
-        TError,
-        void,
-        TContext
-      > => {
-      return useMutation(getGetMeMutationOptions(options), queryClient);
-    }
