@@ -14,6 +14,8 @@ export type AuthUser = {
   /** The caller's email (= OIDC subject convention; used as the actor + identity). */
   sub: string;
   displayName?: string;
+  /** From the server `/me` profile; in-memory only (re-fetched each launch). */
+  isAdmin?: boolean;
 };
 
 export type Session = {
@@ -36,6 +38,8 @@ type AuthActions = {
   load: () => Promise<void>;
   setApiUrl: (apiUrl: string) => Promise<void>;
   setSession: (session: Session, user: AuthUser) => Promise<void>;
+  /** Merge server profile fields (from `/me`) into the cached user; persists displayName. */
+  updateProfile: (profile: { displayName?: string | null; isAdmin?: boolean }) => Promise<void>;
   clearSession: () => Promise<void>;
   /** Refresh the access token if it's expired/near-expiry; returns the live access token. */
   refreshIfNeeded: () => Promise<string | null>;
@@ -91,6 +95,22 @@ export const useAuth = create<AuthState & AuthActions>((set, get) => ({
       refreshToken: session.refreshToken ?? null,
       expiresAt: session.expiresAt,
       user,
+    });
+  },
+
+  updateProfile: async ({ displayName, isAdmin }) => {
+    const cur = get().user;
+    if (!cur) return;
+    if (displayName !== undefined) {
+      if (displayName) await SecureStore.setItemAsync(KEY_USER_NAME, displayName);
+      else await SecureStore.deleteItemAsync(KEY_USER_NAME);
+    }
+    set({
+      user: {
+        ...cur,
+        displayName: displayName === undefined ? cur.displayName : (displayName ?? undefined),
+        isAdmin: isAdmin === undefined ? cur.isAdmin : isAdmin,
+      },
     });
   },
 

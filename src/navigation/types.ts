@@ -4,4 +4,5 @@ export type RootStackParamList = {
   Login: undefined;
   Lists: undefined;
   ListDetail: { listId: string; name: string };
+  ListSettings: { listId: string; name: string };
 };

@@ -6,8 +6,9 @@ import { NavigationContainer } from '@react-navigation/native';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from './src/query/queryClient';
 import { RootStack } from './src/navigation/RootStack';
+import { ToastHost } from './src/components/Toast';
 import { useAuth } from './src/store/auth-store';
-import { startSync } from './src/offline/outbox';
+import { startSync, syncAll } from './src/offline/sync';
 import { SENTRY_DSN } from './src/config';
 
 // Crash analytics. SENTRY_DSN is a public client key in src/config.ts — Sentry no-ops when empty.
@@ -26,6 +27,9 @@ function App() {
     void (async () => {
       await useAuth.getState().load();
       await useAuth.getState().refreshIfNeeded();
+      // Initial load from the server (no-op if not signed in). Subsequent syncs fire on
+      // reconnect/foreground via startSync, and per-list on open/pull-to-refresh.
+      void syncAll();
     })();
     const stopSync = startSync();
     return stopSync;
@@ -40,6 +44,7 @@ function App() {
           <RootStack />
         </NavigationContainer>
       </QueryClientProvider>
+      <ToastHost />
       <StatusBar style="dark" />
     </SafeAreaProvider>
   );

@@ -6,13 +6,16 @@
  * OpenAPI spec version: v1
  */
 
+export * from './addMemberRequest';
 export * from './createItemRequest';
 export * from './createListRequest';
 export * from './deleteListsListIdItemsItemIdParams';
+export * from './directoryPerson';
+export * from './directoryResponse';
 export * from './getListsListIdItemsParams';
 export * from './getListsListIdSyncParams';
 export * from './getListsParams';
-export * from './healthResponse';
+export * from './getUsersDirectoryParams';
 export * from './itemCollectionResponse';
 export * from './itemResponse';
 export * from './itemTimestampRequest';
@@ -28,3 +31,4 @@ export * from './syncResponse';
 export * from './tagResponse';
 export * from './updateItemRequest';
 export * from './updateListRequest';
+export * from './updateMemberRoleRequest';

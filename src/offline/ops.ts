@@ -8,8 +8,14 @@ import {
   postListsListIdItemsItemIdMove,
   deleteListsListIdItemsItemId,
 } from '../api/generated/items/items';
-import { postLists } from '../api/generated/lists/lists';
-import type { ListKind } from '../api/generated/models';
+import {
+  postLists,
+  patchListsListId,
+  postListsListIdMembers,
+  patchListsListIdMembersMemberEmail,
+  deleteListsListIdMembersMemberEmail,
+} from '../api/generated/lists/lists';
+import type { ListKind, ListRole } from '../api/generated/models';
 
 // A ClientOp is one user action. It is the unit the outbox persists, optimistically
 // applies to the local mirror (via opToEvents → the LWW reducer), and replays to the API
@@ -34,7 +40,13 @@ export type ClientOp =
   | (Base & { kind: 'item.reopen'; listId: Guid; itemId: Guid })
   | (Base & { kind: 'item.move'; listId: Guid; itemId: Guid; sortOrder: string; parentItemId: Guid | null })
   | (Base & { kind: 'item.delete'; listId: Guid; itemId: Guid })
-  | (Base & { kind: 'list.create'; listId: Guid; name: string; listKind: ListKind; color: string | null });
+  | (Base & { kind: 'list.create'; listId: Guid; name: string; listKind: ListKind; color: string | null })
+  | (Base & { kind: 'list.rename'; listId: Guid; name: string })
+  | (Base & { kind: 'list.recolor'; listId: Guid; color: string | null })
+  | (Base & { kind: 'list.memberAdd'; listId: Guid; email: string; role: ListRole })
+  | (Base & { kind: 'list.memberRoleChange'; listId: Guid; email: string; role: ListRole })
+  | (Base & { kind: 'list.memberRemove'; listId: Guid; email: string })
+  | (Base & { kind: 'list.leave'; listId: Guid; email: string });
 
 /** Stamp a fresh command id + client wall-clock for a new op. */
 export function stamp(): Base {
@@ -77,7 +89,15 @@ export function opToEvents(op: ClientOp): ItemEvent[] {
       return [{ type: 'ItemMoved', itemId: op.itemId, parentItemId: op.parentItemId, sortOrder: op.sortOrder, occurredAt, commandId }];
     case 'item.delete':
       return [{ type: 'ItemDeleted', itemId: op.itemId, occurredAt, commandId }];
+    // List/membership ops don't drive item state; their optimistic effect is applied to the
+    // mirrored list doc (see applyListOp in listDoc.ts), so they produce no item events.
     case 'list.create':
+    case 'list.rename':
+    case 'list.recolor':
+    case 'list.memberAdd':
+    case 'list.memberRoleChange':
+    case 'list.memberRemove':
+    case 'list.leave':
       return [];
   }
 }
@@ -125,6 +145,22 @@ export async function replayOp(op: ClientOp): Promise<void> {
       return;
     case 'list.create':
       await postLists({ id: op.listId, name: op.name, kind: op.listKind, color: op.color }, idem);
+      return;
+    case 'list.rename':
+      await patchListsListId(op.listId, { name: op.name }, idem);
+      return;
+    case 'list.recolor':
+      await patchListsListId(op.listId, { color: op.color, colorProvided: true }, idem);
+      return;
+    case 'list.memberAdd':
+      await postListsListIdMembers(op.listId, { email: op.email, role: op.role }, idem);
+      return;
+    case 'list.memberRoleChange':
+      await patchListsListIdMembersMemberEmail(op.listId, op.email, { role: op.role }, idem);
+      return;
+    case 'list.memberRemove':
+    case 'list.leave':
+      await deleteListsListIdMembersMemberEmail(op.listId, op.email, idem);
       return;
   }
 }

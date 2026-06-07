@@ -5,7 +5,8 @@
  * Task and command processing backend for Lupira. Authenticate with a Bearer token issued by the OIDC provider (Authentik).
  * OpenAPI spec version: v1
  */
+import type { DirectoryPerson } from './directoryPerson';
 
-export interface HealthResponse {
-  status: string;
+export interface DirectoryResponse {
+  people: DirectoryPerson[];
 }

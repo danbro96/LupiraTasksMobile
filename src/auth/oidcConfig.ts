@@ -12,3 +12,11 @@ export const OIDC_SCOPES = ['openid', 'email', 'profile', 'groups', 'offline_acc
 
 /** App scheme (app.json `scheme`) — the redirect URI is `<scheme>://...`. */
 export const OIDC_SCHEME = 'lupiratasks';
+
+/**
+ * Redirect path. A bare `lupiratasks://` has an empty authority that gets normalized to
+ * `lupiratasks:` on redirect, so expo-auth-session can't match the callback (→ 'dismiss').
+ * A non-empty path keeps the URI stable: `lupiratasks://oauthredirect`.
+ * NOTE: this exact URI must be registered as an allowed redirect URI on the Authentik provider.
+ */
+export const OIDC_REDIRECT_PATH = 'oauthredirect';

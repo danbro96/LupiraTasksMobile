@@ -16,6 +16,14 @@ export class ApiError extends Error {
   }
 }
 
+/** True for transport-level failures (timeout / unreachable host) — status 0, no HTTP response. */
+export function isNetworkError(e: unknown): boolean {
+  return e instanceof ApiError && e.status === 0;
+}
+
+/** Requests abort after this long so a dead/slow server fails fast instead of hanging forever. */
+export const REQUEST_TIMEOUT_MS = 10_000;
+
 /**
  * Custom fetch invoked by every Orval-generated request.
  *
@@ -69,7 +77,24 @@ export async function apiFetch<T>(
   // }
 
   const fullUrl = apiUrl.replace(/\/$/, '') + url;
-  const res = await fetch(fullUrl, { ...init, headers });
+
+  // Fail fast: a dead/slow host would otherwise hang the request (and the whole sync) forever.
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  let res: Response;
+  try {
+    res = await fetch(fullUrl, { ...init, headers, signal: controller.signal });
+  } catch (e) {
+    const aborted = e instanceof Error && e.name === 'AbortError';
+    throw new ApiError(
+      0,
+      aborted
+        ? `Request timed out after ${REQUEST_TIMEOUT_MS / 1000}s`
+        : `Network unreachable: ${e instanceof Error ? e.message : String(e)}`,
+    );
+  } finally {
+    clearTimeout(timer);
+  }
 
   if (!res.ok) {
     const text = await res.text().catch(() => res.statusText);

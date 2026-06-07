@@ -1,19 +1,46 @@
-import { useState } from 'react';
-import { Pressable, SectionList, StyleSheet, Text, TextInput, View } from 'react-native';
-import { useRoute, type RouteProp } from '@react-navigation/native';
+import { useEffect, useLayoutEffect, useState } from 'react';
+import { Pressable, RefreshControl, SectionList, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { generateKeyBetween } from 'fractional-indexing';
 import type { RootStackParamList } from '../navigation/types';
 import type { ItemState } from '../offline/itemState';
 import { SyncBanner } from '../components/SyncBanner';
+import { SyncDot } from '../components/SyncDot';
+import { toast } from '../components/Toast';
 import { useItems } from '../offline/useMirror';
+import { useOutboxStatus } from '../offline/useOutboxStatus';
 import { enqueue } from '../offline/outbox';
+import { pullList } from '../offline/sync';
 import { newId, stamp } from '../offline/ops';
 
 export function ListDetailScreen() {
   const { params } = useRoute<RouteProp<RootStackParamList, 'ListDetail'>>();
+  const nav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const listId = params.listId;
   const { items } = useItems(listId);
+  const opStatus = useOutboxStatus();
   const [title, setTitle] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Gear button → per-list settings (name, color, members).
+  useLayoutEffect(() => {
+    nav.setOptions({
+      headerRight: () => (
+        <Pressable onPress={() => nav.navigate('ListSettings', { listId, name: params.name })} hitSlop={8}>
+          <Text style={{ fontSize: 20 }}>⚙</Text>
+        </Pressable>
+      ),
+    });
+  }, [nav, listId, params.name]);
+
+  // Refresh this list from the server when opened (and on pull-to-refresh).
+  useEffect(() => { void pullList(listId); }, [listId]);
+
+  async function refresh() {
+    setRefreshing(true);
+    try { await pullList(listId); } catch { toast('Sync failed'); } finally { setRefreshing(false); }
+  }
 
   const active = items.filter(i => !i.completed);
   const done = items.filter(i => i.completed);
@@ -24,15 +51,27 @@ export function ListDetailScreen() {
     setTitle('');
     const lastKey = active.length ? active[active.length - 1].sortOrder : null;
     const sortOrder = generateKeyBetween(lastKey, null);
-    await enqueue({ ...stamp(), kind: 'item.create', listId, itemId: newId(), title: t, sortOrder, parentItemId: null });
+    try {
+      await enqueue({ ...stamp(), kind: 'item.create', listId, itemId: newId(), title: t, sortOrder, parentItemId: null });
+    } catch {
+      toast("Couldn't add item");
+    }
   }
 
   async function toggle(it: ItemState) {
-    await enqueue({ ...stamp(), kind: it.completed ? 'item.reopen' : 'item.complete', listId, itemId: it.id });
+    try {
+      await enqueue({ ...stamp(), kind: it.completed ? 'item.reopen' : 'item.complete', listId, itemId: it.id });
+    } catch {
+      toast("Couldn't update item");
+    }
   }
 
   async function remove(it: ItemState) {
-    await enqueue({ ...stamp(), kind: 'item.delete', listId, itemId: it.id });
+    try {
+      await enqueue({ ...stamp(), kind: 'item.delete', listId, itemId: it.id });
+    } catch {
+      toast("Couldn't delete item");
+    }
   }
 
   const sections = [
@@ -59,12 +98,14 @@ export function ListDetailScreen() {
       <SectionList
         sections={sections}
         keyExtractor={i => i.id}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
         renderSectionHeader={({ section }) => <Text style={styles.sectionHeader}>{section.title}</Text>}
         ListEmptyComponent={<Text style={styles.empty}>No items yet.</Text>}
         renderItem={({ item }) => (
           <Pressable style={styles.row} onPress={() => toggle(item)} onLongPress={() => remove(item)}>
             <Text style={styles.check}>{item.completed ? '☑' : '☐'}</Text>
             <Text style={[styles.itemTitle, item.completed && styles.itemDone]}>{item.title}</Text>
+            <SyncDot status={opStatus.get(item.id)} />
           </Pressable>
         )}
       />

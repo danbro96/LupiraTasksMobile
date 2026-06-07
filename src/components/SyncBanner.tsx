@@ -1,22 +1,20 @@
 import { StyleSheet, Text, View } from 'react-native';
-import { useSyncStatus } from '../offline/outbox';
+import { useSyncStatus } from '../offline/syncStatus';
+import { bannerState } from '../offline/bannerState';
 
-/** Always-visible offline/sync state so queued edits feel trustworthy. */
+/** Always-visible sync/error state so offline edits, unreachable server, and failures are obvious. */
 export function SyncBanner() {
   const online = useSyncStatus(s => s.online);
+  const serverReachable = useSyncStatus(s => s.serverReachable);
   const pending = useSyncStatus(s => s.pending);
+  const failed = useSyncStatus(s => s.failed);
 
-  if (online && pending === 0) return null;
-
-  const label = online
-    ? `Syncing ${pending} change${pending === 1 ? '' : 's'}…`
-    : pending > 0
-      ? `Offline — ${pending} change${pending === 1 ? '' : 's'} pending`
-      : 'Offline';
+  const state = bannerState({ online, serverReachable, pending, failed });
+  if (!state) return null;
 
   return (
-    <View style={[styles.banner, online ? styles.syncing : styles.offline]}>
-      <Text style={styles.text}>{label}</Text>
+    <View style={[styles.banner, styles[state.kind]]}>
+      <Text style={styles.text}>{state.text}</Text>
     </View>
   );
 }
@@ -24,6 +22,8 @@ export function SyncBanner() {
 const styles = StyleSheet.create({
   banner: { paddingVertical: 6, paddingHorizontal: 14 },
   offline: { backgroundColor: '#5b4b18' },
+  unreachable: { backgroundColor: '#7a1f1f' },
+  failed: { backgroundColor: '#7a1f1f' },
   syncing: { backgroundColor: '#1d3a5f' },
   text: { color: '#fff', fontSize: 13, textAlign: 'center' },
 });

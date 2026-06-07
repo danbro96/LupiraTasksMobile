@@ -1,11 +1,23 @@
+import { AppState } from 'react-native';
+import NetInfo from '@react-native-community/netinfo';
+import { onlineManager } from '@tanstack/react-query';
 import { useAuth } from '../store/auth-store';
 import { getListsListIdSync } from '../api/generated/sync/sync';
+import { getLists } from '../api/generated/lists/lists';
+import { getMe } from '../api/generated/me/me';
 import type { ItemResponse } from '../api/generated/models';
-import { getDb, getItemState, putItemState, putListDoc, pendingOutbox, setCursor } from './db';
+import {
+  getDb, getItemState, putItemState, putListDoc, pendingOutbox, setCursor,
+  getListIds, deleteListLocal, allOutboxOps,
+} from './db';
 import { type ItemState, ZERO_GUID, emptyItemState } from './itemState';
 import { applyItemEvent } from './itemLww';
 import { type ClientOp, opToEvents } from './ops';
-import { bumpMirror } from './outbox';
+import { bumpMirror, useSyncStatus } from './syncStatus';
+import { drainOutbox, refreshPending } from './outbox';
+import { listsToPrune } from './pruneLists';
+import { logDebug } from '../debug/log';
+import { isNetworkError } from '../api/mutator';
 
 function num(v: number | string | null | undefined): number | null {
   if (v === null || v === undefined) return null;
@@ -37,6 +49,59 @@ function itemResponseToState(r: ItemResponse): ItemState {
     qtyTs: ts, qtyCmd: ZERO_GUID, completedTs: ts, completedCmd: ZERO_GUID, moveTs: ts, moveCmd: ZERO_GUID,
     tagTs, tagCmd,
   };
+}
+
+/** Provision + cache the caller's `/me` profile (best-effort; non-fatal on failure). */
+export async function pullMe(): Promise<void> {
+  try {
+    const r = await getMe();
+    if (r.status !== 200) return;
+    await useAuth.getState().updateProfile({ displayName: r.data.displayName ?? null, isAdmin: r.data.isAdmin });
+  } catch (e) {
+    if (isNetworkError(e)) throw e; // let runSync mark the server unreachable
+    logDebug('pullMe:error', e instanceof Error ? e.message : String(e));
+  }
+}
+
+/**
+ * Pull the caller's active lists into the mirror and prune ones they no longer have access to
+ * (guarding lists with un-pushed local ops). Returns the server list ids (to pull items for).
+ * Falls back to the local ids if the server is unreachable.
+ */
+export async function pullLists(): Promise<string[]> {
+  const r = await getLists();
+  const db = await getDb();
+  if (r.status !== 200) {
+    logDebug('pullLists:non200', String(r.status));
+    return getListIds(db);
+  }
+
+  const serverLists = r.data.lists;
+  const serverIds = serverLists.map(l => l.id);
+  const mirrorIds = await getListIds(db);
+
+  // Lists referenced by ANY un-acked outbox row (pending OR parked) must survive a prune —
+  // otherwise a freshly-created list whose push hasn't succeeded yet would be wiped.
+  const protectedIds = new Set<string>();
+  for (const row of await allOutboxOps(db)) {
+    protectedIds.add((JSON.parse(row.op_json) as ClientOp).listId);
+  }
+
+  const toPrune = listsToPrune(mirrorIds, serverIds, protectedIds);
+  logDebug('pullLists', `server=${serverIds.length} mirror=${mirrorIds.length} protected=${protectedIds.size} prune=${toPrune.length}`);
+
+  await db.withTransactionAsync(async () => {
+    for (const list of serverLists) {
+      await putListDoc(db, { id: list.id, archived: list.isArchived, deleted: false, updatedAt: list.updatedAt, doc: list });
+    }
+    for (const id of toPrune) {
+      await deleteListLocal(db, id);
+      logDebug('prune', id);
+    }
+  });
+
+  bumpMirror();
+  return serverIds;
 }
 
 /**
@@ -72,4 +137,57 @@ export async function pullList(listId: string): Promise<void> {
   });
 
   bumpMirror();
+}
+
+// Coalesce overlapping full-syncs (foreground + reconnect can fire together).
+let syncing: Promise<void> | null = null;
+
+/**
+ * Full sync in the plan's push-then-pull order: provision /me, drain the outbox (push local
+ * edits), then pull lists + each list's items (which rebases any still-pending edits on top).
+ */
+export function syncAll(): Promise<void> {
+  if (!syncing) syncing = runSync().finally(() => { syncing = null; });
+  return syncing;
+}
+
+async function runSync(): Promise<void> {
+  const token = await useAuth.getState().refreshIfNeeded();
+  if (!token) { logDebug('sync:skip', 'no token'); return; } // not signed in — stay on cached mirror.
+  logDebug('sync:start');
+  const status = useSyncStatus.getState();
+  try {
+    await pullMe();
+    await drainOutbox();
+    const ids = await pullLists();
+    for (const id of ids) await pullList(id);
+    status.setServerReachable(true);
+    status.setLastError(null);
+    logDebug('sync:done', `lists=${ids.length}`);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (isNetworkError(e)) status.setServerReachable(false);
+    status.setLastError(msg);
+    logDebug('sync:error', msg);
+  }
+}
+
+/**
+ * Wire connectivity + lifecycle to sync: feed react-query's onlineManager from NetInfo, and
+ * run a full sync on regained connectivity and on app foreground. Returns an unsubscribe.
+ */
+export function startSync(): () => void {
+  onlineManager.setEventListener(setOnline =>
+    NetInfo.addEventListener(state => setOnline(!!state.isConnected)),
+  );
+  const netSub = NetInfo.addEventListener(state => {
+    const online = !!state.isConnected;
+    useSyncStatus.getState().setOnline(online);
+    if (online) void syncAll();
+  });
+  const appSub = AppState.addEventListener('change', s => {
+    if (s === 'active') void syncAll();
+  });
+  void refreshPending();
+  return () => { netSub(); appSub.remove(); };
 }

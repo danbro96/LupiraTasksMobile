@@ -11,27 +11,6 @@
     }
   ],
   "paths": {
-    "/healthz": {
-      "get": {
-        "tags": [
-          "Meta"
-        ],
-        "summary": "Liveness probe.",
-        "description": "Returns 200 with `{ \"status\": \"ok\" }` as soon as the process is up. Used by the\ncontainer healthcheck. Anonymous — no token required.",
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HealthResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/lists/{listId}/sync": {
       "get": {
         "tags": [
@@ -101,6 +80,44 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/MeResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/users/directory": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "People seen across the caller's shared lists (for adding members).",
+        "description": "`?q=` filters the distinct member emails (case-insensitive substring).",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DirectoryResponse"
                 }
               }
             }
@@ -456,6 +473,237 @@
           },
           "401": {
             "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/lists/{listId}/members": {
+      "post": {
+        "tags": [
+          "Lists"
+        ],
+        "summary": "Add a member by email (any member; defaults to Editor).",
+        "description": "Body `{ email, role? }`. Direct-add, no invite/accept. A wrong email is inert.",
+        "parameters": [
+          {
+            "name": "listId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Client-generated GUIDv7 command id. A redelivery with the same key is a no-op that returns the prior result (offline-safe retry).",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddMemberRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/lists/{listId}/members/{memberEmail}": {
+      "patch": {
+        "tags": [
+          "Lists"
+        ],
+        "summary": "Change a member's role (Owner only).",
+        "parameters": [
+          {
+            "name": "listId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "memberEmail",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Client-generated GUIDv7 command id. A redelivery with the same key is a no-op that returns the prior result (offline-safe retry).",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMemberRoleRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Lists"
+        ],
+        "summary": "Remove a member, or leave (self). Last owner leaving deletes the list for everyone.",
+        "parameters": [
+          {
+            "name": "listId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "memberEmail",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Client-generated GUIDv7 command id. A redelivery with the same key is a no-op that returns the prior result (offline-safe retry).",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           },
           "404": {
             "description": "Not Found"
@@ -1037,6 +1285,27 @@
   },
   "components": {
     "schemas": {
+      "AddMemberRequest": {
+        "required": [
+          "email"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "role": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ListRole"
+              }
+            ]
+          }
+        }
+      },
       "CreateItemRequest": {
         "required": [
           "id",
@@ -1135,14 +1404,34 @@
           }
         }
       },
-      "HealthResponse": {
+      "DirectoryPerson": {
         "required": [
-          "status"
+          "email"
         ],
         "type": "object",
         "properties": {
-          "status": {
+          "email": {
             "type": "string"
+          },
+          "displayName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "DirectoryResponse": {
+        "required": [
+          "people"
+        ],
+        "type": "object",
+        "properties": {
+          "people": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DirectoryPerson"
+            }
           }
         }
       },
@@ -1645,6 +1934,17 @@
             "type": "boolean"
           }
         }
+      },
+      "UpdateMemberRoleRequest": {
+        "required": [
+          "role"
+        ],
+        "type": "object",
+        "properties": {
+          "role": {
+            "$ref": "#/components/schemas/ListRole"
+          }
+        }
       }
     },
     "securitySchemes": {
@@ -1658,13 +1958,13 @@
   },
   "tags": [
     {
-      "name": "Meta"
-    },
-    {
       "name": "Sync"
     },
     {
       "name": "Me"
+    },
+    {
+      "name": "Users"
     },
     {
       "name": "Lists"

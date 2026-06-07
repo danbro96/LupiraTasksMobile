@@ -1,40 +1,21 @@
-import { create } from 'zustand';
-import NetInfo from '@react-native-community/netinfo';
-import { onlineManager } from '@tanstack/react-query';
 import { useAuth } from '../store/auth-store';
 import { ApiError } from '../api/mutator';
 import { applyItemEvent } from './itemLww';
 import { emptyItemState } from './itemState';
 import {
   getDb, getItemState, putItemState, putListDoc, insertOutbox,
-  pendingOutbox, pendingCount, deleteOutbox, bumpOutboxFailure,
+  pendingOutbox, pendingCount, deleteOutbox, bumpOutboxFailure, parkedCount,
+  getListDoc, deleteListLocal,
 } from './db';
 import { type ClientOp, opToEvents } from './ops';
+import { applyListOp } from './listDoc';
+import type { ListResponse } from '../api/generated/models';
+import { useSyncStatus, bumpMirror } from './syncStatus';
+import { logDebug } from '../debug/log';
 
-// Sync status surfaced to the UI (offline banner + pending badge).
-interface SyncStatus {
-  online: boolean;
-  pending: number;
-  mirrorRevision: number;
-  setOnline: (online: boolean) => void;
-  setPending: (pending: number) => void;
-  bump: () => void;
-}
-export const useSyncStatus = create<SyncStatus>(set => ({
-  online: true,
-  pending: 0,
-  mirrorRevision: 0,
-  setOnline: online => set({ online }),
-  setPending: pending => set({ pending }),
-  bump: () => set(s => ({ mirrorRevision: s.mirrorRevision + 1 })),
-}));
+export { bumpMirror } from './syncStatus';
 
-/** Notify mirror subscribers (screens) that local data changed, so they reload. */
-export function bumpMirror(): void {
-  useSyncStatus.getState().bump();
-}
-
-async function refreshPending(): Promise<void> {
+export async function refreshPending(): Promise<void> {
   const db = await getDb();
   useSyncStatus.getState().setPending(await pendingCount(db));
 }
@@ -69,16 +50,34 @@ export async function enqueue(op: ClientOp): Promise<void> {
   const db = await getDb();
   const who = actor();
 
-  await db.withTransactionAsync(async () => {
-    for (const ev of opToEvents(op)) {
-      const prev = (await getItemState(db, ev.itemId)) ?? emptyItemState();
-      await putItemState(db, applyItemEvent(prev, ev, who));
-    }
-    if (op.kind === 'list.create') {
-      await putListDoc(db, { id: op.listId, archived: false, deleted: false, updatedAt: op.occurredAt, doc: optimisticListDoc(op, who) });
-    }
-    await insertOutbox(db, op.commandId, JSON.stringify(op), op.occurredAt);
-  });
+  try {
+    await db.withTransactionAsync(async () => {
+      for (const ev of opToEvents(op)) {
+        const prev = (await getItemState(db, ev.itemId)) ?? emptyItemState();
+        await putItemState(db, applyItemEvent(prev, ev, who));
+      }
+      if (op.kind === 'list.create') {
+        await putListDoc(db, { id: op.listId, archived: false, deleted: false, updatedAt: op.occurredAt, doc: optimisticListDoc(op, who) });
+      } else if (op.kind.startsWith('list.')) {
+        // Optimistically patch the mirrored list doc (rename/recolor/membership). A null patch
+        // means the change deleted the list locally (last owner leaving).
+        const current = await getListDoc<ListResponse>(db, op.listId);
+        if (current) {
+          const patched = applyListOp(current, op, who);
+          if (patched === null) {
+            await deleteListLocal(db, op.listId);
+          } else {
+            await putListDoc(db, { id: patched.id, archived: patched.isArchived, deleted: false, updatedAt: patched.updatedAt, doc: patched });
+          }
+        }
+      }
+      await insertOutbox(db, op.commandId, JSON.stringify(op), op.occurredAt);
+    });
+  } catch (e) {
+    logDebug('enqueue:error', `${op.kind} ${String(e)}`);
+    throw e;
+  }
+  logDebug('enqueue:ok', op.kind === 'list.create' ? `list ${op.listId}` : op.kind);
 
   await refreshPending();
   bumpMirror();
@@ -108,38 +107,29 @@ async function runDrain(): Promise<void> {
         const { replayOp } = await import('./ops');
         await replayOp(op);
         await deleteOutbox(db, row.seq);
+        logDebug('replay:ok', op.kind);
       } catch (e) {
+        const status = useSyncStatus.getState();
         if (e instanceof ApiError) {
-          if (e.status === 401) break; // token expired — keep pending, stop until re-auth
+          if (e.status === 401) { logDebug('replay:401', op.kind); break; } // token expired — keep pending, stop until re-auth
           if (e.status >= 400 && e.status < 500) {
             // semantic conflict (404/409/400): park so it doesn't wedge the queue
             await bumpOutboxFailure(db, row.seq, 'parked', `${e.status} ${e.message}`);
+            logDebug('replay:parked', `${op.kind} ${e.status} ${String(e.message).slice(0, 200)}`);
+            status.setLastError(`${op.kind}: ${e.status} ${String(e.message).slice(0, 120)}`);
             continue;
           }
+          if (e.status === 0) status.setServerReachable(false); // timeout / unreachable
         }
         // network / 5xx: keep pending, stop, retry on next trigger
         await bumpOutboxFailure(db, row.seq, 'pending', String(e));
+        logDebug('replay:retry', `${op.kind} ${String(e).slice(0, 200)}`);
+        status.setLastError(e instanceof Error ? e.message : String(e));
         break;
       }
     }
   } finally {
     await refreshPending();
+    useSyncStatus.getState().setFailed(await parkedCount(db));
   }
-}
-
-/**
- * Wire connectivity: feed react-query's onlineManager from NetInfo and drain the outbox
- * whenever we regain connectivity. Returns an unsubscribe for the drain listener.
- */
-export function startSync(): () => void {
-  onlineManager.setEventListener(setOnline =>
-    NetInfo.addEventListener(state => setOnline(!!state.isConnected)),
-  );
-  const unsub = NetInfo.addEventListener(state => {
-    const online = !!state.isConnected;
-    useSyncStatus.getState().setOnline(online);
-    if (online) void drainOutbox();
-  });
-  void refreshPending();
-  return unsub;
 }

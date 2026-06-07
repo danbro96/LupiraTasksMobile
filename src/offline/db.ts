@@ -103,6 +103,25 @@ export async function getListDocs<T = unknown>(db: SQLite.SQLiteDatabase): Promi
   return rows.map(r => JSON.parse(r.doc_json) as T);
 }
 
+export async function getListDoc<T = unknown>(db: SQLite.SQLiteDatabase, id: string): Promise<T | null> {
+  const row = await db.getFirstAsync<{ doc_json: string }>(
+    `SELECT doc_json FROM lists WHERE id = ? AND deleted = 0`, [id],
+  );
+  return row ? (JSON.parse(row.doc_json) as T) : null;
+}
+
+export async function getListIds(db: SQLite.SQLiteDatabase): Promise<string[]> {
+  const rows = await db.getAllAsync<{ id: string }>(`SELECT id FROM lists WHERE deleted = 0`);
+  return rows.map(r => r.id);
+}
+
+/** Hard-remove a list and its items/cursor from the local mirror (server data is retained). */
+export async function deleteListLocal(db: SQLite.SQLiteDatabase, listId: string): Promise<void> {
+  await db.runAsync(`DELETE FROM items WHERE list_id = ?`, [listId]);
+  await db.runAsync(`DELETE FROM sync_state WHERE list_id = ?`, [listId]);
+  await db.runAsync(`DELETE FROM lists WHERE id = ?`, [listId]);
+}
+
 // --- Outbox ---
 
 export interface OutboxRow {
@@ -134,6 +153,22 @@ export async function pendingOutbox(db: SQLite.SQLiteDatabase): Promise<OutboxRo
 export async function pendingCount(db: SQLite.SQLiteDatabase): Promise<number> {
   const row = await db.getFirstAsync<{ n: number }>(`SELECT COUNT(*) AS n FROM outbox WHERE status = 'pending'`);
   return row?.n ?? 0;
+}
+
+/** op_json of every un-acked outbox row (pending OR parked) — used to protect lists from prune. */
+export async function allOutboxOps(db: SQLite.SQLiteDatabase): Promise<{ op_json: string }[]> {
+  return db.getAllAsync<{ op_json: string }>(`SELECT op_json FROM outbox`);
+}
+
+/** Count of outbox rows parked after a non-retryable failure (surfaced to the user). */
+export async function parkedCount(db: SQLite.SQLiteDatabase): Promise<number> {
+  const row = await db.getFirstAsync<{ n: number }>(`SELECT COUNT(*) AS n FROM outbox WHERE status = 'parked'`);
+  return row?.n ?? 0;
+}
+
+/** Every outbox row's op + status — used to badge mirror rows as pending/failed. */
+export async function allOutboxRows(db: SQLite.SQLiteDatabase): Promise<{ op_json: string; status: string }[]> {
+  return db.getAllAsync<{ op_json: string; status: string }>(`SELECT op_json, status FROM outbox`);
 }
 
 export async function deleteOutbox(db: SQLite.SQLiteDatabase, seq: number): Promise<void> {

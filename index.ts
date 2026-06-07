@@ -1,3 +1,6 @@
+// Must be first: polyfills global `crypto` (for uuid) before any module that mints an id loads.
+import './src/polyfills/crypto';
+
 import { registerRootComponent } from 'expo';
 
 import App from './App';

@@ -2,6 +2,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Pressable, Text } from 'react-native';
 import { ListsScreen } from '../screens/ListsScreen';
 import { ListDetailScreen } from '../screens/ListDetailScreen';
+import { ListSettingsScreen } from '../screens/ListSettingsScreen';
 import { LoginScreen } from '../screens/LoginScreen';
 import { useAuth } from '../store/auth-store';
 import type { RootStackParamList } from './types';
@@ -31,6 +32,11 @@ export function RootStack() {
             name="ListDetail"
             component={ListDetailScreen}
             options={({ route }) => ({ title: route.params.name })}
+          />
+          <Stack.Screen
+            name="ListSettings"
+            component={ListSettingsScreen}
+            options={{ title: 'List settings' }}
           />
         </>
       ) : (

@@ -25,12 +25,14 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AddMemberRequest,
   CreateListRequest,
   GetListsParams,
   ListCollectionResponse,
   ListResponse,
   ProblemDetails,
-  UpdateListRequest
+  UpdateListRequest,
+  UpdateMemberRoleRequest
 } from '../models';
 
 import { apiFetch } from '../../mutator';
@@ -852,6 +854,434 @@ export function usePostListsListIdRestore<TData = Awaited<ReturnType<typeof post
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getPostListsListIdRestoreQueryOptions(listId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+export type postListsListIdMembersResponse200 = {
+  data: ListResponse
+  status: 200
+}
+
+export type postListsListIdMembersResponse400 = {
+  data: ProblemDetails
+  status: 400
+}
+
+export type postListsListIdMembersResponse401 = {
+  data: void
+  status: 401
+}
+
+export type postListsListIdMembersResponse404 = {
+  data: void
+  status: 404
+}
+
+export type postListsListIdMembersResponseSuccess = (postListsListIdMembersResponse200) & {
+  headers: Headers;
+};
+export type postListsListIdMembersResponseError = (postListsListIdMembersResponse400 | postListsListIdMembersResponse401 | postListsListIdMembersResponse404) & {
+  headers: Headers;
+};
+
+export type postListsListIdMembersResponse = (postListsListIdMembersResponseSuccess | postListsListIdMembersResponseError)
+
+export const getPostListsListIdMembersUrl = (listId: string,) => {
+
+
+
+
+  return `/lists/${listId}/members`
+}
+
+/**
+ * Body `{ email, role? }`. Direct-add, no invite/accept. A wrong email is inert.
+ * @summary Add a member by email (any member; defaults to Editor).
+ */
+export const postListsListIdMembers = async (listId: string,
+    addMemberRequest: AddMemberRequest, options?: RequestInit): Promise<postListsListIdMembersResponse> => {
+
+  return apiFetch<postListsListIdMembersResponse>(getPostListsListIdMembersUrl(listId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(addMemberRequest)
+  }
+);}
+
+
+
+
+
+export const getPostListsListIdMembersQueryKey = (listId: string,
+    addMemberRequest?: AddMemberRequest,) => {
+    return [
+    'POST', `/lists/${listId}/members`, addMemberRequest
+    ] as const;
+    }
+
+
+export const getPostListsListIdMembersQueryOptions = <TData = Awaited<ReturnType<typeof postListsListIdMembers>>, TError = ProblemDetails | void>(listId: string,
+    addMemberRequest: AddMemberRequest, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof postListsListIdMembers>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getPostListsListIdMembersQueryKey(listId,addMemberRequest);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof postListsListIdMembers>>> = ({ signal }) => postListsListIdMembers(listId,addMemberRequest, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: listId !== null && listId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof postListsListIdMembers>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type PostListsListIdMembersQueryResult = NonNullable<Awaited<ReturnType<typeof postListsListIdMembers>>>
+export type PostListsListIdMembersQueryError = ProblemDetails | void
+
+
+export function usePostListsListIdMembers<TData = Awaited<ReturnType<typeof postListsListIdMembers>>, TError = ProblemDetails | void>(
+ listId: string,
+    addMemberRequest: AddMemberRequest, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof postListsListIdMembers>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof postListsListIdMembers>>,
+          TError,
+          Awaited<ReturnType<typeof postListsListIdMembers>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePostListsListIdMembers<TData = Awaited<ReturnType<typeof postListsListIdMembers>>, TError = ProblemDetails | void>(
+ listId: string,
+    addMemberRequest: AddMemberRequest, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof postListsListIdMembers>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof postListsListIdMembers>>,
+          TError,
+          Awaited<ReturnType<typeof postListsListIdMembers>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePostListsListIdMembers<TData = Awaited<ReturnType<typeof postListsListIdMembers>>, TError = ProblemDetails | void>(
+ listId: string,
+    addMemberRequest: AddMemberRequest, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof postListsListIdMembers>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Add a member by email (any member; defaults to Editor).
+ */
+
+export function usePostListsListIdMembers<TData = Awaited<ReturnType<typeof postListsListIdMembers>>, TError = ProblemDetails | void>(
+ listId: string,
+    addMemberRequest: AddMemberRequest, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof postListsListIdMembers>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getPostListsListIdMembersQueryOptions(listId,addMemberRequest,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+export type patchListsListIdMembersMemberEmailResponse200 = {
+  data: ListResponse
+  status: 200
+}
+
+export type patchListsListIdMembersMemberEmailResponse400 = {
+  data: ProblemDetails
+  status: 400
+}
+
+export type patchListsListIdMembersMemberEmailResponse401 = {
+  data: void
+  status: 401
+}
+
+export type patchListsListIdMembersMemberEmailResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type patchListsListIdMembersMemberEmailResponse404 = {
+  data: void
+  status: 404
+}
+
+export type patchListsListIdMembersMemberEmailResponseSuccess = (patchListsListIdMembersMemberEmailResponse200) & {
+  headers: Headers;
+};
+export type patchListsListIdMembersMemberEmailResponseError = (patchListsListIdMembersMemberEmailResponse400 | patchListsListIdMembersMemberEmailResponse401 | patchListsListIdMembersMemberEmailResponse403 | patchListsListIdMembersMemberEmailResponse404) & {
+  headers: Headers;
+};
+
+export type patchListsListIdMembersMemberEmailResponse = (patchListsListIdMembersMemberEmailResponseSuccess | patchListsListIdMembersMemberEmailResponseError)
+
+export const getPatchListsListIdMembersMemberEmailUrl = (listId: string,
+    memberEmail: string,) => {
+
+
+
+
+  return `/lists/${listId}/members/${memberEmail}`
+}
+
+/**
+ * @summary Change a member's role (Owner only).
+ */
+export const patchListsListIdMembersMemberEmail = async (listId: string,
+    memberEmail: string,
+    updateMemberRoleRequest: UpdateMemberRoleRequest, options?: RequestInit): Promise<patchListsListIdMembersMemberEmailResponse> => {
+
+  return apiFetch<patchListsListIdMembersMemberEmailResponse>(getPatchListsListIdMembersMemberEmailUrl(listId,memberEmail),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(updateMemberRoleRequest)
+  }
+);}
+
+
+
+
+
+export const getPatchListsListIdMembersMemberEmailQueryKey = (listId: string,
+    memberEmail: string,
+    updateMemberRoleRequest?: UpdateMemberRoleRequest,) => {
+    return [
+    'PATCH', `/lists/${listId}/members/${memberEmail}`, updateMemberRoleRequest
+    ] as const;
+    }
+
+
+export const getPatchListsListIdMembersMemberEmailQueryOptions = <TData = Awaited<ReturnType<typeof patchListsListIdMembersMemberEmail>>, TError = ProblemDetails | void>(listId: string,
+    memberEmail: string,
+    updateMemberRoleRequest: UpdateMemberRoleRequest, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof patchListsListIdMembersMemberEmail>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getPatchListsListIdMembersMemberEmailQueryKey(listId,memberEmail,updateMemberRoleRequest);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof patchListsListIdMembersMemberEmail>>> = ({ signal }) => patchListsListIdMembersMemberEmail(listId,memberEmail,updateMemberRoleRequest, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: listId !== null && listId !== undefined && memberEmail !== null && memberEmail !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof patchListsListIdMembersMemberEmail>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type PatchListsListIdMembersMemberEmailQueryResult = NonNullable<Awaited<ReturnType<typeof patchListsListIdMembersMemberEmail>>>
+export type PatchListsListIdMembersMemberEmailQueryError = ProblemDetails | void
+
+
+export function usePatchListsListIdMembersMemberEmail<TData = Awaited<ReturnType<typeof patchListsListIdMembersMemberEmail>>, TError = ProblemDetails | void>(
+ listId: string,
+    memberEmail: string,
+    updateMemberRoleRequest: UpdateMemberRoleRequest, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof patchListsListIdMembersMemberEmail>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof patchListsListIdMembersMemberEmail>>,
+          TError,
+          Awaited<ReturnType<typeof patchListsListIdMembersMemberEmail>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePatchListsListIdMembersMemberEmail<TData = Awaited<ReturnType<typeof patchListsListIdMembersMemberEmail>>, TError = ProblemDetails | void>(
+ listId: string,
+    memberEmail: string,
+    updateMemberRoleRequest: UpdateMemberRoleRequest, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof patchListsListIdMembersMemberEmail>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof patchListsListIdMembersMemberEmail>>,
+          TError,
+          Awaited<ReturnType<typeof patchListsListIdMembersMemberEmail>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePatchListsListIdMembersMemberEmail<TData = Awaited<ReturnType<typeof patchListsListIdMembersMemberEmail>>, TError = ProblemDetails | void>(
+ listId: string,
+    memberEmail: string,
+    updateMemberRoleRequest: UpdateMemberRoleRequest, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof patchListsListIdMembersMemberEmail>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Change a member's role (Owner only).
+ */
+
+export function usePatchListsListIdMembersMemberEmail<TData = Awaited<ReturnType<typeof patchListsListIdMembersMemberEmail>>, TError = ProblemDetails | void>(
+ listId: string,
+    memberEmail: string,
+    updateMemberRoleRequest: UpdateMemberRoleRequest, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof patchListsListIdMembersMemberEmail>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getPatchListsListIdMembersMemberEmailQueryOptions(listId,memberEmail,updateMemberRoleRequest,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+export type deleteListsListIdMembersMemberEmailResponse204 = {
+  data: void
+  status: 204
+}
+
+export type deleteListsListIdMembersMemberEmailResponse400 = {
+  data: ProblemDetails
+  status: 400
+}
+
+export type deleteListsListIdMembersMemberEmailResponse401 = {
+  data: void
+  status: 401
+}
+
+export type deleteListsListIdMembersMemberEmailResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type deleteListsListIdMembersMemberEmailResponse404 = {
+  data: void
+  status: 404
+}
+
+export type deleteListsListIdMembersMemberEmailResponseSuccess = (deleteListsListIdMembersMemberEmailResponse204) & {
+  headers: Headers;
+};
+export type deleteListsListIdMembersMemberEmailResponseError = (deleteListsListIdMembersMemberEmailResponse400 | deleteListsListIdMembersMemberEmailResponse401 | deleteListsListIdMembersMemberEmailResponse403 | deleteListsListIdMembersMemberEmailResponse404) & {
+  headers: Headers;
+};
+
+export type deleteListsListIdMembersMemberEmailResponse = (deleteListsListIdMembersMemberEmailResponseSuccess | deleteListsListIdMembersMemberEmailResponseError)
+
+export const getDeleteListsListIdMembersMemberEmailUrl = (listId: string,
+    memberEmail: string,) => {
+
+
+
+
+  return `/lists/${listId}/members/${memberEmail}`
+}
+
+/**
+ * @summary Remove a member, or leave (self). Last owner leaving deletes the list for everyone.
+ */
+export const deleteListsListIdMembersMemberEmail = async (listId: string,
+    memberEmail: string, options?: RequestInit): Promise<deleteListsListIdMembersMemberEmailResponse> => {
+
+  return apiFetch<deleteListsListIdMembersMemberEmailResponse>(getDeleteListsListIdMembersMemberEmailUrl(listId,memberEmail),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteListsListIdMembersMemberEmailQueryKey = (listId: string,
+    memberEmail: string,) => {
+    return [
+    'DELETE', `/lists/${listId}/members/${memberEmail}`
+    ] as const;
+    }
+
+
+export const getDeleteListsListIdMembersMemberEmailQueryOptions = <TData = Awaited<ReturnType<typeof deleteListsListIdMembersMemberEmail>>, TError = ProblemDetails | void>(listId: string,
+    memberEmail: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof deleteListsListIdMembersMemberEmail>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getDeleteListsListIdMembersMemberEmailQueryKey(listId,memberEmail);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof deleteListsListIdMembersMemberEmail>>> = ({ signal }) => deleteListsListIdMembersMemberEmail(listId,memberEmail, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: listId !== null && listId !== undefined && memberEmail !== null && memberEmail !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof deleteListsListIdMembersMemberEmail>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type DeleteListsListIdMembersMemberEmailQueryResult = NonNullable<Awaited<ReturnType<typeof deleteListsListIdMembersMemberEmail>>>
+export type DeleteListsListIdMembersMemberEmailQueryError = ProblemDetails | void
+
+
+export function useDeleteListsListIdMembersMemberEmail<TData = Awaited<ReturnType<typeof deleteListsListIdMembersMemberEmail>>, TError = ProblemDetails | void>(
+ listId: string,
+    memberEmail: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof deleteListsListIdMembersMemberEmail>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof deleteListsListIdMembersMemberEmail>>,
+          TError,
+          Awaited<ReturnType<typeof deleteListsListIdMembersMemberEmail>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useDeleteListsListIdMembersMemberEmail<TData = Awaited<ReturnType<typeof deleteListsListIdMembersMemberEmail>>, TError = ProblemDetails | void>(
+ listId: string,
+    memberEmail: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof deleteListsListIdMembersMemberEmail>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof deleteListsListIdMembersMemberEmail>>,
+          TError,
+          Awaited<ReturnType<typeof deleteListsListIdMembersMemberEmail>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useDeleteListsListIdMembersMemberEmail<TData = Awaited<ReturnType<typeof deleteListsListIdMembersMemberEmail>>, TError = ProblemDetails | void>(
+ listId: string,
+    memberEmail: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof deleteListsListIdMembersMemberEmail>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Remove a member, or leave (self). Last owner leaving deletes the list for everyone.
+ */
+
+export function useDeleteListsListIdMembersMemberEmail<TData = Awaited<ReturnType<typeof deleteListsListIdMembersMemberEmail>>, TError = ProblemDetails | void>(
+ listId: string,
+    memberEmail: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof deleteListsListIdMembersMemberEmail>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getDeleteListsListIdMembersMemberEmailQueryOptions(listId,memberEmail,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
