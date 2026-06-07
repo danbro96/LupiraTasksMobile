@@ -8,7 +8,7 @@ import type { ItemState } from '../offline/itemState';
 import { SyncBanner } from '../components/SyncBanner';
 import { SyncDot } from '../components/SyncDot';
 import { toast } from '../components/Toast';
-import { useItems } from '../offline/useMirror';
+import { useItems, useLists } from '../offline/useMirror';
 import { useOutboxStatus } from '../offline/useOutboxStatus';
 import { enqueue } from '../offline/outbox';
 import { pullList } from '../offline/sync';
@@ -19,6 +19,8 @@ export function ListDetailScreen() {
   const nav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const listId = params.listId;
   const { items } = useItems(listId);
+  const { lists } = useLists();
+  const color = lists.find(l => l.id === listId)?.color ?? null;
   const opStatus = useOutboxStatus();
   const [title, setTitle] = useState('');
   const [refreshing, setRefreshing] = useState(false);
@@ -81,6 +83,7 @@ export function ListDetailScreen() {
 
   return (
     <View style={styles.fill}>
+      {color ? <View style={[styles.colorStripe, { backgroundColor: color }]} /> : null}
       <SyncBanner />
       <View style={styles.addRow}>
         <TextInput
@@ -115,6 +118,7 @@ export function ListDetailScreen() {
 
 const styles = StyleSheet.create({
   fill: { flex: 1, backgroundColor: '#fff' },
+  colorStripe: { height: 5 },
   addRow: { flexDirection: 'row', padding: 12, gap: 8 },
   input: { flex: 1, borderWidth: 1, borderColor: '#d4d8e0', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, fontSize: 16 },
   addBtn: { backgroundColor: '#1d3a5f', borderRadius: 8, paddingHorizontal: 16, justifyContent: 'center' },

@@ -63,6 +63,7 @@ export function ListsScreen() {
         ListEmptyComponent={<Text style={styles.empty}>No lists yet — add one above.</Text>}
         renderItem={({ item }) => (
           <Pressable style={styles.row} onPress={() => nav.navigate('ListDetail', { listId: item.id, name: item.name })}>
+            <View style={[styles.colorDot, item.color ? { backgroundColor: item.color } : styles.colorDotNone]} />
             <Text style={styles.rowTitle}>{item.name}</Text>
             <View style={styles.rowRight}>
               <SyncDot status={opStatus.get(item.id)} />
@@ -83,6 +84,8 @@ const styles = StyleSheet.create({
   addBtn: { backgroundColor: '#1d3a5f', borderRadius: 8, paddingHorizontal: 16, justifyContent: 'center' },
   addBtnText: { color: '#fff', fontWeight: '600' },
   row: { paddingVertical: 14, paddingHorizontal: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#e3e6ec', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  colorDot: { width: 12, height: 12, borderRadius: 6, marginRight: 12 },
+  colorDotNone: { backgroundColor: 'transparent', borderWidth: 1, borderColor: '#d4d8e0' },
   rowTitle: { fontSize: 17, flex: 1 },
   rowRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   rowMeta: { fontSize: 12, color: '#8a909c' },
