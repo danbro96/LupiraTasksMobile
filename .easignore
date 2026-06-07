@@ -1,12 +1,12 @@
-# Keep the EAS Build upload lean — exclude local build outputs / caches.
-# (android/ source IS uploaded; only its generated artifacts are excluded.)
-android/.gradle/
-android/build/
-android/app/build/
-android/app/.cxx/
-android/.kotlin/
+# CNG workflow: native projects are NOT uploaded. EAS Build runs `expo prebuild`
+# to regenerate android/ (and ios/) fresh for the current Expo SDK on every build.
+# (.easignore takes precedence over .gitignore for what EAS uploads, so /android
+#  must be listed here too — otherwise a stale local android/ would be uploaded.)
+/android
+/ios
+
+# Build outputs / caches / artifacts
 .expo/
 *.apk
 *.aab
 *.keystore
-ios/

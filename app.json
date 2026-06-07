@@ -25,7 +25,8 @@
           "project": "lupira-tasks",
           "organization": "brostrom"
         }
-      ]
+      ],
+      "expo-status-bar"
     ],
     "extra": {
       "eas": {
