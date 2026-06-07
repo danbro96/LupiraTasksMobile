@@ -12,7 +12,7 @@
     },
     "android": {
       "predictiveBackGestureEnabled": false,
-      "package": "com.danbro96.LupiraTasks"
+      "package": "com.lupira.tasks"
     },
     "plugins": [
       "expo-secure-store",

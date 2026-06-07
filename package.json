@@ -11,7 +11,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "fetch:openapi": "node scripts/fetch-openapi.mjs",
-    "gen:api": "orval --config ./orval.config.ts"
+    "gen:api": "orval --config ./orval.config.ts",
+    "build:preview": "eas build --profile preview --platform android",
+    "build:android": "eas build --profile production --platform android"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.1.1",
