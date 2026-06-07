@@ -9,11 +9,18 @@ import { useAuth } from './src/store/auth-store';
 import { startSync } from './src/offline/outbox';
 
 export default function App() {
+  const loaded = useAuth(s => s.loaded);
+
   useEffect(() => {
-    void useAuth.getState().load();
+    void (async () => {
+      await useAuth.getState().load();
+      await useAuth.getState().refreshIfNeeded();
+    })();
     const stopSync = startSync();
     return stopSync;
   }, []);
+
+  if (!loaded) return null;
 
   return (
     <SafeAreaProvider>

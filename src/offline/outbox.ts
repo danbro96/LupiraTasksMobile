@@ -96,6 +96,7 @@ export function drainOutbox(): Promise<void> {
 async function runDrain(): Promise<void> {
   const db = await getDb();
   try {
+    await useAuth.getState().refreshIfNeeded(); // ensure replay uses a live access token
     for (;;) {
       const pending = await pendingOutbox(db);
       if (pending.length === 0) break;
