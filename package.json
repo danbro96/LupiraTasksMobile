@@ -29,6 +29,7 @@
     "expo-crypto": "~56.0.4",
     "expo-dev-client": "~56.0.19",
     "expo-font": "~56.0.5",
+    "expo-haptics": "~56.0.3",
     "expo-secure-store": "~56.0.4",
     "expo-sqlite": "~56.0.4",
     "expo-status-bar": "~56.0.4",

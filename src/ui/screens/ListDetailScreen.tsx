@@ -6,7 +6,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { generateKeyBetween } from 'fractional-indexing';
 import ReorderableList, { useReorderableDrag, useIsActive } from 'react-native-reorderable-list';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
+import Animated, { LinearTransition, runOnJS, SlideOutLeft, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
 import { ListKind } from '../../data/api/generated/models';
 import type { RootStackParamList } from '../navigation/types';
 import type { ItemState } from '../../domain/itemState';
@@ -117,7 +118,8 @@ function TaskRow({ row, canEdit, isShopping, status, expanded, styles, palette, 
     })
     .onEnd(e => {
       if (e.translationX < SWIPE_DELETE_THRESHOLD) {
-        translateX.value = withTiming(-500, { duration: 160 });
+        // Remove it — the row's `exiting` animation slides it the rest of the way out and the
+        // neighbors close the gap via the list's itemLayoutAnimation.
         runOnJS(onDelete)(item);
       } else {
         translateX.value = withSpring(0);
@@ -130,7 +132,7 @@ function TaskRow({ row, canEdit, isShopping, status, expanded, styles, palette, 
         <Ionicons name="trash" size={22} color="#fff" />
       </Animated.View>
       <GestureDetector gesture={swipe}>
-        <Animated.View style={rowStyle}>{inner}</Animated.View>
+        <Animated.View style={rowStyle} exiting={SlideOutLeft.duration(180)}>{inner}</Animated.View>
       </GestureDetector>
     </View>
   );
@@ -220,6 +222,7 @@ export function ListDetailScreen() {
   }
 
   function onDelete(it: ItemState) {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     requestItemDeleteMany(listId, [it.id, ...descendantIds(items, it.id)]);
   }
 
@@ -261,6 +264,7 @@ export function ListDetailScreen() {
         dragEnabled={canEdit}
         panGesture={dragGesture}
         shouldUpdateActiveItem
+        itemLayoutAnimation={LinearTransition.duration(200)}
         onReorder={onReorder}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
         ListEmptyComponent={
