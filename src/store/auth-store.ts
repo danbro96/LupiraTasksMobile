@@ -1,8 +1,9 @@
 import { create } from 'zustand';
 import * as SecureStore from 'expo-secure-store';
 import { DEFAULT_API_URL } from '../config';
-import { refreshTokens } from '../auth/oidc';
+import { refreshTokens, RefreshError } from '../auth/oidc';
 import { useSyncStatus } from '../offline/syncStatus';
+import { logDebug } from '../debug/log';
 
 // One shared in-flight refresh. Concurrent callers await it instead of each POSTing the
 // refresh token (mirrors the syncing/draining guards). See refreshIfNeeded for why.
@@ -153,10 +154,17 @@ export const useAuth = create<AuthState & AuthActions>((set, get) => ({
         };
         await get().setSession(next, user);
         return next.accessToken;
-      } catch {
-        // Refresh failed (revoked/expired) — drop the session so the user re-authenticates.
-        await get().clearSession();
-        return null;
+      } catch (e) {
+        // Definitive rejection (refresh token/client invalid) — drop the session to re-auth.
+        if (e instanceof RefreshError && e.definitive) {
+          await get().clearSession();
+          return null;
+        }
+        // Transient (network/timeout/5xx): keep the session and retry on the next trigger. Return
+        // the current token best-effort — it may still be valid within the 60s margin; if expired,
+        // downstream 401s are handled by the outbox / runSync. A blip must not log the user out.
+        logDebug('refresh:transient', e instanceof Error ? e.message : String(e));
+        return token;
       }
     })().finally(() => { refreshing = null; });
     return refreshing;

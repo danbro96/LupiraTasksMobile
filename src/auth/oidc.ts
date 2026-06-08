@@ -1,5 +1,6 @@
 import * as AuthSession from 'expo-auth-session';
 import { OIDC_CLIENT_ID, OIDC_ISSUER } from './oidcConfig';
+import { REQUEST_TIMEOUT_MS } from '../api/apiError';
 import { logAuth } from './authDebug';
 
 // Non-hook OIDC helpers (the interactive login itself lives in LoginScreen via
@@ -10,6 +11,41 @@ export interface TokenSet {
   refreshToken?: string;
   idToken?: string;
   expiresIn?: number;
+}
+
+/**
+ * A refresh attempt failed. `definitive` = the refresh token / client was rejected by the
+ * server (re-auth required); otherwise the failure is transient (network/timeout/5xx) and the
+ * session should be kept and retried later. See refreshIfNeeded in store/auth-store.ts.
+ */
+export class RefreshError extends Error {
+  definitive: boolean;
+  constructor(definitive: boolean, message: string) {
+    super(message);
+    this.definitive = definitive;
+    this.name = 'RefreshError';
+  }
+}
+
+/**
+ * POST an `application/x-www-form-urlencoded` body to a token endpoint with a bounded timeout.
+ * Returns the raw `{ status, text }` for any HTTP response (so callers branch on status);
+ * throws only on a transport failure (network down / timeout / connection dropped mid-body).
+ */
+async function postForm(endpoint: string, params: Record<string, string>): Promise<{ status: number; text: string }> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
+      body: new URLSearchParams(params).toString(),
+      signal: controller.signal,
+    });
+    return { status: res.status, text: await res.text() };
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 /**
@@ -24,24 +60,19 @@ export async function exchangeAuthCode(params: {
   redirectUri: string;
   codeVerifier?: string;
 }): Promise<TokenSet> {
-  const body = new URLSearchParams({
+  const form: Record<string, string> = {
     grant_type: 'authorization_code',
     code: params.code,
     redirect_uri: params.redirectUri,
     client_id: OIDC_CLIENT_ID,
-  });
-  if (params.codeVerifier) body.append('code_verifier', params.codeVerifier);
+  };
+  if (params.codeVerifier) form.code_verifier = params.codeVerifier;
 
   logAuth('token:post', params.tokenEndpoint);
-  const res = await fetch(params.tokenEndpoint, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
-    body: body.toString(),
-  });
-  const text = await res.text();
-  logAuth('token:response', `status=${res.status} len=${text.length} body=${text.slice(0, 400)}`);
-  if (!res.ok) throw new Error(`token ${res.status}: ${text.slice(0, 400)}`);
-  if (!text) throw new Error(`token ${res.status}: empty body`);
+  const { status, text } = await postForm(params.tokenEndpoint, form);
+  logAuth('token:response', `status=${status} len=${text.length} body=${text.slice(0, 400)}`);
+  if (status < 200 || status >= 300) throw new Error(`token ${status}: ${text.slice(0, 400)}`);
+  if (!text) throw new Error(`token ${status}: empty body`);
 
   const json = JSON.parse(text) as {
     access_token: string; refresh_token?: string; id_token?: string; expires_in?: number;
@@ -57,14 +88,62 @@ export async function exchangeAuthCode(params: {
 let discoveryPromise: Promise<AuthSession.DiscoveryDocument> | null = null;
 
 export function getDiscovery(): Promise<AuthSession.DiscoveryDocument> {
-  if (!discoveryPromise) discoveryPromise = AuthSession.fetchDiscoveryAsync(OIDC_ISSUER);
+  if (!discoveryPromise) {
+    // Don't cache a failure: a single failed discovery (e.g. a launch-time network blip) must
+    // not poison the cache for the whole session — null it out so the next call retries.
+    discoveryPromise = AuthSession.fetchDiscoveryAsync(OIDC_ISSUER).catch(e => {
+      discoveryPromise = null;
+      throw e;
+    });
+  }
   return discoveryPromise;
 }
 
-/** Exchange a refresh token for a fresh access token (+ rotated refresh token). */
-export async function refreshTokens(refreshToken: string): Promise<AuthSession.TokenResponse> {
-  const discovery = await getDiscovery();
-  return AuthSession.refreshAsync({ clientId: OIDC_CLIENT_ID, refreshToken }, discovery);
+/**
+ * Exchange a refresh token for a fresh access token (+ rotated refresh token) via a manual POST
+ * (mirrors exchangeAuthCode for full status visibility). Throws a RefreshError whose `definitive`
+ * flag tells the caller whether to drop the session (grant rejected) or keep it and retry later
+ * (transient network/server failure).
+ */
+export async function refreshTokens(refreshToken: string): Promise<TokenSet> {
+  let discovery: AuthSession.DiscoveryDocument;
+  try {
+    discovery = await getDiscovery();
+  } catch (e) {
+    throw new RefreshError(false, `discovery: ${e instanceof Error ? e.message : String(e)}`);
+  }
+  const tokenEndpoint = discovery.tokenEndpoint;
+  if (!tokenEndpoint) throw new RefreshError(false, 'discovery: no token endpoint');
+
+  let status: number;
+  let text: string;
+  try {
+    ({ status, text } = await postForm(tokenEndpoint, {
+      grant_type: 'refresh_token',
+      refresh_token: refreshToken,
+      client_id: OIDC_CLIENT_ID,
+    }));
+  } catch (e) {
+    // Transport failure / timeout — transient, keep the session.
+    throw new RefreshError(false, `network: ${e instanceof Error ? e.message : String(e)}`);
+  }
+
+  logAuth('refresh:response', `status=${status} len=${text.length}`);
+  // 400/401 = the refresh token or client was rejected → definitive, must re-authenticate.
+  if (status === 400 || status === 401) throw new RefreshError(true, `refresh ${status}: ${text.slice(0, 200)}`);
+  // 5xx / 429 / any other non-2xx → transient, retry on the next trigger.
+  if (status < 200 || status >= 300) throw new RefreshError(false, `refresh ${status}`);
+  if (!text) throw new RefreshError(false, 'refresh: empty body');
+
+  const json = JSON.parse(text) as {
+    access_token: string; refresh_token?: string; id_token?: string; expires_in?: number;
+  };
+  return {
+    accessToken: json.access_token,
+    refreshToken: json.refresh_token,
+    idToken: json.id_token,
+    expiresIn: json.expires_in,
+  };
 }
 
 /** Decode a JWT payload (no signature check — the server verifies; this is for claims only). */
