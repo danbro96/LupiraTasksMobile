@@ -16,6 +16,11 @@ export function dueInDays(days: number): string {
   return atEndOfLocalDay(d).toISOString();
 }
 
+/** ISO for end-of-day on a specific calendar date (from the native date picker). */
+export function dueOnDate(date: Date): string {
+  return atEndOfLocalDay(date).toISOString();
+}
+
 /** ISO for end-of-day on the next upcoming Saturday. */
 export function dueNextWeekend(): string {
   const d = new Date();

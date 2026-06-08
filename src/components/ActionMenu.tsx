@@ -1,11 +1,14 @@
 import { useMemo } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { makeType, radii, spacing, useColors, type Palette } from '../theme';
 
 export interface ActionItem {
   label: string;
   destructive?: boolean;
+  /** Show a trailing checkmark (e.g. the current choice in a picker). */
+  selected?: boolean;
   onPress: () => void;
 }
 
@@ -41,8 +44,10 @@ export function ActionMenu({
               }}
               accessibilityRole="button"
               accessibilityLabel={a.label}
+              accessibilityState={{ selected: a.selected }}
             >
-              <Text style={[styles.actionText, a.destructive && styles.destructive]}>{a.label}</Text>
+              <Text style={[styles.actionText, a.destructive && styles.destructive]} numberOfLines={1}>{a.label}</Text>
+              {a.selected ? <Ionicons name="checkmark" size={20} color={c.primary} style={styles.check} /> : null}
             </Pressable>
           ))}
           <Pressable style={styles.cancel} onPress={onClose} accessibilityRole="button" accessibilityLabel="Cancel">
@@ -60,9 +65,10 @@ const makeStyles = (c: Palette) => {
     backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
     sheet: { backgroundColor: c.bg, borderTopLeftRadius: radii.lg, borderTopRightRadius: radii.lg, paddingHorizontal: spacing.lg, paddingTop: spacing.sm },
     title: { ...t.sectionLabel, textAlign: 'center', paddingVertical: spacing.md },
-    action: { paddingVertical: spacing.lg, alignItems: 'center' },
+    action: { paddingVertical: spacing.lg, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
     actionBorder: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.divider },
     actionText: { ...t.bodyLg, color: c.primary },
+    check: { position: 'absolute', right: 0 },
     destructive: { color: c.danger },
     cancel: { marginTop: spacing.sm, paddingVertical: spacing.lg, alignItems: 'center', backgroundColor: c.surface, borderRadius: radii.md },
     cancelText: { ...t.button, color: c.textMuted },

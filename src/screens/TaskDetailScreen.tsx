@@ -1,28 +1,45 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import RNDateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { ListKind } from '../api/generated/models';
 import type { RootStackParamList } from '../navigation/types';
 import { Button } from '../components/Button';
 import { Checkbox } from '../components/Checkbox';
 import { TextField } from '../components/TextField';
+import { DetailRow } from '../components/DetailRow';
+import { ActionMenu, type ActionItem } from '../components/ActionMenu';
 import { SyncBanner } from '../components/SyncBanner';
+import { SyncDot } from '../components/SyncDot';
 import { toast } from '../components/Toast';
 import { useItems, useLists } from '../offline/useMirror';
 import { useMyRole, canEditWithRole } from '../offline/useMyRole';
-import { requestItemDelete } from '../offline/pendingDeletes';
-import { childrenOf, nextChildSortOrder } from '../offline/itemTree';
+import { useOutboxStatus } from '../offline/useOutboxStatus';
+import { useDirectory } from '../offline/useDirectory';
+import { requestItemDeleteMany } from '../offline/pendingDeletes';
+import { childrenOf, nextChildSortOrder, descendantIds } from '../offline/itemTree';
 import { enqueue } from '../offline/outbox';
 import { newId, stamp } from '../offline/ops';
-import { dueInDays, dueNextWeekend, formatDue } from '../util/dueDate';
+import { dueInDays, dueNextWeekend, dueOnDate, formatDue } from '../util/dueDate';
 import { makeType, radii, spacing, useColors, type Palette } from '../theme';
 
-const DUE_CHIPS: { label: string; iso: () => string }[] = [
+const DUE_QUICK: { label: string; iso: () => string }[] = [
   { label: 'Today', iso: () => dueInDays(0) },
   { label: 'Tomorrow', iso: () => dueInDays(1) },
-  { label: 'Weekend', iso: dueNextWeekend },
+  { label: 'This weekend', iso: dueNextWeekend },
   { label: 'Next week', iso: () => dueInDays(7) },
 ];
 
@@ -37,14 +54,19 @@ export function TaskDetailScreen() {
   const list = lists.find(l => l.id === listId);
   const canEdit = canEditWithRole(useMyRole(listId));
   const isShopping = list?.kind === ListKind.Shopping;
+  const status = useOutboxStatus().get(itemId);
+  const name = useDirectory();
 
   const [title, setTitle] = useState(item?.title ?? '');
   const [notes, setNotes] = useState(item?.notes ?? '');
   const [qty, setQty] = useState(item?.quantity != null ? String(item.quantity) : '');
   const [unit, setUnit] = useState(item?.unit ?? '');
   const [subTitle, setSubTitle] = useState('');
+  const [dueMenu, setDueMenu] = useState(false);
+  const [assigneeMenu, setAssigneeMenu] = useState(false);
+  const [iosDate, setIosDate] = useState<Date | null>(null);
 
-  // Latest field values + last-persisted baselines. Lets us flush unsaved edits on unmount
+  // Latest field values + last-persisted baselines, so we can flush unsaved edits on unmount
   // (hardware/gesture back doesn't reliably fire onBlur) without re-enqueueing saved text.
   const titleRef = useRef(title);
   const notesRef = useRef(notes);
@@ -55,16 +77,23 @@ export function TaskDetailScreen() {
 
   const members = useMemo(() => list?.members.map(m => m.email) ?? [], [list]);
   const subtasks = useMemo(() => childrenOf(items, itemId), [items, itemId]);
+  const subtasksDone = subtasks.filter(s => s.completed).length;
   const due = formatDue(item?.dueAt);
   const c = useColors();
   const styles = useMemo(() => makeStyles(c), [c]);
 
+  // Header shows a sync dot for this task so saves are visibly persisted (nothing when synced).
   useLayoutEffect(() => {
-    nav.setOptions({ title: 'Task' });
-  }, [nav]);
+    nav.setOptions({
+      title: 'Task',
+      headerRight: () => (
+        <View style={styles.headerDot}>
+          <SyncDot status={status} />
+        </View>
+      ),
+    });
+  }, [nav, status, styles]);
 
-  // Flush any unsaved title/notes when leaving the screen, comparing against the last-saved
-  // baseline so an onBlur that already saved doesn't enqueue a duplicate.
   useEffect(() => {
     return () => {
       const t = titleRef.current.trim();
@@ -78,9 +107,8 @@ export function TaskDetailScreen() {
     };
   }, [listId, itemId]);
 
-  // Seed the editable fields from the item once it loads from the mirror (the hooks read
-  // asynchronously, so `item` is undefined on first render). Keyed on the item id so a remote
-  // in-place edit doesn't clobber an in-progress local edit, but a fresh task still populates.
+  // Seed editable fields once the item loads from the mirror (hooks read asynchronously). Keyed on
+  // item id so a remote in-place edit doesn't clobber an in-progress local edit.
   useEffect(() => {
     if (item) {
       setTitle(item.title);
@@ -143,16 +171,10 @@ export function TaskDetailScreen() {
     run(() => enqueue({ ...stamp(), kind: 'item.assign', listId, itemId, assigneeEmail: email }), "Couldn't assign task");
 
   const toggleComplete = () =>
-    run(
-      () => enqueue({ ...stamp(), kind: item!.completed ? 'item.reopen' : 'item.complete', listId, itemId }),
-      "Couldn't update task",
-    );
+    run(() => enqueue({ ...stamp(), kind: item!.completed ? 'item.reopen' : 'item.complete', listId, itemId }), "Couldn't update task");
 
   const toggleSub = (st: { id: string; completed: boolean }) =>
-    run(
-      () => enqueue({ ...stamp(), kind: st.completed ? 'item.reopen' : 'item.complete', listId, itemId: st.id }),
-      "Couldn't update subtask",
-    );
+    run(() => enqueue({ ...stamp(), kind: st.completed ? 'item.reopen' : 'item.complete', listId, itemId: st.id }), "Couldn't update subtask");
 
   async function addSubtask() {
     const t = subTitle.trim();
@@ -174,14 +196,59 @@ export function TaskDetailScreen() {
   }
 
   function onDelete() {
-    requestItemDelete(listId, itemId, 'Task deleted');
+    requestItemDeleteMany(listId, [itemId, ...descendantIds(items, itemId)], 'Task deleted');
     nav.goBack();
   }
+
+  function openNativeDate() {
+    const current = item?.dueAt ? new Date(item.dueAt) : new Date();
+    if (Platform.OS === 'android') {
+      DateTimePickerAndroid.open({
+        value: current,
+        mode: 'date',
+        onChange: (e, d) => {
+          if (e.type === 'set' && d) void setDue(dueOnDate(d));
+        },
+      });
+    } else {
+      setIosDate(current);
+    }
+  }
+
+  const dueActions: ActionItem[] = [
+    ...DUE_QUICK.map(q => ({ label: q.label, onPress: () => void setDue(q.iso()) })),
+    { label: 'Pick a date…', onPress: openNativeDate },
+    ...(item.dueAt ? [{ label: 'Clear due date', destructive: true, onPress: () => void setDue(null) }] : []),
+  ];
+
+  const assigneeActions: ActionItem[] = [
+    { label: 'Unassigned', selected: !item.assignedTo, onPress: () => void setAssignee(null) },
+    ...members.map(email => ({
+      label: name(email),
+      selected: item.assignedTo?.toLowerCase() === email.toLowerCase(),
+      onPress: () => void setAssignee(email),
+    })),
+  ];
+
+  const fmtDate = (iso?: string | null) =>
+    iso ? new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '';
 
   return (
     <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <SyncBanner />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <TextInput
+          style={[styles.titleInput, item.completed && styles.titleDone]}
+          value={title}
+          onChangeText={setTitle}
+          onBlur={saveTitle}
+          editable={canEdit}
+          multiline
+          placeholder="Task title"
+          placeholderTextColor={c.textSubtle}
+          accessibilityLabel="Task title"
+        />
+
         <Pressable
           style={styles.completeRow}
           onPress={canEdit ? () => void toggleComplete() : undefined}
@@ -190,73 +257,25 @@ export function TaskDetailScreen() {
           accessibilityState={{ checked: item.completed, disabled: !canEdit }}
           accessibilityLabel={item.completed ? 'Completed' : 'Mark complete'}
         >
-          <Ionicons
-            name={item.completed ? 'checkbox' : 'square-outline'}
-            size={24}
-            color={!canEdit ? c.textDisabled : item.completed ? c.primary : c.textSubtle}
-          />
+          <Checkbox checked={item.completed} disabled={!canEdit} onPress={() => void toggleComplete()} />
           <Text style={styles.completeLabel}>{item.completed ? 'Completed' : 'Mark complete'}</Text>
         </Pressable>
 
-        <Text style={styles.section}>TITLE</Text>
-        <TextField
-          value={title}
-          onChangeText={setTitle}
-          onBlur={saveTitle}
-          onSubmitEditing={saveTitle}
-          editable={canEdit}
-          returnKeyType="done"
-          accessibilityLabel="Task title"
-        />
-
-        <Text style={styles.section}>DUE DATE</Text>
-        {due ? (
-          <Text style={[styles.currentDue, due.overdue && styles.overdue]}>
-            {due.overdue ? 'Overdue · ' : ''}
-            {due.label}
-          </Text>
-        ) : (
-          <Text style={styles.noneText}>No due date</Text>
-        )}
-        {canEdit ? (
-          <View style={styles.chipRow}>
-            {DUE_CHIPS.map(c => (
-              <Pressable key={c.label} style={styles.chip} onPress={() => void setDue(c.iso())} accessibilityRole="button">
-                <Text style={styles.chipText}>{c.label}</Text>
-              </Pressable>
-            ))}
-            {item.dueAt ? (
-              <Pressable style={styles.chip} onPress={() => void setDue(null)} accessibilityRole="button">
-                <Text style={styles.chipText}>Clear</Text>
-              </Pressable>
-            ) : null}
-          </View>
-        ) : null}
-
-        <Text style={styles.section}>ASSIGNEE</Text>
-        <View style={styles.chipRow}>
-          <Pressable
-            style={[styles.chip, !item.assignedTo && styles.chipOn]}
-            onPress={canEdit ? () => void setAssignee(null) : undefined}
-            disabled={!canEdit}
-            accessibilityRole="button"
-          >
-            <Text style={[styles.chipText, !item.assignedTo && styles.chipTextOn]}>Unassigned</Text>
-          </Pressable>
-          {members.map(email => {
-            const on = item.assignedTo?.toLowerCase() === email.toLowerCase();
-            return (
-              <Pressable
-                key={email}
-                style={[styles.chip, on && styles.chipOn]}
-                onPress={canEdit ? () => void setAssignee(email) : undefined}
-                disabled={!canEdit}
-                accessibilityRole="button"
-              >
-                <Text style={[styles.chipText, on && styles.chipTextOn]}>{email}</Text>
-              </Pressable>
-            );
-          })}
+        <View style={styles.card}>
+          <DetailRow
+            icon="calendar-outline"
+            label="Due"
+            value={due ? (due.overdue ? `Overdue · ${due.label}` : due.label) : 'None'}
+            valueColor={due?.overdue ? c.danger : undefined}
+            onPress={canEdit ? () => setDueMenu(true) : undefined}
+          />
+          <DetailRow
+            icon="person-outline"
+            label="Assignee"
+            value={item.assignedTo ? name(item.assignedTo) : 'Unassigned'}
+            onPress={canEdit ? () => setAssigneeMenu(true) : undefined}
+            divider={false}
+          />
         </View>
 
         {isShopping ? (
@@ -298,7 +317,9 @@ export function TaskDetailScreen() {
           accessibilityLabel="Task notes"
         />
 
-        <Text style={styles.section}>SUBTASKS</Text>
+        <Text style={styles.section}>
+          SUBTASKS{subtasks.length > 0 ? ` · ${subtasksDone}/${subtasks.length} done` : ''}
+        </Text>
         {subtasks.length === 0 ? <Text style={styles.noneText}>No subtasks</Text> : null}
         {subtasks.map(st => (
           <Pressable
@@ -328,10 +349,42 @@ export function TaskDetailScreen() {
           </View>
         ) : null}
 
-        {canEdit ? (
-          <Button title="Delete task" variant="destructive" onPress={onDelete} style={styles.delete} />
+        {item.createdBy || item.completedBy ? (
+          <View style={styles.provenance}>
+            {item.createdBy ? <Text style={styles.provText}>Added by {name(item.createdBy)}</Text> : null}
+            {item.completed && item.completedBy ? (
+              <Text style={styles.provText}>
+                Completed by {name(item.completedBy)}
+                {item.completedAt ? ` · ${fmtDate(item.completedAt)}` : ''}
+              </Text>
+            ) : null}
+          </View>
         ) : null}
+
+        {canEdit ? <Button title="Delete task" variant="destructive" onPress={onDelete} style={styles.delete} /> : null}
       </ScrollView>
+
+      <ActionMenu visible={dueMenu} title="Due date" actions={dueActions} onClose={() => setDueMenu(false)} />
+      <ActionMenu visible={assigneeMenu} title="Assignee" actions={assigneeActions} onClose={() => setAssigneeMenu(false)} />
+
+      {/* iOS date picker (Android uses the imperative DateTimePickerAndroid dialog). */}
+      <Modal visible={iosDate !== null} transparent animationType="slide" onRequestClose={() => setIosDate(null)}>
+        <Pressable style={styles.iosBackdrop} onPress={() => setIosDate(null)}>
+          <Pressable style={styles.iosSheet} onPress={() => {}}>
+            {iosDate ? (
+              <RNDateTimePicker value={iosDate} mode="date" display="inline" onChange={(_e, d) => d && setIosDate(d)} />
+            ) : null}
+            <Button
+              title="Set date"
+              onPress={() => {
+                if (iosDate) void setDue(dueOnDate(iosDate));
+                setIosDate(null);
+              }}
+              style={styles.iosSet}
+            />
+          </Pressable>
+        </Pressable>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -341,17 +394,14 @@ const makeStyles = (c: Palette) => {
   return StyleSheet.create({
     fill: { flex: 1, backgroundColor: c.bg },
     content: { padding: spacing.lg, paddingBottom: 48 },
-    completeRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.sm },
+    headerDot: { paddingRight: spacing.xs },
+    titleInput: { ...t.title, paddingVertical: spacing.sm },
+    titleDone: { color: c.textDisabled, textDecorationLine: 'line-through' },
+    completeRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.sm, marginBottom: spacing.md },
     completeLabel: { ...t.bodyLg },
+    card: { backgroundColor: c.surface, borderRadius: radii.lg, overflow: 'hidden' },
     section: { ...t.sectionLabel, marginTop: spacing.xl, marginBottom: spacing.sm },
-    currentDue: { ...t.body, marginBottom: spacing.sm },
-    overdue: { color: c.danger, fontWeight: '600' },
     noneText: { ...t.small, marginBottom: spacing.sm },
-    chipRow: { flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' },
-    chip: { paddingHorizontal: spacing.md, paddingVertical: 6, borderRadius: radii.lg, borderWidth: 1, borderColor: c.border },
-    chipOn: { backgroundColor: c.primary, borderColor: c.primary },
-    chipText: { fontSize: 13, color: c.textMuted },
-    chipTextOn: { color: c.onPrimary, fontWeight: '600' },
     qtyRow: { flexDirection: 'row', gap: spacing.sm },
     qtyInput: { flex: 1 },
     unitInput: { flex: 2 },
@@ -367,7 +417,12 @@ const makeStyles = (c: Palette) => {
     subDone: { color: c.textDisabled, textDecorationLine: 'line-through' },
     subAddRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md },
     inlineBtn: { paddingVertical: 0 },
-    delete: { marginTop: spacing.xxl },
+    provenance: { marginTop: spacing.xl, gap: 2 },
+    provText: { ...t.hint, color: c.textSubtle },
+    delete: { marginTop: spacing.xl },
+    iosBackdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
+    iosSheet: { backgroundColor: c.bg, borderTopLeftRadius: radii.lg, borderTopRightRadius: radii.lg, padding: spacing.lg },
+    iosSet: { marginTop: spacing.sm },
     empty: { textAlign: 'center', color: c.textSubtle, marginTop: 40 },
     loading: { marginTop: 40 },
   });

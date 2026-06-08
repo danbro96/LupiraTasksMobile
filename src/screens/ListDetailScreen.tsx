@@ -1,6 +1,6 @@
-import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import { useCallback, useLayoutEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
-import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { generateKeyBetween } from 'fractional-indexing';
@@ -148,9 +148,13 @@ export function ListDetailScreen() {
     });
   }, [nav, listId, params.name]);
 
-  useEffect(() => {
-    void pullList(listId).finally(() => setPulled(true));
-  }, [listId]);
+  // Pull on focus (not just mount): native-stack keeps this screen mounted when TaskDetail /
+  // ListSettings are pushed on top, so a mount-only effect would leave tasks stale on return.
+  useFocusEffect(
+    useCallback(() => {
+      void pullList(listId).finally(() => setPulled(true));
+    }, [listId]),
+  );
 
   const visibleItems = useMemo(() => items.filter(i => !pendingDeletes.has(i.id)), [items, pendingDeletes]);
   const rows = useMemo(() => buildVisibleRows(visibleItems, expanded, hideCompleted), [visibleItems, expanded, hideCompleted]);
