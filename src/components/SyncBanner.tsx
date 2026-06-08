@@ -14,9 +14,10 @@ export function SyncBanner() {
   const serverReachable = useSyncStatus(s => s.serverReachable);
   const pending = useSyncStatus(s => s.pending);
   const failed = useSyncStatus(s => s.failed);
+  const lastError = useSyncStatus(s => s.lastError);
   const debugEnabled = usePrefs(s => s.debugEnabled);
 
-  const state = bannerState({ online, serverReachable, pending, failed });
+  const state = bannerState({ online, serverReachable, pending, failed, lastError });
   if (!state) return null;
   // The routine "Syncing…" banner is noise on every action — show it only in debug mode.
   // Connectivity/failure states always show.
@@ -49,5 +50,6 @@ const styles = StyleSheet.create({
   unreachable: { backgroundColor: colors.bannerUnreachable },
   failed: { backgroundColor: colors.bannerUnreachable },
   syncing: { backgroundColor: colors.bannerSyncing },
+  error: { backgroundColor: colors.bannerUnreachable },
   text: { color: '#fff', fontSize: 13, textAlign: 'center' },
 });

@@ -3,6 +3,7 @@ import * as SecureStore from 'expo-secure-store';
 import { DEFAULT_API_URL } from '../config';
 import { refreshTokens, RefreshError } from '../auth/oidc';
 import { useSyncStatus } from '../offline/syncStatus';
+import { toast } from '../components/Toast';
 import { logDebug } from '../debug/log';
 
 // One shared in-flight refresh. Concurrent callers await it instead of each POSTing the
@@ -46,9 +47,13 @@ type AuthActions = {
   setSession: (session: Session, user: AuthUser) => Promise<void>;
   /** Merge server profile fields (from `/me`) into the cached user; persists displayName. */
   updateProfile: (profile: { displayName?: string | null; isAdmin?: boolean }) => Promise<void>;
-  clearSession: () => Promise<void>;
-  /** Refresh the access token if it's expired/near-expiry; returns the live access token. */
-  refreshIfNeeded: () => Promise<string | null>;
+  /** Wipe the session. `reason: 'expired'` surfaces a toast (involuntary logout); a plain
+   *  call (deliberate sign-out) stays silent. */
+  clearSession: (opts?: { reason?: 'expired' }) => Promise<void>;
+  /** Refresh the access token if it's expired/near-expiry; returns the live access token.
+   *  `force: true` bypasses the freshness check (reactive refresh after a server 401) and, when
+   *  the session is definitively un-refreshable, clears it rather than handing back a dead token. */
+  refreshIfNeeded: (opts?: { force?: boolean }) => Promise<string | null>;
   isAuthenticated: () => boolean;
 };
 
@@ -120,7 +125,10 @@ export const useAuth = create<AuthState & AuthActions>((set, get) => ({
     });
   },
 
-  clearSession: async () => {
+  clearSession: async opts => {
+    // Involuntary logout (expired/revoked session) tells the user why before the screen flips to
+    // the sign-in view; a deliberate sign-out passes no reason and stays silent.
+    if (opts?.reason === 'expired') toast('Session expired — please sign in again.');
     await Promise.all([
       SecureStore.deleteItemAsync(KEY_TOKEN),
       SecureStore.deleteItemAsync(KEY_REFRESH),
@@ -133,11 +141,21 @@ export const useAuth = create<AuthState & AuthActions>((set, get) => ({
     useSyncStatus.getState().setFirstSyncDone(false);
   },
 
-  refreshIfNeeded: async () => {
+  refreshIfNeeded: async opts => {
     const { token, refreshToken, expiresAt, user } = get();
     if (!token) return null;
+    const force = opts?.force ?? false;
     const fresh = expiresAt ? Date.now() < expiresAt - 60_000 : false;
-    if (fresh || !refreshToken || !user) return token;
+    // Proactive callers stand pat while the token is still fresh; a forced (post-401) caller
+    // always attempts a refresh.
+    if (!force && fresh) return token;
+    if (!refreshToken || !user) {
+      // No way to refresh. A forced caller reached here because the server already rejected the
+      // token (401), so the session is definitively dead — clear it for re-auth. A proactive
+      // caller keeps the (possibly still-valid) token and lets any later 401 trigger the force path.
+      if (force) { await get().clearSession({ reason: 'expired' }); return null; }
+      return token;
+    }
     // Coalesce concurrent refreshes: an enqueue-triggered drain firing while a foreground
     // sync is already mid-refresh must NOT POST the refresh token a second time — with
     // Authentik rotation the second send replays an already-rotated token, which fails and
@@ -157,7 +175,7 @@ export const useAuth = create<AuthState & AuthActions>((set, get) => ({
       } catch (e) {
         // Definitive rejection (refresh token/client invalid) — drop the session to re-auth.
         if (e instanceof RefreshError && e.definitive) {
-          await get().clearSession();
+          await get().clearSession({ reason: 'expired' });
           return null;
         }
         // Transient (network/timeout/5xx): keep the session and retry on the next trigger. Return

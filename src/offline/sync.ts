@@ -145,8 +145,8 @@ async function runSync(): Promise<void> {
 }
 
 /**
- * Wire connectivity + lifecycle to sync: track online state from NetInfo and run a full sync
- * on regained connectivity and on app foreground. Returns an unsubscribe.
+ * Wire connectivity + lifecycle to sync: track online state from NetInfo, run a full sync on
+ * regained connectivity, on app foreground, and on sign-in. Returns an unsubscribe.
  */
 export function startSync(): () => void {
   const netSub = NetInfo.addEventListener(state => {
@@ -157,6 +157,14 @@ export function startSync(): () => void {
   const appSub = AppState.addEventListener('change', s => {
     if (s === 'active') void syncAll();
   });
+  // Sign-in trigger: the access token going absent→present means a fresh login (the mount-effect
+  // sync already ran while signed out and no-oped). Without this, a first-install user stays on the
+  // initial-load spinner until they manually pull-to-refresh. The strict null→present guard skips
+  // the non-null→non-null swap that token rotation performs, and syncAll() self-coalesces, so a
+  // race with the mount-effect sync is harmless.
+  const authSub = useAuth.subscribe((state, prev) => {
+    if (!prev.token && state.token) void syncAll();
+  });
   void refreshPending();
-  return () => { netSub(); appSub.remove(); };
+  return () => { netSub(); appSub.remove(); authSub(); };
 }

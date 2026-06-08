@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { bannerState } from './bannerState';
 
-const ok = { online: true, serverReachable: true, pending: 0, failed: 0 };
+const ok = { online: true, serverReachable: true, pending: 0, failed: 0, lastError: null };
 
 describe('bannerState', () => {
   it('is hidden when online, reachable, and nothing pending/failed', () => {
@@ -34,6 +34,18 @@ describe('bannerState', () => {
   });
 
   it('prioritises unreachable over failed/syncing', () => {
-    expect(bannerState({ online: true, serverReachable: false, failed: 5, pending: 2 })?.kind).toBe('unreachable');
+    expect(bannerState({ online: true, serverReachable: false, failed: 5, pending: 2, lastError: 'x' })?.kind).toBe('unreachable');
+  });
+
+  it('shows a generic error when only lastError is set', () => {
+    expect(bannerState({ ...ok, lastError: 'boom' })).toEqual({ kind: 'error', text: 'Sync failed — pull to retry' });
+  });
+
+  it('ranks lastError below everything else (lowest priority)', () => {
+    const err = 'boom';
+    expect(bannerState({ ...ok, online: false, lastError: err })?.kind).toBe('offline');
+    expect(bannerState({ ...ok, serverReachable: false, lastError: err })?.kind).toBe('unreachable');
+    expect(bannerState({ ...ok, failed: 1, lastError: err })?.kind).toBe('failed');
+    expect(bannerState({ ...ok, pending: 1, lastError: err })?.kind).toBe('syncing');
   });
 });

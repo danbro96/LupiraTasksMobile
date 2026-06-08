@@ -5,7 +5,7 @@ import { defineConfig } from 'vitest/config';
 // needed, e.g. pendingDeletes). `npm run typecheck` (tsc) covers types across the project.
 export default defineConfig({
   test: {
-    include: ['src/offline/**/*.test.ts', 'src/util/**/*.test.ts', 'src/api/**/*.test.ts'],
+    include: ['src/offline/**/*.test.ts', 'src/util/**/*.test.ts', 'src/api/**/*.test.ts', 'src/store/**/*.test.ts'],
     environment: 'node',
   },
 });

@@ -86,6 +86,14 @@ export async function apiFetch<T>(
   // deferred retry remains the outer safety net once these immediate attempts are exhausted.
   const retriable = isRetriableRequest(init?.method, headers.has('Idempotency-Key'));
 
+  // Reactive re-auth: if the server rejects our token (401) — e.g. it was revoked/rotated early
+  // or our expiry clock was skewed, so the proactive refresh never fired — force a token refresh
+  // and retry once. `triedReauth` flips once and is never reset, bounding this to a single forced
+  // refresh + retry per call. We compare against the token actually sent (entryToken), not a live
+  // store read, so a concurrent setSession can't make us think we got a new token when we didn't.
+  const entryToken = token;
+  let triedReauth = false;
+
   let res: Response;
   for (let attempt = 0; ; attempt++) {
     try {
@@ -107,6 +115,21 @@ export async function apiFetch<T>(
     // ''), and a dropped/empty body leaves text empty too — fall back to the status code so the
     // error isn't "ApiError: No error message" in Sentry / the UI.
     const text = await res.text().catch(() => '');
+
+    // Reactive re-auth on a terminal 401 (retriable requests only — GET/HEAD or a write carrying
+    // an Idempotency-Key, so the retry can't double-apply). refreshIfNeeded owns the clear/keep
+    // decision: a *definitive* failure (refresh token rejected / none) clears the session and
+    // returns null (→ sign-in screen); a *transient* failure keeps the session and returns the
+    // same token, so we just surface the 401 and recover on the next sync trigger.
+    if (res.status === 401 && retriable && !triedReauth) {
+      triedReauth = true;
+      const fresh = await useAuth.getState().refreshIfNeeded({ force: true });
+      if (fresh && fresh !== entryToken) {
+        headers.set('Authorization', `Bearer ${fresh}`);
+        attempt = -1; // next iteration is attempt 0 again — a fresh transient-retry budget
+        continue;
+      }
+    }
     throw new ApiError(res.status, text || res.statusText || `HTTP ${res.status}`);
   }
 
