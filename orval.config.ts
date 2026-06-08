@@ -15,8 +15,8 @@ import { defineConfig } from 'orval';
  * sync/outbox layer, so react-query's cache is unused; keeping it out avoids a second,
  * mirror-unaware cache and a redundant dependency.
  *
- * Mutator: `./src/api/mutator.ts#apiFetch` — owns base URL, auth token, and
- * error normalisation. Reads `useAuth.getState()` at call time so the API URL
+ * Mutator: `./src/data/api/mutator.ts#apiFetch` — owns base URL, auth token, and
+ * error normalisation. Reads the session through the AuthPort at call time so the API URL
  * override (settings screen) is always picked up live.
  */
 export default defineConfig({
@@ -24,12 +24,12 @@ export default defineConfig({
     input: { target: './backend-openapi.json' },
     output: {
       mode: 'tags-split',
-      target: './src/api/generated/api.ts',
-      schemas: './src/api/generated/models',
+      target: './src/data/api/generated/api.ts',
+      schemas: './src/data/api/generated/models',
       client: 'fetch',
       baseUrl: '',
       override: {
-        mutator: { path: './src/api/mutator.ts', name: 'apiFetch' },
+        mutator: { path: './src/data/api/mutator.ts', name: 'apiFetch' },
       },
       clean: true,
     },

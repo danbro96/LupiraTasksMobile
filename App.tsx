@@ -5,13 +5,13 @@ import { StatusBar } from 'expo-status-bar';
 import * as Sentry from '@sentry/react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer, DefaultTheme, DarkTheme, type Theme } from '@react-navigation/native';
-import { RootStack } from './src/navigation/RootStack';
-import { ToastHost } from './src/components/Toast';
-import { useAuth } from './src/store/auth-store';
-import { usePrefs } from './src/store/prefs-store';
-import { startSync, syncAll } from './src/offline/sync';
+import { RootStack } from './src/ui/navigation/RootStack';
+import { ToastHost } from './src/ui/components/ToastHost';
+import { useAuth } from './src/state/auth-store';
+import { usePrefs } from './src/state/prefs-store';
+import { startSync, syncAll } from './src/sync/sync';
 import { SENTRY_DSN, APP_VERSION } from './src/config';
-import { lightColors, darkColors, type Palette } from './src/theme';
+import { lightColors, darkColors, type Palette } from './src/ui/theme';
 
 /** React Navigation theme derived from our palette so headers/backgrounds match the app. */
 function navTheme(scheme: string | null | undefined): Theme {
