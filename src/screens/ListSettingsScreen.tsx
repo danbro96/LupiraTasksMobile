@@ -6,6 +6,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   View,
 } from 'react-native';
@@ -21,6 +22,7 @@ import { SyncBanner } from '../components/SyncBanner';
 import { useLists } from '../offline/useMirror';
 import { useMyRole } from '../offline/useMyRole';
 import { useAuth } from '../store/auth-store';
+import { usePrefs } from '../store/prefs-store';
 import { enqueue } from '../offline/outbox';
 import { stamp } from '../offline/ops';
 import { makeType, radii, spacing, useColors, type Palette } from '../theme';
@@ -40,6 +42,7 @@ export function ListSettingsScreen() {
   const [name, setName] = useState(list?.name ?? '');
   const [newEmail, setNewEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<ListRole>(ListRole.Editor);
+  const hideCompleted = usePrefs(s => s.hideCompleted[listId] ?? false);
   const c = useColors();
   const styles = useMemo(() => makeStyles(c), [c]);
 
@@ -167,6 +170,17 @@ export function ListSettingsScreen() {
         <Text style={styles.section}>COLOR</Text>
         <ColorSwatches value={list.color ?? null} onChange={c => void setColor(c)} />
 
+        <Text style={styles.section}>DISPLAY</Text>
+        <View style={styles.toggleRow}>
+          <Text style={styles.toggleLabel}>Hide completed tasks</Text>
+          <Switch
+            value={hideCompleted}
+            onValueChange={v => void usePrefs.getState().setHideCompleted(listId, v)}
+            trackColor={{ false: c.border, true: c.primary }}
+            accessibilityLabel="Hide completed tasks"
+          />
+        </View>
+
         <Text style={styles.section}>MEMBERS</Text>
         {list.members.map(m => {
           const isMe = sameEmail(m.email, me);
@@ -261,6 +275,8 @@ const makeStyles = (c: Palette) => {
     content: { padding: spacing.lg, paddingBottom: 48 },
     section: { ...t.sectionLabel, marginTop: spacing.xl, marginBottom: spacing.sm },
     row: { flexDirection: 'row', gap: spacing.sm },
+    toggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    toggleLabel: { ...t.body, flex: 1, paddingRight: spacing.md },
     inlineBtn: { paddingVertical: 0 },
     member: { paddingVertical: spacing.md, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: c.divider },
     memberHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },

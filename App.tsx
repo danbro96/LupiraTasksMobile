@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useColorScheme } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
 import * as Sentry from '@sentry/react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -51,13 +52,15 @@ function App() {
   if (!loaded) return null;
 
   return (
-    <SafeAreaProvider>
-      <NavigationContainer theme={navTheme(scheme)}>
-        <RootStack />
-      </NavigationContainer>
-      <ToastHost />
-      <StatusBar style="auto" />
-    </SafeAreaProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <NavigationContainer theme={navTheme(scheme)}>
+          <RootStack />
+        </NavigationContainer>
+        <ToastHost />
+        <StatusBar style="auto" />
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
 

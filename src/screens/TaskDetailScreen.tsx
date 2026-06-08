@@ -6,14 +6,16 @@ import { Ionicons } from '@expo/vector-icons';
 import { ListKind } from '../api/generated/models';
 import type { RootStackParamList } from '../navigation/types';
 import { Button } from '../components/Button';
+import { Checkbox } from '../components/Checkbox';
 import { TextField } from '../components/TextField';
 import { SyncBanner } from '../components/SyncBanner';
 import { toast } from '../components/Toast';
 import { useItems, useLists } from '../offline/useMirror';
 import { useMyRole, canEditWithRole } from '../offline/useMyRole';
 import { requestItemDelete } from '../offline/pendingDeletes';
+import { childrenOf, nextChildSortOrder } from '../offline/itemTree';
 import { enqueue } from '../offline/outbox';
-import { stamp } from '../offline/ops';
+import { newId, stamp } from '../offline/ops';
 import { dueInDays, dueNextWeekend, formatDue } from '../util/dueDate';
 import { makeType, radii, spacing, useColors, type Palette } from '../theme';
 
@@ -40,6 +42,7 @@ export function TaskDetailScreen() {
   const [notes, setNotes] = useState(item?.notes ?? '');
   const [qty, setQty] = useState(item?.quantity != null ? String(item.quantity) : '');
   const [unit, setUnit] = useState(item?.unit ?? '');
+  const [subTitle, setSubTitle] = useState('');
 
   // Latest field values + last-persisted baselines. Lets us flush unsaved edits on unmount
   // (hardware/gesture back doesn't reliably fire onBlur) without re-enqueueing saved text.
@@ -51,6 +54,7 @@ export function TaskDetailScreen() {
   notesRef.current = notes;
 
   const members = useMemo(() => list?.members.map(m => m.email) ?? [], [list]);
+  const subtasks = useMemo(() => childrenOf(items, itemId), [items, itemId]);
   const due = formatDue(item?.dueAt);
   const c = useColors();
   const styles = useMemo(() => makeStyles(c), [c]);
@@ -143,6 +147,31 @@ export function TaskDetailScreen() {
       () => enqueue({ ...stamp(), kind: item!.completed ? 'item.reopen' : 'item.complete', listId, itemId }),
       "Couldn't update task",
     );
+
+  const toggleSub = (st: { id: string; completed: boolean }) =>
+    run(
+      () => enqueue({ ...stamp(), kind: st.completed ? 'item.reopen' : 'item.complete', listId, itemId: st.id }),
+      "Couldn't update subtask",
+    );
+
+  async function addSubtask() {
+    const t = subTitle.trim();
+    if (!t) return;
+    setSubTitle('');
+    await run(
+      () =>
+        enqueue({
+          ...stamp(),
+          kind: 'item.create',
+          listId,
+          itemId: newId(),
+          title: t,
+          sortOrder: nextChildSortOrder(items, itemId),
+          parentItemId: itemId,
+        }),
+      "Couldn't add subtask",
+    );
+  }
 
   function onDelete() {
     requestItemDelete(listId, itemId, 'Task deleted');
@@ -269,6 +298,36 @@ export function TaskDetailScreen() {
           accessibilityLabel="Task notes"
         />
 
+        <Text style={styles.section}>SUBTASKS</Text>
+        {subtasks.length === 0 ? <Text style={styles.noneText}>No subtasks</Text> : null}
+        {subtasks.map(st => (
+          <Pressable
+            key={st.id}
+            style={styles.subRow}
+            onPress={() => nav.push('TaskDetail', { listId, itemId: st.id })}
+            accessibilityRole="button"
+            accessibilityLabel={st.title}
+            accessibilityHint="Opens subtask"
+          >
+            <Checkbox checked={st.completed} disabled={!canEdit} onPress={() => void toggleSub(st)} />
+            <Text style={[styles.subTitle, st.completed && styles.subDone]} numberOfLines={1}>{st.title}</Text>
+            <Ionicons name="chevron-forward" size={16} color={c.textDisabled} />
+          </Pressable>
+        ))}
+        {canEdit ? (
+          <View style={styles.subAddRow}>
+            <TextField
+              placeholder="Add subtask…"
+              value={subTitle}
+              onChangeText={setSubTitle}
+              onSubmitEditing={addSubtask}
+              returnKeyType="done"
+              accessibilityLabel="New subtask title"
+            />
+            <Button title="Add" onPress={addSubtask} disabled={!subTitle.trim()} style={styles.inlineBtn} />
+          </View>
+        ) : null}
+
         {canEdit ? (
           <Button title="Delete task" variant="destructive" onPress={onDelete} style={styles.delete} />
         ) : null}
@@ -296,6 +355,18 @@ const makeStyles = (c: Palette) => {
     qtyRow: { flexDirection: 'row', gap: spacing.sm },
     qtyInput: { flex: 1 },
     unitInput: { flex: 2 },
+    subRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
+      paddingVertical: spacing.md,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: c.divider,
+    },
+    subTitle: { ...t.body, flex: 1 },
+    subDone: { color: c.textDisabled, textDecorationLine: 'line-through' },
+    subAddRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md },
+    inlineBtn: { paddingVertical: 0 },
     delete: { marginTop: spacing.xxl },
     empty: { textAlign: 'center', color: c.textSubtle, marginTop: 40 },
     loading: { marginTop: 40 },
