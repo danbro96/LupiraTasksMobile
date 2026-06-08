@@ -5,7 +5,8 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { generateKeyBetween } from 'fractional-indexing';
 import ReorderableList, { useReorderableDrag, useIsActive } from 'react-native-reorderable-list';
-import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 import { ListKind } from '../../data/api/generated/models';
 import type { RootStackParamList } from '../navigation/types';
 import type { ItemState } from '../../domain/itemState';
@@ -30,6 +31,7 @@ import { formatDue } from '../../domain/dueDate';
 import { makeType, spacing, useColors, type Palette } from '../theme';
 
 const INDENT = spacing.lg; // left inset per nesting level
+const SWIPE_DELETE_THRESHOLD = -80; // swipe left past this (px) and release to delete
 
 /** "2 kg"-style quantity label for shopping items, or null when there's nothing to show. */
 function qtyLabel(it: ItemState): string | null {
@@ -55,6 +57,11 @@ interface RowProps {
 function TaskRow({ row, canEdit, isShopping, status, expanded, styles, palette, onToggle, onOpen, onToggleExpand, onDelete }: RowProps) {
   const drag = useReorderableDrag();
   const isActive = useIsActive();
+  const translateX = useSharedValue(0);
+  const rowStyle = useAnimatedStyle(() => ({ transform: [{ translateX: translateX.value }] }));
+  // Red delete backdrop is invisible until the row is actually swiped — so it never shows at rest
+  // or while the row is picked up for reordering.
+  const deleteBgStyle = useAnimatedStyle(() => ({ opacity: translateX.value < -1 ? 1 : 0 }));
   const { item, depth, hasChildren } = row;
   const due = formatDue(item.dueAt);
   const qty = isShopping ? qtyLabel(item) : null;
@@ -64,7 +71,7 @@ function TaskRow({ row, canEdit, isShopping, status, expanded, styles, palette, 
       style={[styles.row, { paddingLeft: spacing.lg + depth * INDENT }, isActive && styles.rowActive]}
       onPress={() => onOpen(item)}
       onLongPress={canEdit ? drag : undefined}
-      delayLongPress={250}
+      delayLongPress={500}
       accessibilityRole="button"
       accessibilityLabel={`${qty ? qty + ' ' : ''}${item.title}${due ? `, due ${due.label}` : ''}`}
       accessibilityHint="Opens task details. Long-press to reorder."
@@ -97,22 +104,35 @@ function TaskRow({ row, canEdit, isShopping, status, expanded, styles, palette, 
 
   if (!canEdit) return inner;
 
+  // Swipe the row left and release past the threshold to delete; otherwise it springs back.
+  // A custom Pan (instead of Swipeable's open-callback, which doesn't fire reliably here) lets us
+  // own the release handler and call onDelete via runOnJS. activeOffsetX claims only leftward drags;
+  // failOffsetY yields vertical gestures to scroll. The reorder drag is gated behind a long-press
+  // (list `panGesture`, below) so it doesn't steal these quick horizontal swipes.
+  const swipe = Gesture.Pan()
+    .activeOffsetX(-15)
+    .failOffsetY([-12, 12])
+    .onUpdate(e => {
+      translateX.value = Math.min(0, e.translationX);
+    })
+    .onEnd(e => {
+      if (e.translationX < SWIPE_DELETE_THRESHOLD) {
+        translateX.value = withTiming(-500, { duration: 160 });
+        runOnJS(onDelete)(item);
+      } else {
+        translateX.value = withSpring(0);
+      }
+    });
+
   return (
-    <ReanimatedSwipeable
-      friction={2}
-      rightThreshold={40}
-      overshootRight={false}
-      renderRightActions={() => (
-        <View style={styles.swipeDelete}>
-          <Ionicons name="trash" size={22} color="#fff" />
-        </View>
-      )}
-      onSwipeableOpen={direction => {
-        if (direction === 'right') onDelete(item);
-      }}
-    >
-      {inner}
-    </ReanimatedSwipeable>
+    <View style={styles.swipeContainer}>
+      <Animated.View style={[styles.swipeDelete, deleteBgStyle]} pointerEvents="none">
+        <Ionicons name="trash" size={22} color="#fff" />
+      </Animated.View>
+      <GestureDetector gesture={swipe}>
+        <Animated.View style={rowStyle}>{inner}</Animated.View>
+      </GestureDetector>
+    </View>
   );
 }
 
@@ -135,6 +155,9 @@ export function ListDetailScreen() {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const c = useColors();
   const styles = useMemo(() => makeStyles(c), [c]);
+  // Gate the reorder drag behind a long-press so it doesn't claim the quick horizontal swipes used
+  // for swipe-to-delete (slightly longer than the row's 500ms delayLongPress, per the lib's guidance).
+  const dragGesture = useMemo(() => Gesture.Pan().activateAfterLongPress(520), []);
 
   useLayoutEffect(() => {
     nav.setOptions({
@@ -236,6 +259,7 @@ export function ListDetailScreen() {
         data={rows}
         keyExtractor={r => r.item.id}
         dragEnabled={canEdit}
+        panGesture={dragGesture}
         shouldUpdateActiveItem
         onReorder={onReorder}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
@@ -292,7 +316,19 @@ const makeStyles = (c: Palette) => {
     metaRow: { flexDirection: 'row', gap: spacing.sm, marginTop: 2 },
     meta: { ...t.hint, color: c.textMuted, flexShrink: 1 },
     overdue: { color: c.danger, fontWeight: '600' },
-    swipeDelete: { width: 72, backgroundColor: c.danger, alignItems: 'center', justifyContent: 'center' },
+    swipeContainer: { justifyContent: 'center' },
+    swipeDelete: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      top: 0,
+      bottom: 0,
+      backgroundColor: c.danger,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'flex-end',
+      paddingRight: 24,
+    },
     empty: { textAlign: 'center', color: c.textSubtle, marginTop: 40 },
     loading: { marginTop: 40 },
   });
