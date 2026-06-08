@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { hapticError } from './haptics';
 
 // Minimal transient message surface for action-level failures (e.g. "couldn't save change")
 // and confirmable actions with an optional inline button (e.g. "Undo"). A single message at a
@@ -50,4 +51,10 @@ export const useToast = create<ToastState>(set => ({
  */
 export function toast(message: string, opts?: ToastOptions): void {
   useToast.getState().show(message, opts);
+}
+
+/** Toast for a failed or blocked action — same as toast(), plus an error haptic. */
+export function toastError(message: string): void {
+  hapticError();
+  toast(message);
 }

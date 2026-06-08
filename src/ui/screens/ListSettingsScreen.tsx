@@ -17,7 +17,7 @@ import type { RootStackParamList } from '../navigation/types';
 import { Button } from '../components/Button';
 import { TextField } from '../components/TextField';
 import { ColorSwatches } from '../components/ColorSwatches';
-import { toast } from '../../feedback/toast';
+import { toast, toastError } from '../../feedback/toast';
 import { SyncBanner } from '../components/SyncBanner';
 import { useLists } from '../hooks/useMirror';
 import { useMyRole } from '../hooks/useMyRole';
@@ -69,14 +69,14 @@ export function ListSettingsScreen() {
       await action();
       if (successMsg) toast(successMsg);
     } catch {
-      toast(failMsg);
+      toastError(failMsg);
     }
   }
 
   async function saveName() {
     const n = name.trim();
     if (!n) {
-      toast('Name cannot be empty');
+      toastError('Name cannot be empty');
       return;
     }
     if (n === list!.name) return;
@@ -90,11 +90,11 @@ export function ListSettingsScreen() {
     const email = newEmail.trim();
     if (!email) return;
     if (!EMAIL_RE.test(email)) {
-      toast('Enter a valid email');
+      toastError('Enter a valid email');
       return;
     }
     if (list!.members.some(m => sameEmail(m.email, email))) {
-      toast('Already a member');
+      toastError('Already a member');
       return;
     }
     setNewEmail('');

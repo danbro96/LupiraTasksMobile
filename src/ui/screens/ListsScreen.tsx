@@ -8,7 +8,7 @@ import { IconButton } from '../components/IconButton';
 import { SyncBanner } from '../components/SyncBanner';
 import { SyncDot } from '../components/SyncDot';
 import { DebugPanel } from '../components/DebugPanel';
-import { toast } from '../../feedback/toast';
+import { toastError } from '../../feedback/toast';
 import { useLists } from '../hooks/useMirror';
 import { useOutboxStatus } from '../hooks/useOutboxStatus';
 import { useSyncStatus } from '../../sync/syncStatus';
@@ -40,7 +40,7 @@ export function ListsScreen() {
     try {
       await syncAll();
     } catch {
-      toast('Sync failed');
+      toastError('Sync failed');
     } finally {
       setRefreshing(false);
     }

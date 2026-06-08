@@ -7,7 +7,7 @@ import { generateKeyBetween } from 'fractional-indexing';
 import ReorderableList, { useReorderableDrag, useIsActive } from 'react-native-reorderable-list';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { LinearTransition, runOnJS, SlideOutLeft, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
-import * as Haptics from 'expo-haptics';
+import { hapticImpact, hapticSuccess } from '../../feedback/haptics';
 import { ListKind } from '../../data/api/generated/models';
 import type { RootStackParamList } from '../navigation/types';
 import type { ItemState } from '../../domain/itemState';
@@ -18,7 +18,7 @@ import { TextField } from '../components/TextField';
 import { SyncBanner } from '../components/SyncBanner';
 import { SyncDot } from '../components/SyncDot';
 import type { OpStatus } from '../hooks/useOutboxStatus';
-import { toast } from '../../feedback/toast';
+import { toast, toastError } from '../../feedback/toast';
 import { useItems, useLists } from '../hooks/useMirror';
 import { useOutboxStatus } from '../hooks/useOutboxStatus';
 import { useMyRole, canEditWithRole } from '../hooks/useMyRole';
@@ -189,7 +189,7 @@ export function ListDetailScreen() {
     try {
       await pullList(listId);
     } catch {
-      toast('Sync failed');
+      toastError('Sync failed');
     } finally {
       setRefreshing(false);
     }
@@ -205,15 +205,16 @@ export function ListDetailScreen() {
     try {
       await enqueue({ ...stamp(), kind: 'item.create', listId, itemId: newId(), title: t, sortOrder, parentItemId: null });
     } catch {
-      toast("Couldn't add item");
+      toastError("Couldn't add item");
     }
   }
 
   async function toggle(it: ItemState) {
+    if (!it.completed) hapticSuccess(); // satisfying tick when checking a task off
     try {
       await enqueue({ ...stamp(), kind: it.completed ? 'item.reopen' : 'item.complete', listId, itemId: it.id });
     } catch {
-      toast("Couldn't update item");
+      toastError("Couldn't update item");
     }
   }
 
@@ -222,7 +223,7 @@ export function ListDetailScreen() {
   }
 
   function onDelete(it: ItemState) {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    hapticImpact();
     requestItemDeleteMany(listId, [it.id, ...descendantIds(items, it.id)]);
   }
 
@@ -235,7 +236,7 @@ export function ListDetailScreen() {
     next.splice(to, 0, moved);
     const target = siblingReorder(next, draggedId);
     if (target) {
-      void enqueue({ ...stamp(), kind: 'item.move', listId, itemId: draggedId, ...target }).catch(() => toast("Couldn't move item"));
+      void enqueue({ ...stamp(), kind: 'item.move', listId, itemId: draggedId, ...target }).catch(() => toastError("Couldn't move item"));
     }
   }
 
@@ -265,6 +266,10 @@ export function ListDetailScreen() {
         panGesture={dragGesture}
         shouldUpdateActiveItem
         itemLayoutAnimation={LinearTransition.duration(200)}
+        onDragStart={() => {
+          'worklet';
+          runOnJS(hapticImpact)(); // "pickup" thunk when a row is grabbed to reorder
+        }}
         onReorder={onReorder}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
         ListEmptyComponent={

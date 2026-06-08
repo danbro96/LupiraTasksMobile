@@ -7,7 +7,7 @@ import type { RootStackParamList } from '../navigation/types';
 import { TextField } from '../components/TextField';
 import { ColorSwatches } from '../components/ColorSwatches';
 import { SyncBanner } from '../components/SyncBanner';
-import { toast } from '../../feedback/toast';
+import { toastError } from '../../feedback/toast';
 import { enqueue } from '../../sync/outbox';
 import { newId, stamp } from '../../domain/ops';
 import { logDebug } from '../../debug/log';
@@ -29,14 +29,14 @@ export function CreateListScreen() {
   async function create() {
     const n = name.trim();
     if (!n) {
-      toast('Name cannot be empty');
+      toastError('Name cannot be empty');
       return;
     }
     try {
       await enqueue({ ...stamp(), kind: 'list.create', listId: newId(), name: n, listKind: kind, color });
       nav.goBack();
     } catch (e) {
-      toast("Couldn't create list");
+      toastError("Couldn't create list");
       logDebug('createList:error', e instanceof Error ? e.message : String(e));
     }
   }

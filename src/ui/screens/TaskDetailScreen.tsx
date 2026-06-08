@@ -24,7 +24,8 @@ import { DetailRow } from '../components/DetailRow';
 import { ActionMenu, type ActionItem } from '../components/ActionMenu';
 import { SyncBanner } from '../components/SyncBanner';
 import { SyncDot } from '../components/SyncDot';
-import { toast } from '../../feedback/toast';
+import { toast, toastError } from '../../feedback/toast';
+import { hapticSuccess } from '../../feedback/haptics';
 import { useItems, useLists } from '../hooks/useMirror';
 import { useMyRole, canEditWithRole } from '../hooks/useMyRole';
 import { useOutboxStatus } from '../hooks/useOutboxStatus';
@@ -138,7 +139,7 @@ export function TaskDetailScreen() {
     try {
       await action();
     } catch {
-      toast(failMsg);
+      toastError(failMsg);
     }
   }
 
@@ -170,11 +171,15 @@ export function TaskDetailScreen() {
   const setAssignee = (email: string | null) =>
     run(() => enqueue({ ...stamp(), kind: 'item.assign', listId, itemId, assigneeEmail: email }), "Couldn't assign task");
 
-  const toggleComplete = () =>
-    run(() => enqueue({ ...stamp(), kind: item!.completed ? 'item.reopen' : 'item.complete', listId, itemId }), "Couldn't update task");
+  const toggleComplete = () => {
+    if (!item!.completed) hapticSuccess();
+    return run(() => enqueue({ ...stamp(), kind: item!.completed ? 'item.reopen' : 'item.complete', listId, itemId }), "Couldn't update task");
+  };
 
-  const toggleSub = (st: { id: string; completed: boolean }) =>
-    run(() => enqueue({ ...stamp(), kind: st.completed ? 'item.reopen' : 'item.complete', listId, itemId: st.id }), "Couldn't update subtask");
+  const toggleSub = (st: { id: string; completed: boolean }) => {
+    if (!st.completed) hapticSuccess();
+    return run(() => enqueue({ ...stamp(), kind: st.completed ? 'item.reopen' : 'item.complete', listId, itemId: st.id }), "Couldn't update subtask");
+  };
 
   async function addSubtask() {
     const t = subTitle.trim();

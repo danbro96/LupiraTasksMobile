@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { Button } from '../components/Button';
 import { SyncBanner } from '../components/SyncBanner';
-import { toast } from '../../feedback/toast';
+import { toastError } from '../../feedback/toast';
 import { useArchivedLists } from '../hooks/useMirror';
 import { enqueue } from '../../sync/outbox';
 import { stamp } from '../../domain/ops';
@@ -14,7 +14,7 @@ export function ArchivedListsScreen() {
   const styles = useMemo(() => makeStyles(c), [c]);
 
   function restore(listId: string) {
-    void enqueue({ ...stamp(), kind: 'list.restore', listId }).catch(() => toast("Couldn't restore list"));
+    void enqueue({ ...stamp(), kind: 'list.restore', listId }).catch(() => toastError("Couldn't restore list"));
   }
 
   return (
