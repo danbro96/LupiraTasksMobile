@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react-native';
 import { useAuth } from '../store/auth-store';
 import { classifyReplayError, type ReplayDecision } from './replayError';
 import { applyItemEvent } from './itemLww';
@@ -108,6 +109,9 @@ export async function enqueue(op: ClientOp): Promise<void> {
       await insertOutbox(db, op.commandId, JSON.stringify(op), op.occurredAt);
     });
   } catch (e) {
+    // A failed optimistic-apply + enqueue transaction is a genuine client bug (SQLite / reducer),
+    // not an expected offline condition — report it.
+    Sentry.captureException(e, { tags: { area: 'enqueue', op: op.kind } });
     logDebug('enqueue:error', `${op.kind} ${String(e)}`);
     throw e;
   }
@@ -156,6 +160,9 @@ async function runDrain(): Promise<void> {
         // Classify (pure, tested in replayError.test.ts), then apply the decision.
         const status = useSyncStatus.getState();
         const d = classifyReplayError(e, op.kind);
+        // A non-HTTP error means a client bug that will fail identically forever — report it.
+        // 4xx/5xx/network are expected (handled + surfaced in the Sync Issues UI), so stay quiet.
+        if (d.logTag === 'replay:bug') Sentry.captureException(e, { tags: { area: 'outbox', op: op.kind } });
         if (d.rowStatus) await bumpOutboxFailure(db, row.seq, d.rowStatus, d.rowError ?? '');
         if (d.serverUnreachable) status.setServerReachable(false);
         if (d.lastError !== null) status.setLastError(d.lastError);

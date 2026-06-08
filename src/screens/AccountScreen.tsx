@@ -55,6 +55,15 @@ export function AccountScreen() {
           />
         </View>
 
+        {debugEnabled ? (
+          <Button
+            title="View debug log"
+            variant="secondary"
+            onPress={() => nav.navigate('DebugLog')}
+            style={styles.debugLogBtn}
+          />
+        ) : null}
+
         <Button title="Sign out" variant="destructive" onPress={signOut} style={styles.signOut} />
 
         <Text style={styles.version}>Lupira Tasks v{APP_VERSION}</Text>
@@ -81,6 +90,7 @@ const makeStyles = (c: Palette) => {
     name: { ...t.heading, marginBottom: spacing.xs },
     email: { ...t.small, marginBottom: spacing.xxl },
     archived: { alignSelf: 'stretch', marginBottom: spacing.md },
+    debugLogBtn: { alignSelf: 'stretch', marginBottom: spacing.md },
     debugRow: {
       alignSelf: 'stretch',
       flexDirection: 'row',

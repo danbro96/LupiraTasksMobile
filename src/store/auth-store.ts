@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import * as SecureStore from 'expo-secure-store';
+import * as Crypto from 'expo-crypto';
+import * as Sentry from '@sentry/react-native';
 import { DEFAULT_API_URL } from '../config';
 import { refreshTokens, RefreshError } from '../auth/oidc';
 import { useSyncStatus } from '../offline/syncStatus';
@@ -9,6 +11,24 @@ import { logDebug } from '../debug/log';
 // One shared in-flight refresh. Concurrent callers await it instead of each POSTing the
 // refresh token (mirrors the syncing/draining guards). See refreshIfNeeded for why.
 let refreshing: Promise<string | null> | null = null;
+
+/**
+ * Attach a PSEUDONYMOUS Sentry identity so events can be correlated per-user without storing the
+ * raw email (sendDefaultPii is false). The id is a SHA-256 hash of the email; null clears it.
+ * Fire-and-forget — events fired before the hash resolves just lack the id.
+ */
+async function setSentryUser(email: string | null): Promise<void> {
+  if (!email) {
+    Sentry.setUser(null);
+    return;
+  }
+  try {
+    const id = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, email);
+    Sentry.setUser({ id });
+  } catch {
+    // Hashing failed (unlikely) — leave the identity unset rather than risk leaking the email.
+  }
+}
 
 const KEY_API_URL = 'lupira.tasks.apiUrl';
 const KEY_TOKEN = 'lupira.tasks.token';
@@ -82,6 +102,7 @@ export const useAuth = create<AuthState & AuthActions>((set, get) => ({
       expiresAt: expiresAt ? Number(expiresAt) : null,
       user: userSub ? { sub: userSub, displayName: userName ?? undefined } : null,
     });
+    void setSentryUser(userSub ?? null);
   },
 
   setApiUrl: async apiUrl => {
@@ -107,6 +128,7 @@ export const useAuth = create<AuthState & AuthActions>((set, get) => ({
       expiresAt: session.expiresAt,
       user,
     });
+    void setSentryUser(user.sub);
   },
 
   updateProfile: async ({ displayName, isAdmin }) => {
@@ -137,6 +159,7 @@ export const useAuth = create<AuthState & AuthActions>((set, get) => ({
       SecureStore.deleteItemAsync(KEY_USER_NAME),
     ]);
     set({ token: null, refreshToken: null, expiresAt: null, user: null });
+    Sentry.setUser(null);
     // Next signed-in user starts fresh: show the initial-load spinner until their first sync.
     useSyncStatus.getState().setFirstSyncDone(false);
   },
@@ -175,6 +198,8 @@ export const useAuth = create<AuthState & AuthActions>((set, get) => ({
       } catch (e) {
         // Definitive rejection (refresh token/client invalid) — drop the session to re-auth.
         if (e instanceof RefreshError && e.definitive) {
+          // Rare + high-signal (the user is being forced to sign in again) — worth a Sentry event.
+          Sentry.captureMessage(`auth: definitive refresh failure — ${e.message}`, 'warning');
           await get().clearSession({ reason: 'expired' });
           return null;
         }

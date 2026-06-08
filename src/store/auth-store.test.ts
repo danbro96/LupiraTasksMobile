@@ -10,6 +10,16 @@ vi.mock('expo-secure-store', () => ({
 }));
 vi.mock('../components/Toast', () => ({ toast: vi.fn() }));
 vi.mock('../debug/log', () => ({ logDebug: vi.fn() }));
+vi.mock('expo-crypto', () => ({
+  digestStringAsync: vi.fn().mockResolvedValue('hashed-id'),
+  CryptoDigestAlgorithm: { SHA256: 'SHA-256' },
+}));
+vi.mock('@sentry/react-native', () => ({
+  setUser: vi.fn(),
+  captureMessage: vi.fn(),
+  captureException: vi.fn(),
+  addBreadcrumb: vi.fn(),
+}));
 vi.mock('../auth/oidc', () => {
   class RefreshError extends Error {
     definitive: boolean;
