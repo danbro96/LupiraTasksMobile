@@ -24,7 +24,7 @@ import { useItems, useLists } from '../hooks/useMirror';
 import { useOutboxStatus } from '../hooks/useOutboxStatus';
 import { useMyRole, canEditWithRole } from '../hooks/useMyRole';
 import { usePendingDeletes, requestItemDeleteMany } from '../state/pendingDeletes';
-import { usePrefs } from '../../state/prefs-store';
+import { ROW_SPACING_PAD, TEXT_SIZE_SCALE, usePrefs } from '../../state/prefs-store';
 import { buildVisibleRows, collapseDescendants, descendantIds, siblingReorder, type VisibleRow } from '../../domain/itemTree';
 import { oneLine } from '../../domain/text';
 import { enqueue } from '../../sync/outbox';
@@ -157,12 +157,17 @@ export function ListDetailScreen() {
   const pendingDeletes = usePendingDeletes();
   const canEdit = canEditWithRole(useMyRole(listId));
   const completedMode = usePrefs(s => s.completedMode[listId] ?? 'inline');
+  const textSize = usePrefs(s => s.textSize);
+  const rowSpacing = usePrefs(s => s.rowSpacing);
   const [title, setTitle] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [pulled, setPulled] = useState(false);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const c = useColors();
-  const styles = useMemo(() => makeStyles(c), [c]);
+  const styles = useMemo(
+    () => makeStyles(c, TEXT_SIZE_SCALE[textSize], ROW_SPACING_PAD[rowSpacing]),
+    [c, textSize, rowSpacing],
+  );
   const insets = useSafeAreaInsets();
   // Gate the reorder drag behind a long-press so it doesn't claim the quick horizontal swipes used
   // for swipe-to-delete (slightly longer than the row's 500ms delayLongPress, per the lib's guidance).
@@ -355,7 +360,7 @@ export function ListDetailScreen() {
   );
 }
 
-const makeStyles = (c: Palette) => {
+const makeStyles = (c: Palette, fontScale = 1, rowPad = 14) => {
   const t = makeType(c);
   return StyleSheet.create({
     fill: { flex: 1, backgroundColor: c.bg },
@@ -367,7 +372,7 @@ const makeStyles = (c: Palette) => {
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.md,
-      paddingVertical: 14,
+      paddingVertical: rowPad,
       paddingRight: spacing.lg,
       backgroundColor: c.bg,
       borderBottomWidth: StyleSheet.hairlineWidth,
@@ -375,11 +380,11 @@ const makeStyles = (c: Palette) => {
     },
     rowActive: { backgroundColor: c.surface, borderBottomColor: 'transparent' },
     rowBody: { flex: 1 },
-    itemTitle: { ...t.bodyLg },
+    itemTitle: { ...t.bodyLg, fontSize: Math.round(17 * fontScale) },
     itemDone: { color: c.textDisabled, textDecorationLine: 'line-through' },
     qty: { color: c.textMuted, fontWeight: '700' },
     metaRow: { flexDirection: 'row', gap: spacing.sm, marginTop: 2 },
-    meta: { ...t.hint, color: c.textMuted, flexShrink: 1 },
+    meta: { ...t.hint, fontSize: Math.round(11 * fontScale), color: c.textMuted, flexShrink: 1 },
     overdue: { color: c.danger, fontWeight: '600' },
     swipeContainer: { justifyContent: 'center' },
     swipeDelete: {
