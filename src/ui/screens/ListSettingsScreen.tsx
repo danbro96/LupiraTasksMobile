@@ -115,6 +115,18 @@ export function ListSettingsScreen() {
   const changeRole = (email: string, role: ListRole) =>
     run(() => enqueue({ ...stamp(), kind: 'list.memberRoleChange', listId, email, role }), "Couldn't change role");
 
+  function confirmRoleChange(email: string, role: ListRole) {
+    // Downgrading your own role is how an owner accidentally locks themselves out — confirm it.
+    if (!(sameEmail(email, me) && role !== ListRole.Owner)) {
+      void changeRole(email, role);
+      return;
+    }
+    Alert.alert('Change your own role?', `You'll become ${role} and lose owner controls for this list.`, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Change', style: 'destructive', onPress: () => void changeRole(email, role) },
+    ]);
+  }
+
   function confirmRemove(email: string) {
     Alert.alert('Remove member?', `${email} will lose access to this list.`, [
       { text: 'Cancel', style: 'cancel' },
@@ -208,7 +220,7 @@ export function ListSettingsScreen() {
               {isOwner ? (
                 <View style={styles.roleRow}>
                   {ROLES.map(r => (
-                    <RoleChip key={r} role={r} selected={m.role === r} onPress={() => m.role !== r && void changeRole(m.email, r)} />
+                    <RoleChip key={r} role={r} selected={m.role === r} onPress={() => m.role !== r && confirmRoleChange(m.email, r)} />
                   ))}
                 </View>
               ) : (

@@ -144,7 +144,7 @@ export function TaskDetailScreen() {
   }
 
   function saveTitle() {
-    const t = titleRef.current.trim();
+    const t = titleRef.current.replace(/[\r\n]+/g, ' ').trim();
     if (!t || t === savedTitle.current) return;
     savedTitle.current = t;
     void run(() => enqueue({ ...stamp(), kind: 'item.rename', listId, itemId, title: t }), "Couldn't rename task");
@@ -182,7 +182,7 @@ export function TaskDetailScreen() {
   };
 
   async function addSubtask() {
-    const t = subTitle.trim();
+    const t = subTitle.replace(/[\r\n]+/g, ' ').trim();
     if (!t) return;
     setSubTitle('');
     await run(
@@ -245,7 +245,9 @@ export function TaskDetailScreen() {
         <TextInput
           style={[styles.titleInput, item.completed && styles.titleDone]}
           value={title}
-          onChangeText={setTitle}
+          // multiline is for visual wrapping only — titles are single-line data, so hard breaks
+          // (Enter key, pasted text) are stripped as typed.
+          onChangeText={t => setTitle(t.replace(/[\r\n]+/g, ' '))}
           onBlur={saveTitle}
           editable={canEdit}
           multiline
