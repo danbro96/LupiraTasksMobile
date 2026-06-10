@@ -105,6 +105,16 @@ export function CreateListScreen() {
 
         <Text style={styles.section}>COLOR</Text>
         <ColorSwatches value={color} onChange={setColor} />
+
+        <Pressable
+          onPress={() => nav.navigate('ImportList')}
+          style={styles.importLink}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Import from CSV"
+        >
+          <Text style={styles.importLinkText}>Import from CSV…</Text>
+        </Pressable>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -125,5 +135,7 @@ const makeStyles = (c: Palette) => {
     chipText: { fontSize: 14, color: c.textMuted },
     chipTextOn: { color: c.onPrimary, fontWeight: '600' },
     hint: { ...t.small, color: c.textSubtle, marginTop: spacing.sm },
+    importLink: { marginTop: spacing.xxl, alignSelf: 'flex-start' },
+    importLinkText: { ...t.body, color: c.primary },
   });
 };

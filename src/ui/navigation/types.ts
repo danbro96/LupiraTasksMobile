@@ -9,6 +9,7 @@ export type RootStackParamList = {
   Account: undefined;
   SyncIssues: undefined;
   CreateList: undefined;
+  ImportList: undefined;
   ArchivedLists: undefined;
   DebugLog: undefined;
 };
