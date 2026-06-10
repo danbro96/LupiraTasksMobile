@@ -2,11 +2,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
+import { Ionicons } from '@expo/vector-icons';
 import { OIDC_CLIENT_ID, OIDC_ISSUER, OIDC_REDIRECT_PATH, OIDC_SCHEME, OIDC_SCOPES } from '../../data/auth/oidcConfig';
 import { decodeJwt, exchangeAuthCode } from '../../data/auth/oidc';
 import { logAuth, clearAuthLog } from '../../data/auth/authDebug';
 import { DebugPanel } from '../components/DebugPanel';
 import { useAuth } from '../../state/auth-store';
+import { usePrefs } from '../../state/prefs-store';
 import { makeType, radii, spacing, useColors, type Palette } from '../theme';
 
 // Required so the auth redirect back into the app dismisses the in-app browser.
@@ -21,6 +23,7 @@ export function LoginScreen() {
   );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const debugEnabled = usePrefs(s => s.debugEnabled);
   const c = useColors();
   const styles = useMemo(() => makeStyles(c), [c]);
 
@@ -128,6 +131,11 @@ export function LoginScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Code-drawn brand mark (no asset pipeline); swap for the real Lupira SVG logo once
+          react-native-svg lands (deferred — needs a dev-client rebuild). */}
+      <View style={styles.logo}>
+        <Ionicons name="checkmark-sharp" size={52} color={c.onPrimary} />
+      </View>
       <Text style={styles.title}>Lupira Tasks</Text>
       <Text style={styles.subtitle}>Sign in with your family account.</Text>
 
@@ -135,12 +143,14 @@ export function LoginScreen() {
         style={[styles.button, (!request || busy) && styles.buttonDisabled]}
         disabled={!request || busy}
         onPress={() => void handleSignIn()}
+        accessibilityRole="button"
+        accessibilityLabel="Sign in with Authentik"
       >
         {busy ? <ActivityIndicator color={c.onPrimary} /> : <Text style={styles.buttonText}>Sign in with Authentik</Text>}
       </Pressable>
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
-      <Text style={styles.hint}>redirect: {redirectUri}</Text>
+      {debugEnabled ? <Text style={styles.hint}>redirect: {redirectUri}</Text> : null}
 
       <DebugPanel />
     </View>
@@ -151,9 +161,26 @@ const makeStyles = (c: Palette) => {
   const t = makeType(c);
   return StyleSheet.create({
     container: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl, backgroundColor: c.bg },
+    logo: {
+      width: 96,
+      height: 96,
+      borderRadius: radii.lg + 8,
+      backgroundColor: c.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: spacing.xl,
+    },
     title: { ...t.title },
     subtitle: { marginTop: spacing.sm, marginBottom: 28, fontSize: 15, color: c.textMuted },
-    button: { backgroundColor: c.primary, borderRadius: radii.lg, paddingVertical: 14, paddingHorizontal: 28, minWidth: 240, alignItems: 'center' },
+    button: {
+      backgroundColor: c.primary,
+      borderRadius: radii.round,
+      paddingVertical: 16,
+      paddingHorizontal: 28,
+      width: '100%',
+      maxWidth: 360,
+      alignItems: 'center',
+    },
     buttonDisabled: { opacity: 0.5 },
     buttonText: { color: c.onPrimary, fontSize: 16, fontWeight: '600' },
     error: { marginTop: spacing.lg, color: c.danger, textAlign: 'center' },
