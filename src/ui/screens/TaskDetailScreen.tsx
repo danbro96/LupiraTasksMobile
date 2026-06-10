@@ -34,6 +34,7 @@ import { requestItemDeleteMany } from '../state/pendingDeletes';
 import { childrenOf, nextChildSortOrder, descendantIds } from '../../domain/itemTree';
 import { enqueue } from '../../sync/outbox';
 import { newId, stamp } from '../../domain/ops';
+import { oneLine } from '../../domain/text';
 import { dueInDays, dueNextWeekend, dueOnDate, formatDue } from '../../domain/dueDate';
 import { makeType, radii, spacing, useColors, type Palette } from '../theme';
 
@@ -144,7 +145,7 @@ export function TaskDetailScreen() {
   }
 
   function saveTitle() {
-    const t = titleRef.current.replace(/[\r\n]+/g, ' ').trim();
+    const t = oneLine(titleRef.current).trim();
     if (!t || t === savedTitle.current) return;
     savedTitle.current = t;
     void run(() => enqueue({ ...stamp(), kind: 'item.rename', listId, itemId, title: t }), "Couldn't rename task");
@@ -182,7 +183,7 @@ export function TaskDetailScreen() {
   };
 
   async function addSubtask() {
-    const t = subTitle.replace(/[\r\n]+/g, ' ').trim();
+    const t = oneLine(subTitle).trim();
     if (!t) return;
     setSubTitle('');
     await run(
@@ -246,11 +247,13 @@ export function TaskDetailScreen() {
           style={[styles.titleInput, item.completed && styles.titleDone]}
           value={title}
           // multiline is for visual wrapping only — titles are single-line data, so hard breaks
-          // (Enter key, pasted text) are stripped as typed.
-          onChangeText={t => setTitle(t.replace(/[\r\n]+/g, ' '))}
+          // (pasted text) are stripped as typed and Enter commits instead of breaking the line.
+          onChangeText={t => setTitle(oneLine(t))}
           onBlur={saveTitle}
           editable={canEdit}
           multiline
+          returnKeyType="done"
+          submitBehavior="blurAndSubmit"
           placeholder="Task title"
           placeholderTextColor={c.textSubtle}
           accessibilityLabel="Task title"
