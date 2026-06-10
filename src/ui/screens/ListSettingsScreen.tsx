@@ -5,6 +5,7 @@ import {
   Platform,
   Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   Switch,
   Text,
@@ -19,12 +20,13 @@ import { TextField } from '../components/TextField';
 import { ColorSwatches } from '../components/ColorSwatches';
 import { toast, toastError } from '../../feedback/toast';
 import { SyncBanner } from '../components/SyncBanner';
-import { useLists } from '../hooks/useMirror';
+import { useItems, useLists } from '../hooks/useMirror';
 import { useMyRole } from '../hooks/useMyRole';
 import { useAuth } from '../../state/auth-store';
 import { usePrefs } from '../../state/prefs-store';
 import { enqueue } from '../../sync/outbox';
 import { stamp } from '../../domain/ops';
+import { tasksToCsv } from '../../domain/exportTasks';
 import { makeType, radii, spacing, useColors, type Palette } from '../theme';
 
 const ROLES: ListRole[] = [ListRole.Owner, ListRole.Editor, ListRole.Viewer];
@@ -37,6 +39,11 @@ export function ListSettingsScreen() {
   const listId = params.listId;
   const { lists } = useLists();
   const list = lists.find(l => l.id === listId);
+  const { items } = useItems(listId);
+  const tagLabels = useMemo(
+    () => new Map<string, string>((list?.tags ?? []).map(t => [t.id, t.label] as const)),
+    [list],
+  );
   const me = useAuth(s => s.user?.sub) ?? '';
   const myRole = useMyRole(listId);
   const [name, setName] = useState(list?.name ?? '');
@@ -118,6 +125,10 @@ export function ListSettingsScreen() {
           void run(() => enqueue({ ...stamp(), kind: 'list.memberRemove', listId, email }), "Couldn't remove member"),
       },
     ]);
+  }
+
+  function exportCsv() {
+    void Share.share({ message: tasksToCsv(items, tagLabels) });
   }
 
   function archive() {
@@ -230,6 +241,9 @@ export function ListSettingsScreen() {
             </View>
           </View>
         ) : null}
+
+        <Text style={styles.section}>EXPORT</Text>
+        <Button title="Export as CSV" variant="secondary" onPress={exportCsv} />
 
         {isOwner ? (
           <>
