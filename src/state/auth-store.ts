@@ -73,8 +73,10 @@ type AuthActions = {
   clearSession: (opts?: { reason?: 'expired' }) => Promise<void>;
   /** Refresh the access token if it's expired/near-expiry; returns the live access token.
    *  `force: true` bypasses the freshness check (reactive refresh after a server 401) and, when
-   *  the session is definitively un-refreshable, clears it rather than handing back a dead token. */
-  refreshIfNeeded: (opts?: { force?: boolean }) => Promise<string | null>;
+   *  the session is definitively un-refreshable, clears it rather than handing back a dead token.
+   *  `sentToken` (forced callers) is the token the 401'd request sent — if the session token has
+   *  already changed since, the refresh is skipped and the current token returned. */
+  refreshIfNeeded: (opts?: { force?: boolean; sentToken?: string }) => Promise<string | null>;
   isAuthenticated: () => boolean;
 };
 
@@ -112,17 +114,9 @@ export const useAuth = create<AuthState & AuthActions>((set, get) => ({
   },
 
   setSession: async (session, user) => {
-    await Promise.all([
-      SecureStore.setItemAsync(KEY_TOKEN, session.accessToken),
-      session.refreshToken
-        ? SecureStore.setItemAsync(KEY_REFRESH, session.refreshToken)
-        : SecureStore.deleteItemAsync(KEY_REFRESH),
-      SecureStore.setItemAsync(KEY_EXPIRES, String(session.expiresAt)),
-      SecureStore.setItemAsync(KEY_USER_SUB, user.sub),
-      user.displayName
-        ? SecureStore.setItemAsync(KEY_USER_NAME, user.displayName)
-        : SecureStore.deleteItemAsync(KEY_USER_NAME),
-    ]);
+    // In-memory state first: a rotated refresh token must survive even if persistence fails —
+    // the old one is already invalid server-side, so losing the new one here would strand the
+    // session (the next refresh would replay a dead token → definitive 400 → forced logout).
     set({
       token: session.accessToken,
       refreshToken: session.refreshToken ?? null,
@@ -130,6 +124,23 @@ export const useAuth = create<AuthState & AuthActions>((set, get) => ({
       user,
     });
     void setSentryUser(user.sub);
+    try {
+      await Promise.all([
+        SecureStore.setItemAsync(KEY_TOKEN, session.accessToken),
+        session.refreshToken
+          ? SecureStore.setItemAsync(KEY_REFRESH, session.refreshToken)
+          : SecureStore.deleteItemAsync(KEY_REFRESH),
+        SecureStore.setItemAsync(KEY_EXPIRES, String(session.expiresAt)),
+        SecureStore.setItemAsync(KEY_USER_SUB, user.sub),
+        user.displayName
+          ? SecureStore.setItemAsync(KEY_USER_NAME, user.displayName)
+          : SecureStore.deleteItemAsync(KEY_USER_NAME),
+      ]);
+    } catch (e) {
+      // The live session is intact in memory; only the persisted copy is stale. A restart could
+      // replay an already-rotated refresh token, so leave a trace.
+      logDebug('auth:persist-error', e instanceof Error ? e.message : String(e));
+    }
   },
 
   updateProfile: async ({ displayName, isAdmin }) => {
@@ -169,6 +180,10 @@ export const useAuth = create<AuthState & AuthActions>((set, get) => ({
     const { token, refreshToken, expiresAt, user } = get();
     if (!token) return null;
     const force = opts?.force ?? false;
+    // A forced caller reports the token its 401'd request actually sent; if the session has
+    // already moved past it (another caller refreshed in the meantime), hand back the current
+    // token instead of rotating again — every extra rotation risks tripping reuse detection.
+    if (force && opts?.sentToken && opts.sentToken !== token) return token;
     const fresh = expiresAt ? Date.now() < expiresAt - 60_000 : false;
     // Proactive callers stand pat while the token is still fresh; a forced (post-401) caller
     // always attempts a refresh.
@@ -177,7 +192,12 @@ export const useAuth = create<AuthState & AuthActions>((set, get) => ({
       // No way to refresh. A forced caller reached here because the server already rejected the
       // token (401), so the session is definitively dead — clear it for re-auth. A proactive
       // caller keeps the (possibly still-valid) token and lets any later 401 trigger the force path.
-      if (force) { await get().clearSession({ reason: 'expired' }); return null; }
+      if (force) {
+        logDebug('auth:logout', refreshToken ? 'forced refresh with no user' : 'forced refresh with no refresh token');
+        await get().clearSession({ reason: 'expired' });
+        return null;
+      }
+      logDebug('refresh:no-refresh-token', 'keeping stale access token');
       return token;
     }
     // Coalesce concurrent refreshes: an enqueue-triggered drain firing while a foreground
@@ -200,6 +220,7 @@ export const useAuth = create<AuthState & AuthActions>((set, get) => ({
         // Definitive rejection (refresh token/client invalid) — drop the session to re-auth.
         if (e instanceof RefreshError && e.definitive) {
           // Rare + high-signal (the user is being forced to sign in again) — worth a Sentry event.
+          logDebug('auth:logout', `definitive: ${e.message}`);
           Sentry.captureMessage(`auth: definitive refresh failure — ${e.message}`, 'warning');
           await get().clearSession({ reason: 'expired' });
           return null;
@@ -224,7 +245,7 @@ setAuthPort({
   getApiUrl: () => useAuth.getState().apiUrl,
   getToken: () => useAuth.getState().token,
   getActor: () => useAuth.getState().user?.sub ?? null,
-  refresh: force => useAuth.getState().refreshIfNeeded({ force }),
+  refresh: (force, sentToken) => useAuth.getState().refreshIfNeeded({ force, sentToken }),
   applyProfile: profile => useAuth.getState().updateProfile(profile),
   onSignIn: cb => useAuth.subscribe((state, prev) => { if (!prev.token && state.token) cb(); }),
 });

@@ -13,8 +13,9 @@ export interface AuthPort {
   /** The signed-in user's email (OIDC subject) — the actor for optimistic apply. */
   getActor: () => string | null;
   /** Ensure a live token: proactive (near-expiry) by default, or `force` after a server 401.
-   *  Returns the live token, or null if the session is gone. */
-  refresh: (force?: boolean) => Promise<string | null>;
+   *  Forced callers pass `sentToken` (the token the rejected request sent) so an already-completed
+   *  refresh isn't repeated. Returns the live token, or null if the session is gone. */
+  refresh: (force?: boolean, sentToken?: string) => Promise<string | null>;
   /** Merge a freshly-pulled `/me` profile into the cached session. */
   applyProfile: (profile: { displayName?: string | null; isAdmin?: boolean }) => Promise<void>;
   /** Invoke `cb` whenever a sign-in happens (token goes absent→present). Returns an unsubscribe. */

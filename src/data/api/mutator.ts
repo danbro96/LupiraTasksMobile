@@ -125,7 +125,7 @@ export async function apiFetch<T>(
     // same token, so we just surface the 401 and recover on the next sync trigger.
     if (res.status === 401 && retriable && !triedReauth) {
       triedReauth = true;
-      const fresh = await auth.refresh(true);
+      const fresh = await auth.refresh(true, entryToken ?? undefined);
       if (fresh && fresh !== entryToken) {
         headers.set('Authorization', `Bearer ${fresh}`);
         attempt = -1; // next iteration is attempt 0 again — a fresh transient-retry budget

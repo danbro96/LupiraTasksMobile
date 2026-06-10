@@ -32,12 +32,14 @@ vi.mock('../data/auth/oidc', () => {
   return { RefreshError, refreshTokens: vi.fn() };
 });
 
+import * as SecureStore from 'expo-secure-store';
 import { useAuth } from './auth-store';
 import { refreshTokens, RefreshError } from '../data/auth/oidc';
 import { toast } from '../feedback/toast';
 
 const refreshMock = refreshTokens as unknown as ReturnType<typeof vi.fn>;
 const toastMock = toast as unknown as ReturnType<typeof vi.fn>;
+const setItemMock = SecureStore.setItemAsync as unknown as ReturnType<typeof vi.fn>;
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -114,6 +116,35 @@ describe('refreshIfNeeded', () => {
     const t = await useAuth.getState().refreshIfNeeded({ force: true });
     expect(t).toBe('tok-1');
     expect(useAuth.getState().token).toBe('tok-1');
+  });
+
+  it('forced refresh is skipped when the session token already moved past sentToken', async () => {
+    // The 401'd request sent tok-0; another caller has since refreshed to tok-1. Rotating again
+    // would risk reuse detection — hand back the current token instead.
+    const t = await useAuth.getState().refreshIfNeeded({ force: true, sentToken: 'tok-0' });
+    expect(t).toBe('tok-1');
+    expect(refreshMock).not.toHaveBeenCalled();
+  });
+
+  it('forced refresh still POSTs when sentToken matches the current token', async () => {
+    refreshMock.mockResolvedValue({ accessToken: 'tok-2', refreshToken: 'ref-2', expiresIn: 3600 });
+    const t = await useAuth.getState().refreshIfNeeded({ force: true, sentToken: 'tok-1' });
+    expect(t).toBe('tok-2');
+    expect(refreshMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('setSession', () => {
+  it('keeps the in-memory session when persistence fails (rotated token must not be lost)', async () => {
+    setItemMock.mockRejectedValue(new Error('keystore unavailable'));
+    await expect(
+      useAuth.getState().setSession(
+        { accessToken: 'tok-2', refreshToken: 'ref-2', expiresAt: Date.now() + 3_600_000 },
+        { sub: 'u@example.com' },
+      ),
+    ).resolves.toBeUndefined();
+    expect(useAuth.getState().token).toBe('tok-2');
+    expect(useAuth.getState().refreshToken).toBe('ref-2');
   });
 });
 

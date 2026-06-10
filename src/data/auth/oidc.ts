@@ -128,7 +128,10 @@ export async function refreshTokens(refreshToken: string): Promise<TokenSet> {
     throw new RefreshError(false, `network: ${e instanceof Error ? e.message : String(e)}`);
   }
 
-  logAuth('refresh:response', `status=${status} len=${text.length}`);
+  // On failure include a body slice — it carries the rejection reason (e.g. invalid_grant),
+  // which is the difference between "token expired/revoked" and "rotation replay".
+  const failBody = status < 200 || status >= 300 ? ` body=${text.slice(0, 200)}` : '';
+  logAuth('refresh:response', `status=${status} len=${text.length}${failBody}`);
   // 400/401 = the refresh token or client was rejected → definitive, must re-authenticate.
   if (status === 400 || status === 401) throw new RefreshError(true, `refresh ${status}: ${text.slice(0, 200)}`);
   // 5xx / 429 / any other non-2xx → transient, retry on the next trigger.
