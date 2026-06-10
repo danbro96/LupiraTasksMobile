@@ -11,6 +11,9 @@ export interface VisibleRow {
   hasChildren: boolean;
 }
 
+/** Per-list display of completed tasks: in place, in a section below the open tasks, or hidden. */
+export type CompletedMode = 'inline' | 'below' | 'hidden';
+
 const bySort = (a: ItemState, b: ItemState) => (a.sortOrder < b.sortOrder ? -1 : a.sortOrder > b.sortOrder ? 1 : 0);
 
 /** Group items by effective parent (a parent that isn't present → the item is treated as a root,

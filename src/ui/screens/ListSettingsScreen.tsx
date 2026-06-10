@@ -7,7 +7,6 @@ import {
   ScrollView,
   Share,
   StyleSheet,
-  Switch,
   Text,
   View,
 } from 'react-native';
@@ -16,6 +15,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ListRole } from '../../data/api/generated/models';
 import type { RootStackParamList } from '../navigation/types';
 import { Button } from '../components/Button';
+import { ChipRow } from '../components/ChipRow';
 import { TextField } from '../components/TextField';
 import { ColorSwatches } from '../components/ColorSwatches';
 import { toast, toastError } from '../../feedback/toast';
@@ -27,9 +27,12 @@ import { usePrefs } from '../../state/prefs-store';
 import { enqueue } from '../../sync/outbox';
 import { stamp } from '../../domain/ops';
 import { tasksToCsv } from '../../domain/exportTasks';
+import type { CompletedMode } from '../../domain/itemTree';
 import { makeType, radii, spacing, useColors, type Palette } from '../theme';
 
 const ROLES: ListRole[] = [ListRole.Owner, ListRole.Editor, ListRole.Viewer];
+const COMPLETED_MODES = ['inline', 'below', 'hidden'] as const;
+const COMPLETED_LABELS: Record<CompletedMode, string> = { inline: 'Inline', below: 'Below', hidden: 'Hidden' };
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const sameEmail = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
 
@@ -49,7 +52,7 @@ export function ListSettingsScreen() {
   const [name, setName] = useState(list?.name ?? '');
   const [newEmail, setNewEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<ListRole>(ListRole.Editor);
-  const hideCompleted = usePrefs(s => s.hideCompleted[listId] ?? false);
+  const completedMode = usePrefs(s => s.completedMode[listId] ?? 'inline');
   const c = useColors();
   const styles = useMemo(() => makeStyles(c), [c]);
 
@@ -194,15 +197,13 @@ export function ListSettingsScreen() {
         <ColorSwatches value={list.color ?? null} onChange={c => void setColor(c)} />
 
         <Text style={styles.section}>DISPLAY</Text>
-        <View style={styles.toggleRow}>
-          <Text style={styles.toggleLabel}>Hide completed tasks</Text>
-          <Switch
-            value={hideCompleted}
-            onValueChange={v => void usePrefs.getState().setHideCompleted(listId, v)}
-            trackColor={{ false: c.border, true: c.primary }}
-            accessibilityLabel="Hide completed tasks"
-          />
-        </View>
+        <Text style={styles.displayLabel}>Completed tasks</Text>
+        <ChipRow
+          options={COMPLETED_MODES}
+          selected={completedMode}
+          onSelect={m => void usePrefs.getState().setCompletedMode(listId, m)}
+          getLabel={m => COMPLETED_LABELS[m]}
+        />
 
         <Text style={styles.section}>MEMBERS</Text>
         {list.members.map(m => {
@@ -301,8 +302,7 @@ const makeStyles = (c: Palette) => {
     content: { padding: spacing.lg, paddingBottom: 48 },
     section: { ...t.sectionLabel, marginTop: spacing.xl, marginBottom: spacing.sm },
     row: { flexDirection: 'row', gap: spacing.sm },
-    toggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    toggleLabel: { ...t.body, flex: 1, paddingRight: spacing.md },
+    displayLabel: { ...t.body, marginBottom: spacing.sm },
     inlineBtn: { paddingVertical: 0 },
     member: { paddingVertical: spacing.md, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: c.divider },
     memberHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },

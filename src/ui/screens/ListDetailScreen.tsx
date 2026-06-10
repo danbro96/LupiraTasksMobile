@@ -26,6 +26,7 @@ import { useMyRole, canEditWithRole } from '../hooks/useMyRole';
 import { usePendingDeletes, requestItemDeleteMany } from '../state/pendingDeletes';
 import { usePrefs } from '../../state/prefs-store';
 import { buildVisibleRows, collapseDescendants, descendantIds, siblingReorder, type VisibleRow } from '../../domain/itemTree';
+import { oneLine } from '../../domain/text';
 import { enqueue } from '../../sync/outbox';
 import { pullList } from '../../sync/sync';
 import { newId, stamp } from '../../domain/ops';
@@ -45,6 +46,8 @@ function qtyLabel(it: ItemState): string | null {
 interface RowProps {
   row: VisibleRow;
   canEdit: boolean;
+  /** Long-press drag handle — off for completed rows when they live in their own section. */
+  draggable: boolean;
   isShopping: boolean;
   status?: OpStatus;
   expanded: boolean;
@@ -58,7 +61,7 @@ interface RowProps {
 
 // Memoized: rows must not re-render on unrelated screen state (e.g. each keystroke in the
 // add-task field) — with stable callbacks below, only rows whose props changed re-render.
-const TaskRow = memo(function TaskRow({ row, canEdit, isShopping, status, expanded, styles, palette, onToggle, onOpen, onToggleExpand, onDelete }: RowProps) {
+const TaskRow = memo(function TaskRow({ row, canEdit, draggable, isShopping, status, expanded, styles, palette, onToggle, onOpen, onToggleExpand, onDelete }: RowProps) {
   const drag = useReorderableDrag();
   const isActive = useIsActive();
   const translateX = useSharedValue(0);
@@ -74,7 +77,7 @@ const TaskRow = memo(function TaskRow({ row, canEdit, isShopping, status, expand
     <Pressable
       style={[styles.row, { paddingLeft: spacing.lg + depth * INDENT }, isActive && styles.rowActive]}
       onPress={() => onOpen(item)}
-      onLongPress={canEdit ? drag : undefined}
+      onLongPress={draggable ? drag : undefined}
       delayLongPress={500}
       accessibilityRole="button"
       accessibilityLabel={`${qty ? qty + ' ' : ''}${item.title}${due ? `, due ${due.label}` : ''}`}
@@ -153,7 +156,7 @@ export function ListDetailScreen() {
   const opStatus = useOutboxStatus();
   const pendingDeletes = usePendingDeletes();
   const canEdit = canEditWithRole(useMyRole(listId));
-  const hideCompleted = usePrefs(s => s.hideCompleted[listId] ?? false);
+  const completedMode = usePrefs(s => s.completedMode[listId] ?? 'inline');
   const [title, setTitle] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [pulled, setPulled] = useState(false);
@@ -186,7 +189,17 @@ export function ListDetailScreen() {
   );
 
   const visibleItems = useMemo(() => items.filter(i => !pendingDeletes.has(i.id)), [items, pendingDeletes]);
-  const rows = useMemo(() => buildVisibleRows(visibleItems, expanded, hideCompleted), [visibleItems, expanded, hideCompleted]);
+  const rows = useMemo(() => {
+    if (completedMode !== 'below') return buildVisibleRows(visibleItems, expanded, completedMode === 'hidden');
+    // 'below': open tasks keep their tree; completed ones gather flat underneath, newest first.
+    const open = buildVisibleRows(visibleItems, expanded, true);
+    const doneKey = (i: ItemState) => i.completedAt ?? i.updatedAt;
+    const done = visibleItems
+      .filter(i => i.completed)
+      .sort((a, b) => (doneKey(b) < doneKey(a) ? -1 : doneKey(b) > doneKey(a) ? 1 : 0))
+      .map(item => ({ item, depth: 0, hasChildren: false }));
+    return [...open, ...done];
+  }, [visibleItems, expanded, completedMode]);
 
   // Freeze the rendered data while a drag is active: a mirror reload landing mid-gesture (a sync
   // pull or another device's edit) would otherwise swap the rows under the drag and snap it.
@@ -194,6 +207,12 @@ export function ListDetailScreen() {
   const frozenRows = useRef(rows);
   if (!dragging) frozenRows.current = rows;
   const listData = dragging ? frozenRows.current : rows;
+  // Index of the first completed row in 'below' mode — the COMPLETED header renders above it.
+  // Derived from the rendered array so it stays consistent while rows are frozen mid-drag.
+  const firstCompletedIndex = useMemo(
+    () => (completedMode === 'below' ? listData.findIndex(r => r.item.completed) : -1),
+    [completedMode, listData],
+  );
 
   async function refresh() {
     setRefreshing(true);
@@ -207,7 +226,7 @@ export function ListDetailScreen() {
   }
 
   async function addItem() {
-    const t = title.replace(/[\r\n]+/g, ' ').trim();
+    const t = oneLine(title).trim();
     if (!t) return;
     setTitle('');
     // New tasks from the list view are always top-level and go to the top: key before the first root.
@@ -248,12 +267,20 @@ export function ListDetailScreen() {
     // Indices refer to the data the list was rendered with — the frozen rows during a drag.
     const dragRows = frozenRows.current;
     if (from === to) return;
+    // 'below' mode: reordering is confined to the open section. Recompute the boundary from the
+    // frozen array and bail when the drag starts in or drops into the completed section.
+    const boundary = completedMode === 'below' ? dragRows.findIndex(r => r.item.completed) : -1;
+    if (boundary >= 0 && (from >= boundary || to >= boundary)) return;
     const draggedId = dragRows[from]?.item.id;
     if (!draggedId) return;
     const next = [...dragRows];
     const [moved] = next.splice(from, 1);
     next.splice(to, 0, moved);
-    const target = siblingReorder(next, draggedId);
+    // Scope the sibling computation to the open section — completed roots share parentItemId
+    // with open roots and would otherwise pollute the neighbor picks. (from/to are both above
+    // the boundary, so the splice leaves the completed segment — and the boundary — unchanged.)
+    const scope = boundary >= 0 ? next.slice(0, boundary) : next;
+    const target = siblingReorder(scope, draggedId);
     if (target) {
       void enqueue({ ...stamp(), kind: 'item.move', listId, itemId: draggedId, ...target }).catch(() => toastError("Couldn't move item"));
     }
@@ -304,20 +331,24 @@ export function ListDetailScreen() {
             <ActivityIndicator style={styles.loading} color={c.textSubtle} />
           )
         }
-        renderItem={({ item: row }) => (
-          <TaskRow
-            row={row}
-            canEdit={canEdit}
-            isShopping={isShopping}
-            status={opStatus.get(row.item.id)}
-            expanded={expanded.has(row.item.id)}
-            styles={styles}
-            palette={c}
-            onToggle={toggle}
-            onOpen={openTask}
-            onToggleExpand={toggleExpand}
-            onDelete={onDelete}
-          />
+        renderItem={({ item: row, index }) => (
+          <>
+            {index === firstCompletedIndex ? <Text style={styles.completedHeader}>COMPLETED</Text> : null}
+            <TaskRow
+              row={row}
+              canEdit={canEdit}
+              draggable={canEdit && !(completedMode === 'below' && row.item.completed)}
+              isShopping={isShopping}
+              status={opStatus.get(row.item.id)}
+              expanded={expanded.has(row.item.id)}
+              styles={styles}
+              palette={c}
+              onToggle={toggle}
+              onOpen={openTask}
+              onToggleExpand={toggleExpand}
+              onDelete={onDelete}
+            />
+          </>
         )}
       />
     </View>
@@ -363,6 +394,7 @@ const makeStyles = (c: Palette) => {
       justifyContent: 'flex-end',
       paddingRight: 24,
     },
+    completedHeader: { ...t.sectionLabel, paddingHorizontal: spacing.lg, paddingTop: spacing.lg, paddingBottom: spacing.sm },
     empty: { textAlign: 'center', color: c.textSubtle, marginTop: 40 },
     loading: { marginTop: 40 },
   });
