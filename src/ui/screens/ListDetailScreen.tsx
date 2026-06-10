@@ -1,5 +1,6 @@
-import { useCallback, useLayoutEffect, useMemo, useState } from 'react';
+import { memo, useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -55,7 +56,9 @@ interface RowProps {
   onDelete: (it: ItemState) => void;
 }
 
-function TaskRow({ row, canEdit, isShopping, status, expanded, styles, palette, onToggle, onOpen, onToggleExpand, onDelete }: RowProps) {
+// Memoized: rows must not re-render on unrelated screen state (e.g. each keystroke in the
+// add-task field) — with stable callbacks below, only rows whose props changed re-render.
+const TaskRow = memo(function TaskRow({ row, canEdit, isShopping, status, expanded, styles, palette, onToggle, onOpen, onToggleExpand, onDelete }: RowProps) {
   const drag = useReorderableDrag();
   const isActive = useIsActive();
   const translateX = useSharedValue(0);
@@ -136,7 +139,7 @@ function TaskRow({ row, canEdit, isShopping, status, expanded, styles, palette, 
       </GestureDetector>
     </View>
   );
-}
+});
 
 export function ListDetailScreen() {
   const { params } = useRoute<RouteProp<RootStackParamList, 'ListDetail'>>();
@@ -157,6 +160,7 @@ export function ListDetailScreen() {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const c = useColors();
   const styles = useMemo(() => makeStyles(c), [c]);
+  const insets = useSafeAreaInsets();
   // Gate the reorder drag behind a long-press so it doesn't claim the quick horizontal swipes used
   // for swipe-to-delete (slightly longer than the row's 500ms delayLongPress, per the lib's guidance).
   const dragGesture = useMemo(() => Gesture.Pan().activateAfterLongPress(520), []);
@@ -184,6 +188,13 @@ export function ListDetailScreen() {
   const visibleItems = useMemo(() => items.filter(i => !pendingDeletes.has(i.id)), [items, pendingDeletes]);
   const rows = useMemo(() => buildVisibleRows(visibleItems, expanded, hideCompleted), [visibleItems, expanded, hideCompleted]);
 
+  // Freeze the rendered data while a drag is active: a mirror reload landing mid-gesture (a sync
+  // pull or another device's edit) would otherwise swap the rows under the drag and snap it.
+  const [dragging, setDragging] = useState(false);
+  const frozenRows = useRef(rows);
+  if (!dragging) frozenRows.current = rows;
+  const listData = dragging ? frozenRows.current : rows;
+
   async function refresh() {
     setRefreshing(true);
     try {
@@ -196,12 +207,12 @@ export function ListDetailScreen() {
   }
 
   async function addItem() {
-    const t = title.trim();
+    const t = title.replace(/[\r\n]+/g, ' ').trim();
     if (!t) return;
     setTitle('');
-    // New tasks from the list view are always top-level; append after the last root.
+    // New tasks from the list view are always top-level and go to the top: key before the first root.
     const topKeys = items.filter(i => i.parentItemId == null).map(i => i.sortOrder).sort();
-    const sortOrder = generateKeyBetween(topKeys.length ? topKeys[topKeys.length - 1] : null, null);
+    const sortOrder = generateKeyBetween(null, topKeys.length ? topKeys[0] : null);
     try {
       await enqueue({ ...stamp(), kind: 'item.create', listId, itemId: newId(), title: t, sortOrder, parentItemId: null });
     } catch {
@@ -209,29 +220,37 @@ export function ListDetailScreen() {
     }
   }
 
-  async function toggle(it: ItemState) {
+  // Row callbacks are stable (useCallback) so the memoized TaskRow can bail out of re-renders.
+  const toggle = useCallback(async (it: ItemState) => {
     if (!it.completed) hapticSuccess(); // satisfying tick when checking a task off
     try {
       await enqueue({ ...stamp(), kind: it.completed ? 'item.reopen' : 'item.complete', listId, itemId: it.id });
     } catch {
       toastError("Couldn't update item");
     }
-  }
+  }, [listId]);
 
-  function toggleExpand(id: string) {
+  const toggleExpand = useCallback((id: string) => {
     setExpanded(prev => (prev.has(id) ? collapseDescendants(prev, id, items) : new Set(prev).add(id)));
-  }
+  }, [items]);
 
-  function onDelete(it: ItemState) {
+  const onDelete = useCallback((it: ItemState) => {
     hapticImpact();
     requestItemDeleteMany(listId, [it.id, ...descendantIds(items, it.id)]);
-  }
+  }, [listId, items]);
+
+  const openTask = useCallback((it: ItemState) => {
+    nav.navigate('TaskDetail', { listId, itemId: it.id });
+  }, [nav, listId]);
 
   function onReorder({ from, to }: { from: number; to: number }) {
+    setDragging(false);
+    // Indices refer to the data the list was rendered with — the frozen rows during a drag.
+    const dragRows = frozenRows.current;
     if (from === to) return;
-    const draggedId = rows[from]?.item.id;
+    const draggedId = dragRows[from]?.item.id;
     if (!draggedId) return;
-    const next = [...rows];
+    const next = [...dragRows];
     const [moved] = next.splice(from, 1);
     next.splice(to, 0, moved);
     const target = siblingReorder(next, draggedId);
@@ -260,15 +279,21 @@ export function ListDetailScreen() {
         <Text style={styles.readonly}>You have view-only access to this list.</Text>
       )}
       <ReorderableList
-        data={rows}
+        data={listData}
         keyExtractor={r => r.item.id}
         dragEnabled={canEdit}
         panGesture={dragGesture}
         shouldUpdateActiveItem
         itemLayoutAnimation={LinearTransition.duration(200)}
+        contentContainerStyle={{ paddingBottom: insets.bottom + spacing.md }}
         onDragStart={() => {
           'worklet';
           runOnJS(hapticImpact)(); // "pickup" thunk when a row is grabbed to reorder
+          runOnJS(setDragging)(true);
+        }}
+        onDragEnd={() => {
+          'worklet';
+          runOnJS(setDragging)(false);
         }}
         onReorder={onReorder}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
@@ -289,7 +314,7 @@ export function ListDetailScreen() {
             styles={styles}
             palette={c}
             onToggle={toggle}
-            onOpen={it => nav.navigate('TaskDetail', { listId, itemId: it.id })}
+            onOpen={openTask}
             onToggleExpand={toggleExpand}
             onDelete={onDelete}
           />
