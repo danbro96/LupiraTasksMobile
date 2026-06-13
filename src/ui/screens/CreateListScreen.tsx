@@ -111,9 +111,9 @@ export function CreateListScreen() {
           style={styles.importLink}
           hitSlop={8}
           accessibilityRole="button"
-          accessibilityLabel="Import from CSV"
+          accessibilityLabel="Import tasks"
         >
-          <Text style={styles.importLinkText}>Import from CSV…</Text>
+          <Text style={styles.importLinkText}>Import tasks…</Text>
         </Pressable>
       </ScrollView>
     </KeyboardAvoidingView>

@@ -26,7 +26,7 @@ import { useAuth } from '../../state/auth-store';
 import { usePrefs } from '../../state/prefs-store';
 import { enqueue } from '../../sync/outbox';
 import { stamp } from '../../domain/ops';
-import { tasksToCsv } from '../../domain/exportTasks';
+import { tasksToJson } from '../../domain/exportTasks';
 import type { CompletedMode } from '../../domain/itemTree';
 import { makeType, radii, spacing, useColors, type Palette } from '../theme';
 
@@ -142,8 +142,8 @@ export function ListSettingsScreen() {
     ]);
   }
 
-  function exportCsv() {
-    void Share.share({ message: tasksToCsv(items, tagLabels) });
+  function exportJson() {
+    void Share.share({ message: tasksToJson({ name: list!.name, kind: list!.kind }, items, tagLabels) });
   }
 
   function archive() {
@@ -256,7 +256,7 @@ export function ListSettingsScreen() {
         ) : null}
 
         <Text style={styles.section}>EXPORT</Text>
-        <Button title="Export as CSV" variant="secondary" onPress={exportCsv} />
+        <Button title="Export as JSON" variant="secondary" onPress={exportJson} />
 
         {isOwner ? (
           <>

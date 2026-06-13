@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -11,7 +11,7 @@ import { SyncBanner } from '../components/SyncBanner';
 import { toastError } from '../../feedback/toast';
 import { enqueueMany } from '../../sync/outbox';
 import { newId, stamp, type ClientOp } from '../../domain/ops';
-import { parseCsvTasks, type ImportedTask } from '../../domain/importTasks';
+import { parseImport, type ImportedTask } from '../../domain/importTasks';
 import { logDebug } from '../../debug/log';
 import { makeType, radii, spacing, useColors, type Palette } from '../theme';
 
@@ -20,7 +20,7 @@ const KIND_LABELS: Record<ListKind, string> = { [ListKind.Todo]: 'To-do', [ListK
 
 /** Build the full op batch for an imported list: create the list, then each task in order
  *  (sequential fractional keys; parents tracked per nesting level), with follow-up ops for
- *  completed / notes / quantity. */
+ *  completed / notes / quantity / due. */
 function buildImportOps(name: string, kind: ListKind, tasks: ImportedTask[]): ClientOp[] {
   const listId = newId();
   const ops: ClientOp[] = [{ ...stamp(), kind: 'list.create', listId, name, listKind: kind, color: null }];
@@ -37,6 +37,7 @@ function buildImportOps(name: string, kind: ListKind, tasks: ImportedTask[]): Cl
     if (t.quantity != null || t.unit) {
       ops.push({ ...stamp(), kind: 'item.quantity', listId, itemId, quantity: t.quantity, unit: t.unit });
     }
+    if (t.dueAt) ops.push({ ...stamp(), kind: 'item.due', listId, itemId, dueAt: t.dueAt });
     lastIdAtLevel[t.level] = itemId;
     lastIdAtLevel.length = t.level + 1; // deeper levels now belong to a previous branch
   }
@@ -52,8 +53,16 @@ export function ImportListScreen() {
   const c = useColors();
   const styles = useMemo(() => makeStyles(c), [c]);
 
-  const parsed = useMemo(() => (csvText.trim() ? parseCsvTasks(csvText) : null), [csvText]);
+  const parsed = useMemo(() => (csvText.trim() ? parseImport(csvText) : null), [csvText]);
   const canImport = !!name.trim() && parsed?.ok === true && !busy;
+
+  // Prefill name/kind from a JSON export's header — but only while the user hasn't named the
+  // list themselves, so a round-trip is one paste while a manual name is never clobbered.
+  useEffect(() => {
+    if (parsed?.ok && parsed.name && !name.trim()) setName(parsed.name);
+    if (parsed?.ok && (parsed.kind === ListKind.Todo || parsed.kind === ListKind.Shopping)) setKind(parsed.kind);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [parsed]);
 
   async function importList() {
     if (!parsed?.ok || !name.trim()) return;
@@ -99,7 +108,7 @@ export function ImportListScreen() {
       ? `${parsed.tasks.length} task${parsed.tasks.length === 1 ? '' : 's'}` +
         (parsed.tasks.some(t => t.completed) ? `, ${parsed.tasks.filter(t => t.completed).length} completed` : '')
       : parsed.error
-    : 'Paste a CSV export or one task per line.';
+    : 'Paste a JSON export or one task per line.';
 
   return (
     <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -118,9 +127,9 @@ export function ImportListScreen() {
         <Text style={styles.section}>TYPE</Text>
         <ChipRow options={KINDS} selected={kind} onSelect={setKind} getLabel={k => KIND_LABELS[k]} />
 
-        <Text style={styles.section}>TASKS (CSV OR ONE PER LINE)</Text>
+        <Text style={styles.section}>TASKS (JSON OR ONE PER LINE)</Text>
         <TextField
-          placeholder={'level,title,completed,…\nor just:\nMilk\nBread'}
+          placeholder={'Paste a JSON export…\nor just:\nMilk\nBread'}
           value={csvText}
           onChangeText={setCsvText}
           multiline
