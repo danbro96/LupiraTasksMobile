@@ -15,6 +15,7 @@ import type { ItemState } from '../../domain/itemState';
 import { Button } from '../components/Button';
 import { Checkbox } from '../components/Checkbox';
 import { IconButton } from '../components/IconButton';
+import { PriorityControl } from '../components/PriorityControl';
 import { TextField } from '../components/TextField';
 import { SyncBanner } from '../components/SyncBanner';
 import { SyncDot } from '../components/SyncDot';
@@ -49,6 +50,8 @@ interface RowProps {
   /** Long-press drag handle — off for completed rows when they live in their own section. */
   draggable: boolean;
   isShopping: boolean;
+  /** The list's priority mode: a star (0↔1) when true, a 0–9 picker badge when false. */
+  simplePriority: boolean;
   status?: OpStatus;
   expanded: boolean;
   styles: ReturnType<typeof makeStyles>;
@@ -56,12 +59,13 @@ interface RowProps {
   onToggle: (it: ItemState) => void;
   onOpen: (it: ItemState) => void;
   onToggleExpand: (id: string) => void;
+  onSetPriority: (it: ItemState, priority: number) => void;
   onDelete: (it: ItemState) => void;
 }
 
 // Memoized: rows must not re-render on unrelated screen state (e.g. each keystroke in the
 // add-task field) — with stable callbacks below, only rows whose props changed re-render.
-const TaskRow = memo(function TaskRow({ row, canEdit, draggable, isShopping, status, expanded, styles, palette, onToggle, onOpen, onToggleExpand, onDelete }: RowProps) {
+const TaskRow = memo(function TaskRow({ row, canEdit, draggable, isShopping, simplePriority, status, expanded, styles, palette, onToggle, onOpen, onToggleExpand, onSetPriority, onDelete }: RowProps) {
   const drag = useReorderableDrag();
   const isActive = useIsActive();
   const translateX = useSharedValue(0);
@@ -96,6 +100,12 @@ const TaskRow = memo(function TaskRow({ row, canEdit, draggable, isShopping, sta
           </View>
         ) : null}
       </View>
+      <PriorityControl
+        simple={simplePriority}
+        value={item.priority}
+        editable={canEdit}
+        onChange={p => onSetPriority(item, p)}
+      />
       <SyncDot status={status} />
       {hasChildren ? (
         <IconButton
@@ -153,6 +163,7 @@ export function ListDetailScreen() {
   const list = lists.find(l => l.id === listId);
   const color = list?.color ?? null;
   const isShopping = list?.kind === ListKind.Shopping;
+  const simplePriority = list?.simplePriority ?? true;
   const opStatus = useOutboxStatus();
   const pendingDeletes = usePendingDeletes();
   const canEdit = canEditWithRole(useMyRole(listId));
@@ -267,6 +278,15 @@ export function ListDetailScreen() {
     nav.navigate('TaskDetail', { listId, itemId: it.id });
   }, [nav, listId]);
 
+  const setPriority = useCallback(async (it: ItemState, priority: number) => {
+    if (priority === it.priority) return;
+    try {
+      await enqueue({ ...stamp(), kind: 'item.priority', listId, itemId: it.id, priority });
+    } catch {
+      toastError("Couldn't update priority");
+    }
+  }, [listId]);
+
   function onReorder({ from, to }: { from: number; to: number }) {
     setDragging(false);
     // Indices refer to the data the list was rendered with — the frozen rows during a drag.
@@ -344,6 +364,7 @@ export function ListDetailScreen() {
               canEdit={canEdit}
               draggable={canEdit && !(completedMode === 'below' && row.item.completed)}
               isShopping={isShopping}
+              simplePriority={simplePriority}
               status={opStatus.get(row.item.id)}
               expanded={expanded.has(row.item.id)}
               styles={styles}
@@ -351,6 +372,7 @@ export function ListDetailScreen() {
               onToggle={toggle}
               onOpen={openTask}
               onToggleExpand={toggleExpand}
+              onSetPriority={setPriority}
               onDelete={onDelete}
             />
           </>

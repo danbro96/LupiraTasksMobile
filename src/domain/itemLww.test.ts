@@ -88,6 +88,22 @@ describe('item LWW reducer', () => {
     expect(reduce([added(), rem, add]).tags).not.toContain(TAG);
   });
 
+  it('applies priority and ignores an older priority update', () => {
+    const s = reduce([
+      added(),
+      { type: 'ItemPrioritySet', itemId: ITEM, priority: 5, occurredAt: at(20), commandId: cmd('20') },
+      { type: 'ItemPrioritySet', itemId: ITEM, priority: 9, occurredAt: at(10), commandId: cmd('10') },
+    ]);
+    expect(s.priority).toBe(5);
+  });
+
+  it('converges two priority sets at equal occurredAt (commandId tiebreak), both orders', () => {
+    const e1: ItemEvent = { type: 'ItemPrioritySet', itemId: ITEM, priority: 3, occurredAt: at(10), commandId: CMD_LO };
+    const e2: ItemEvent = { type: 'ItemPrioritySet', itemId: ITEM, priority: 7, occurredAt: at(10), commandId: CMD_HI };
+    expect(reduce([added(), e1, e2]).priority).toBe(7);
+    expect(reduce([added(), e2, e1]).priority).toBe(7);
+  });
+
   it('merges independent tag adds commutatively', () => {
     const t2 = '44444444-4444-4444-4444-444444444444';
     const a = reduce([

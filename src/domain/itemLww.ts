@@ -80,6 +80,10 @@ export function applyItemEvent(prev: ItemState, e: ItemEvent, actor: string | nu
       if (s.deleted || !wins(e.occurredAt, e.commandId, s.qtyTs, s.qtyCmd)) return s;
       s.quantity = e.quantity; s.unit = e.unit; s.qtyTs = e.occurredAt; s.qtyCmd = e.commandId; touch(s, e.occurredAt); return s;
 
+    case 'ItemPrioritySet':
+      if (s.deleted || !wins(e.occurredAt, e.commandId, s.priorityTs, s.priorityCmd)) return s;
+      s.priority = e.priority; s.priorityTs = e.occurredAt; s.priorityCmd = e.commandId; touch(s, e.occurredAt); return s;
+
     case 'ItemCompleted':
       if (s.deleted || !wins(e.occurredAt, e.commandId, s.completedTs, s.completedCmd)) return s;
       s.completed = true; s.completedAt = e.occurredAt; s.completedBy = actor;

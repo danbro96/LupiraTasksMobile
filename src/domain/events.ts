@@ -15,6 +15,7 @@ export type ItemEvent =
   | { type: 'ItemTagAdded'; itemId: Guid; tagId: Guid; occurredAt: Iso; commandId: Guid }
   | { type: 'ItemTagRemoved'; itemId: Guid; tagId: Guid; occurredAt: Iso; commandId: Guid }
   | { type: 'ItemQuantitySet'; itemId: Guid; quantity: number | null; unit: string | null; occurredAt: Iso; commandId: Guid }
+  | { type: 'ItemPrioritySet'; itemId: Guid; priority: number; occurredAt: Iso; commandId: Guid }
   | { type: 'ItemCompleted'; itemId: Guid; occurredAt: Iso; commandId: Guid }
   | { type: 'ItemReopened'; itemId: Guid; occurredAt: Iso; commandId: Guid }
   | { type: 'ItemMoved'; itemId: Guid; parentItemId: Guid | null; sortOrder: string; occurredAt: Iso; commandId: Guid }

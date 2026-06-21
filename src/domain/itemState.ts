@@ -29,6 +29,8 @@ export interface ItemState {
   quantity: number | null;
   unit: string | null;
 
+  priority: number;
+
   tags: Guid[];
 
   sortOrder: string;
@@ -45,6 +47,7 @@ export interface ItemState {
   assigneeTs: Iso; assigneeCmd: Guid;
   dueTs: Iso; dueCmd: Guid;
   qtyTs: Iso; qtyCmd: Guid;
+  priorityTs: Iso; priorityCmd: Guid;
   completedTs: Iso; completedCmd: Guid;
   moveTs: Iso; moveCmd: Guid;
 
@@ -60,6 +63,7 @@ export function emptyItemState(): ItemState {
     completed: false, completedAt: null, completedBy: null,
     assignedTo: null, dueAt: null,
     quantity: null, unit: null,
+    priority: 0,
     tags: [],
     sortOrder: '',
     createdBy: null, createdAt: MIN_TS, updatedAt: MIN_TS,
@@ -69,6 +73,7 @@ export function emptyItemState(): ItemState {
     assigneeTs: MIN_TS, assigneeCmd: ZERO_GUID,
     dueTs: MIN_TS, dueCmd: ZERO_GUID,
     qtyTs: MIN_TS, qtyCmd: ZERO_GUID,
+    priorityTs: MIN_TS, priorityCmd: ZERO_GUID,
     completedTs: MIN_TS, completedCmd: ZERO_GUID,
     moveTs: MIN_TS, moveCmd: ZERO_GUID,
     tagTs: {}, tagCmd: {},

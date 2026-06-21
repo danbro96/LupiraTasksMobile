@@ -8,7 +8,7 @@ const TS = '2026-06-01T10:00:00.000Z';
 function makeResponse(over: Partial<ItemResponse> = {}): ItemResponse {
   return {
     id: 'item-1', version: 1, listId: 'list-1',
-    title: 'Buy milk', completed: false,
+    title: 'Buy milk', completed: false, priority: 0,
     tags: [], sortOrder: 'a0',
     createdAt: '2026-05-01T00:00:00.000Z', updatedAt: TS,
     ...over,
@@ -37,10 +37,10 @@ describe('itemResponseToState', () => {
 
   it('seeds every per-field guard at updatedAt with the zero command id', () => {
     const s = itemResponseToState(makeResponse());
-    for (const ts of [s.nameTs, s.notesTs, s.assigneeTs, s.dueTs, s.qtyTs, s.completedTs, s.moveTs]) {
+    for (const ts of [s.nameTs, s.notesTs, s.assigneeTs, s.dueTs, s.qtyTs, s.priorityTs, s.completedTs, s.moveTs]) {
       expect(ts).toBe(TS);
     }
-    for (const cmd of [s.nameCmd, s.notesCmd, s.assigneeCmd, s.dueCmd, s.qtyCmd, s.completedCmd, s.moveCmd]) {
+    for (const cmd of [s.nameCmd, s.notesCmd, s.assigneeCmd, s.dueCmd, s.qtyCmd, s.priorityCmd, s.completedCmd, s.moveCmd]) {
       expect(cmd).toBe(ZERO_GUID);
     }
   });
@@ -61,6 +61,12 @@ describe('itemResponseToState', () => {
   it('coerces a string quantity to a number', () => {
     expect(itemResponseToState(makeResponse({ quantity: '2' })).quantity).toBe(2);
     expect(itemResponseToState(makeResponse({ quantity: 5 })).quantity).toBe(5);
+  });
+
+  it('maps priority (default 0, coercing strings)', () => {
+    expect(itemResponseToState(makeResponse()).priority).toBe(0);
+    expect(itemResponseToState(makeResponse({ priority: 4 })).priority).toBe(4);
+    expect(itemResponseToState(makeResponse({ priority: '6' })).priority).toBe(6);
   });
 
   it('copies tags into a fresh array and seeds a per-tag guard for each', () => {

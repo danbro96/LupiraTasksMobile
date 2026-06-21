@@ -17,6 +17,7 @@ export interface ListResponse {
   kind: ListKind;
   /** @nullable */
   color?: string | null;
+  simplePriority: boolean;
   ownerEmail: string;
   isArchived: boolean;
   createdAt: string;

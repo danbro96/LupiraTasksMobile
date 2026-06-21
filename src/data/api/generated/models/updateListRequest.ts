@@ -12,4 +12,6 @@ export interface UpdateListRequest {
   /** @nullable */
   color?: string | null;
   colorProvided?: boolean;
+  /** @nullable */
+  simplePriority?: boolean | null;
 }

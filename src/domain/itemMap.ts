@@ -27,12 +27,13 @@ export function itemResponseToState(r: ItemResponse): ItemState {
     completed: r.completed, completedAt: r.completedAt ?? null, completedBy: r.completedBy ?? null,
     assignedTo: r.assignedTo ?? null, dueAt: r.dueAt ?? null,
     quantity: num(r.quantity), unit: r.unit ?? null,
+    priority: num(r.priority) ?? 0,
     tags: [...r.tags], sortOrder: r.sortOrder,
     createdBy: r.createdBy ?? null, createdAt: r.createdAt, updatedAt: r.updatedAt,
     deleted: false,
     nameTs: ts, nameCmd: ZERO_GUID, notesTs: ts, notesCmd: ZERO_GUID,
     assigneeTs: ts, assigneeCmd: ZERO_GUID, dueTs: ts, dueCmd: ZERO_GUID,
-    qtyTs: ts, qtyCmd: ZERO_GUID, completedTs: ts, completedCmd: ZERO_GUID, moveTs: ts, moveCmd: ZERO_GUID,
+    qtyTs: ts, qtyCmd: ZERO_GUID, priorityTs: ts, priorityCmd: ZERO_GUID, completedTs: ts, completedCmd: ZERO_GUID, moveTs: ts, moveCmd: ZERO_GUID,
     tagTs, tagCmd,
   };
 }

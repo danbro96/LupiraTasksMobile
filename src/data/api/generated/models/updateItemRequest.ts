@@ -27,6 +27,9 @@ export interface UpdateItemRequest {
   /** @nullable */
   unit?: string | null;
   quantityProvided?: boolean;
+  /** @pattern ^-?(?:0|[1-9]\d*)$ */
+  priority?: number | string;
+  priorityProvided?: boolean;
   /** @nullable */
   addTagIds?: string[] | null;
   /** @nullable */

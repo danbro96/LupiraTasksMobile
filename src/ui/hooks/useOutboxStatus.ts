@@ -11,6 +11,7 @@ function aggregateId(op: ClientOp): string {
     case 'list.create':
     case 'list.rename':
     case 'list.recolor':
+    case 'list.setSimplePriority':
     case 'list.memberAdd':
     case 'list.memberRoleChange':
     case 'list.memberRemove':

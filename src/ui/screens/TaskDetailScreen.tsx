@@ -21,6 +21,7 @@ import { Button } from '../components/Button';
 import { Checkbox } from '../components/Checkbox';
 import { TextField } from '../components/TextField';
 import { DetailRow } from '../components/DetailRow';
+import { PriorityControl } from '../components/PriorityControl';
 import { ActionMenu, type ActionItem } from '../components/ActionMenu';
 import { SyncBanner } from '../components/SyncBanner';
 import { SyncDot } from '../components/SyncDot';
@@ -172,6 +173,9 @@ export function TaskDetailScreen() {
   const setAssignee = (email: string | null) =>
     run(() => enqueue({ ...stamp(), kind: 'item.assign', listId, itemId, assigneeEmail: email }), "Couldn't assign task");
 
+  const setPriority = (priority: number) =>
+    run(() => enqueue({ ...stamp(), kind: 'item.priority', listId, itemId, priority }), "Couldn't set priority");
+
   const toggleComplete = () => {
     if (!item!.completed) hapticSuccess();
     return run(() => enqueue({ ...stamp(), kind: item!.completed ? 'item.reopen' : 'item.complete', listId, itemId }), "Couldn't update task");
@@ -286,6 +290,21 @@ export function TaskDetailScreen() {
             onPress={canEdit ? () => setAssigneeMenu(true) : undefined}
             divider={false}
           />
+        </View>
+
+        <Text style={styles.section}>PRIORITY</Text>
+        <View style={styles.priorityRow}>
+          <PriorityControl
+            simple={list?.simplePriority ?? true}
+            value={item.priority}
+            editable={canEdit}
+            onChange={p => void setPriority(p)}
+          />
+          <Text style={styles.priorityHint}>
+            {(list?.simplePriority ?? true)
+              ? item.priority > 0 ? 'Starred' : 'Not starred'
+              : `Level ${item.priority}`}
+          </Text>
         </View>
 
         {isShopping ? (
@@ -412,6 +431,8 @@ const makeStyles = (c: Palette) => {
     card: { backgroundColor: c.surface, borderRadius: radii.lg, overflow: 'hidden' },
     section: { ...t.sectionLabel, marginTop: spacing.xl, marginBottom: spacing.sm },
     noneText: { ...t.small, marginBottom: spacing.sm },
+    priorityRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+    priorityHint: { ...t.body, color: c.textMuted },
     qtyRow: { flexDirection: 'row', gap: spacing.sm },
     qtyInput: { flex: 1 },
     unitInput: { flex: 2 },

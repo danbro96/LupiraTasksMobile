@@ -33,6 +33,8 @@ import { makeType, radii, spacing, useColors, type Palette } from '../theme';
 const ROLES: ListRole[] = [ListRole.Owner, ListRole.Editor, ListRole.Viewer];
 const COMPLETED_MODES = ['inline', 'below', 'hidden'] as const;
 const COMPLETED_LABELS: Record<CompletedMode, string> = { inline: 'Inline', below: 'Below', hidden: 'Hidden' };
+const PRIORITY_MODES = ['simple', 'scale'] as const;
+const PRIORITY_LABELS: Record<(typeof PRIORITY_MODES)[number], string> = { simple: 'Star', scale: 'Scale (0–9)' };
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const sameEmail = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
 
@@ -95,6 +97,9 @@ export function ListSettingsScreen() {
 
   const setColor = (color: string | null) =>
     run(() => enqueue({ ...stamp(), kind: 'list.recolor', listId, color }), "Couldn't change color");
+
+  const setSimplePriority = (simple: boolean) =>
+    run(() => enqueue({ ...stamp(), kind: 'list.setSimplePriority', listId, simplePriority: simple }), "Couldn't change priority mode");
 
   async function addMember() {
     const email = newEmail.trim();
@@ -204,6 +209,13 @@ export function ListSettingsScreen() {
           onSelect={m => void usePrefs.getState().setCompletedMode(listId, m)}
           getLabel={m => COMPLETED_LABELS[m]}
         />
+        <Text style={[styles.displayLabel, styles.displayLabelGap]}>Priority</Text>
+        <ChipRow
+          options={PRIORITY_MODES}
+          selected={list.simplePriority ? 'simple' : 'scale'}
+          onSelect={m => void setSimplePriority(m === 'simple')}
+          getLabel={m => PRIORITY_LABELS[m]}
+        />
 
         <Text style={styles.section}>MEMBERS</Text>
         {list.members.map(m => {
@@ -303,6 +315,7 @@ const makeStyles = (c: Palette) => {
     section: { ...t.sectionLabel, marginTop: spacing.xl, marginBottom: spacing.sm },
     row: { flexDirection: 'row', gap: spacing.sm },
     displayLabel: { ...t.body, marginBottom: spacing.sm },
+    displayLabelGap: { marginTop: spacing.lg },
     inlineBtn: { paddingVertical: 0 },
     member: { paddingVertical: spacing.md, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: c.divider },
     memberHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },

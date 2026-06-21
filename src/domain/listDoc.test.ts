@@ -13,7 +13,7 @@ function member(email: string, role: ListRole = ListRole.Editor): MemberResponse
 
 function doc(members: MemberResponse[], color: string | null = null): ListResponse {
   return {
-    id: LIST, version: 1, name: 'L', kind: 'Todo', color, ownerEmail: 'owner@x',
+    id: LIST, version: 1, name: 'L', kind: 'Todo', color, simplePriority: true, ownerEmail: 'owner@x',
     isArchived: false, createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z',
     tags: [], members,
   } as ListResponse;
@@ -32,6 +32,13 @@ describe('applyListOp', () => {
     const clear = { ...base, kind: 'list.recolor', listId: LIST, color: null } as ClientOp;
     expect(applyListOp(doc([]), set, null)?.color).toBe('#fff');
     expect(applyListOp(doc([], '#fff'), clear, null)?.color).toBeNull();
+  });
+
+  it('sets simplePriority (toggle off and on)', () => {
+    const off = { ...base, kind: 'list.setSimplePriority', listId: LIST, simplePriority: false } as ClientOp;
+    const on = { ...base, kind: 'list.setSimplePriority', listId: LIST, simplePriority: true } as ClientOp;
+    expect(applyListOp(doc([owner()]), off, null)?.simplePriority).toBe(false);
+    expect(applyListOp(doc([owner()]), on, null)?.simplePriority).toBe(true);
   });
 
   it('adds a new member with the actor as addedBy', () => {

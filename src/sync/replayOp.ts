@@ -41,6 +41,9 @@ export async function replayOp(op: ClientOp): Promise<void> {
     case 'item.quantity':
       await patchListsListIdItemsItemId(op.listId, op.itemId, { quantity: op.quantity, unit: op.unit, quantityProvided: true, occurredAt }, idem);
       return;
+    case 'item.priority':
+      await patchListsListIdItemsItemId(op.listId, op.itemId, { priority: op.priority, priorityProvided: true, occurredAt }, idem);
+      return;
     case 'item.tagAdd':
       await patchListsListIdItemsItemId(op.listId, op.itemId, { addTagIds: [op.tagId], occurredAt }, idem);
       return;
@@ -67,6 +70,9 @@ export async function replayOp(op: ClientOp): Promise<void> {
       return;
     case 'list.recolor':
       await patchListsListId(op.listId, { color: op.color, colorProvided: true }, idem);
+      return;
+    case 'list.setSimplePriority':
+      await patchListsListId(op.listId, { simplePriority: op.simplePriority }, idem);
       return;
     case 'list.memberAdd':
       await postListsListIdMembers(op.listId, { email: op.email, role: op.role }, idem);

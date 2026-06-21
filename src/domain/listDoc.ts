@@ -31,6 +31,9 @@ export function applyListOp(doc: ListResponse, op: ClientOp, actorEmail: string 
     case 'list.recolor':
       return { ...doc, color: op.color, updatedAt: op.occurredAt };
 
+    case 'list.setSimplePriority':
+      return { ...doc, simplePriority: op.simplePriority, updatedAt: op.occurredAt };
+
     case 'list.memberAdd':
       return { ...doc, members: upsertMember(doc.members, op.email, op.role, op.occurredAt, actorEmail), updatedAt: op.occurredAt };
 

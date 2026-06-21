@@ -22,6 +22,8 @@ export interface CreateItemRequest {
   quantity?: number | string | null;
   /** @nullable */
   unit?: string | null;
+  /** @pattern ^-?(?:0|[1-9]\d*)$ */
+  priority?: number | string;
   /** @nullable */
   tagIds?: string[] | null;
   sortOrder: string;

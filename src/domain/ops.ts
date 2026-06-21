@@ -20,6 +20,7 @@ export type ClientOp =
   | (Base & { kind: 'item.assign'; listId: Guid; itemId: Guid; assigneeEmail: string | null })
   | (Base & { kind: 'item.due'; listId: Guid; itemId: Guid; dueAt: Iso | null })
   | (Base & { kind: 'item.quantity'; listId: Guid; itemId: Guid; quantity: number | null; unit: string | null })
+  | (Base & { kind: 'item.priority'; listId: Guid; itemId: Guid; priority: number })
   | (Base & { kind: 'item.tagAdd'; listId: Guid; itemId: Guid; tagId: Guid })
   | (Base & { kind: 'item.tagRemove'; listId: Guid; itemId: Guid; tagId: Guid })
   | (Base & { kind: 'item.complete'; listId: Guid; itemId: Guid })
@@ -29,6 +30,7 @@ export type ClientOp =
   | (Base & { kind: 'list.create'; listId: Guid; name: string; listKind: ListKind; color: string | null })
   | (Base & { kind: 'list.rename'; listId: Guid; name: string })
   | (Base & { kind: 'list.recolor'; listId: Guid; color: string | null })
+  | (Base & { kind: 'list.setSimplePriority'; listId: Guid; simplePriority: boolean })
   | (Base & { kind: 'list.memberAdd'; listId: Guid; email: string; role: ListRole })
   | (Base & { kind: 'list.memberRoleChange'; listId: Guid; email: string; role: ListRole })
   | (Base & { kind: 'list.memberRemove'; listId: Guid; email: string })
@@ -66,6 +68,8 @@ export function opToEvents(op: ClientOp): ItemEvent[] {
       return [{ type: 'ItemDueDateSet', itemId: op.itemId, dueAt: op.dueAt, occurredAt, commandId }];
     case 'item.quantity':
       return [{ type: 'ItemQuantitySet', itemId: op.itemId, quantity: op.quantity, unit: op.unit, occurredAt, commandId }];
+    case 'item.priority':
+      return [{ type: 'ItemPrioritySet', itemId: op.itemId, priority: op.priority, occurredAt, commandId }];
     case 'item.tagAdd':
       return [{ type: 'ItemTagAdded', itemId: op.itemId, tagId: op.tagId, occurredAt, commandId }];
     case 'item.tagRemove':
@@ -83,6 +87,7 @@ export function opToEvents(op: ClientOp): ItemEvent[] {
     case 'list.create':
     case 'list.rename':
     case 'list.recolor':
+    case 'list.setSimplePriority':
     case 'list.memberAdd':
     case 'list.memberRoleChange':
     case 'list.memberRemove':

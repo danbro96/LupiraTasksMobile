@@ -32,6 +32,8 @@ export interface ItemResponse {
   quantity?: number | string | null;
   /** @nullable */
   unit?: string | null;
+  /** @pattern ^-?(?:0|[1-9]\d*)$ */
+  priority: number | string;
   tags: string[];
   sortOrder: string;
   /** @nullable */
