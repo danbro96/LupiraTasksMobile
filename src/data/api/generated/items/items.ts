@@ -114,7 +114,7 @@ export const getPostListsListIdItemsUrl = (listId: string,) => {
 }
 
 /**
- * Body `{ id (GUIDv7), title, parentItemId?, dueAt?, assigneeEmail?, quantity?, unit?, tagIds?, sortOrder, occurredAt? }`. Re-sending an existing id is idempotent.
+ * Body `{ id (GUIDv7), title, parentItemId?, dueAt?, assigneeEmail?, quantity?, unit?, priority? (0..9), tagIds?, sortOrder, occurredAt? }`. Re-sending an existing id is idempotent.
  * @summary Add an item (Editor+).
  */
 export const postListsListIdItems = async (listId: string,
@@ -218,7 +218,7 @@ export const getPatchListsListIdItemsItemIdUrl = (listId: string,
 }
 
 /**
- * One event per changed field. Use the `*Provided` flags so a null can mean 'clear' rather than 'unchanged'. Tags via `addTagIds`/`removeTagIds`.
+ * One event per changed field. Use the `*Provided` flags so a null can mean 'clear' rather than 'unchanged' (e.g. `priority` 0..9 with `priorityProvided`). Tags via `addTagIds`/`removeTagIds`.
  * @summary Edit item fields (Editor+).
  */
 export const patchListsListIdItemsItemId = async (listId: string,

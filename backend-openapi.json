@@ -5,11 +5,6 @@
     "description": "Task and command processing backend for Lupira. Authenticate with a Bearer token issued by the OIDC provider (Authentik).",
     "version": "v1"
   },
-  "servers": [
-    {
-      "url": "http://localhost:8080/"
-    }
-  ],
   "paths": {
     "/lists/{listId}/sync": {
       "get": {
@@ -64,6 +59,28 @@
             "Bearer": []
           }
         ]
+      }
+    },
+    "/.well-known/caldav": {
+      "get": {
+        "tags": [
+          "LupiraTasksApi"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "options": {
+        "tags": [
+          "LupiraTasksApi"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
       }
     },
     "/me": {
@@ -274,8 +291,8 @@
         "tags": [
           "Lists"
         ],
-        "summary": "Rename / recolor a list (Editor+).",
-        "description": "Each provided field emits its own event. Set `colorProvided` to apply `color` (incl. clearing it).",
+        "summary": "Rename / recolor a list, or set its priority mode (Editor+).",
+        "description": "Each provided field emits its own event. Set `colorProvided` to apply `color` (incl. clearing it). Send `simplePriority` (bool) to switch between simple on/off and the full 0..9 scale.",
         "parameters": [
           {
             "name": "listId",
@@ -793,7 +810,7 @@
           "Items"
         ],
         "summary": "Add an item (Editor+).",
-        "description": "Body `{ id (GUIDv7), title, parentItemId?, dueAt?, assigneeEmail?, quantity?, unit?, tagIds?, sortOrder, occurredAt? }`. Re-sending an existing id is idempotent.",
+        "description": "Body `{ id (GUIDv7), title, parentItemId?, dueAt?, assigneeEmail?, quantity?, unit?, priority? (0..9), tagIds?, sortOrder, occurredAt? }`. Re-sending an existing id is idempotent.",
         "parameters": [
           {
             "name": "listId",
@@ -914,7 +931,7 @@
           "Items"
         ],
         "summary": "Edit item fields (Editor+).",
-        "description": "One event per changed field. Use the `*Provided` flags so a null can mean 'clear' rather than 'unchanged'. Tags via `addTagIds`/`removeTagIds`.",
+        "description": "One event per changed field. Use the `*Provided` flags so a null can mean 'clear' rather than 'unchanged' (e.g. `priority` 0..9 with `priorityProvided`). Tags via `addTagIds`/`removeTagIds`.",
         "parameters": [
           {
             "name": "listId",
@@ -1281,6 +1298,716 @@
           }
         ]
       }
+    },
+    "/lists/{listId}/shares": {
+      "post": {
+        "tags": [
+          "Shares"
+        ],
+        "summary": "Mint a public share link for a list (Owner).",
+        "description": "Body `{ access: 'Read' | 'ReadWrite', label?, expiresAt? }`. Returns the opaque token + a ready-to-copy URL. The link grants account-less access at `/shared/{token}` until revoked or expired.",
+        "parameters": [
+          {
+            "name": "listId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Client-generated GUIDv7 command id. A redelivery with the same key is a no-op that returns the prior result (offline-safe retry).",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateShareRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShareResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      },
+      "get": {
+        "tags": [
+          "Shares"
+        ],
+        "summary": "List a list's active share links (Owner).",
+        "parameters": [
+          {
+            "name": "listId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShareCollectionResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/lists/{listId}/shares/{shareId}": {
+      "delete": {
+        "tags": [
+          "Shares"
+        ],
+        "summary": "Revoke a share link (Owner). The token is rejected on its next use.",
+        "parameters": [
+          {
+            "name": "listId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "shareId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Client-generated GUIDv7 command id. A redelivery with the same key is a no-op that returns the prior result (offline-safe retry).",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/shared/{token}": {
+      "get": {
+        "tags": [
+          "Shared"
+        ],
+        "summary": "View a shared list by token (no account needed).",
+        "description": "Returns the list + items, trimmed of all emails. `access` indicates read vs read/write.",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "description": "Opaque share-link token (validated by the ShareToken auth scheme).",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SharedListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/shared/{token}/items": {
+      "post": {
+        "tags": [
+          "Shared"
+        ],
+        "summary": "Add an item via a read/write share link.",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "description": "Opaque share-link token (validated by the ShareToken auth scheme).",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Client-generated GUIDv7 command id. A redelivery with the same key is a no-op that returns the prior result (offline-safe retry).",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateItemRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SharedItemResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/shared/{token}/items/{itemId}": {
+      "patch": {
+        "tags": [
+          "Shared"
+        ],
+        "summary": "Edit an item via a read/write share link.",
+        "parameters": [
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "token",
+            "in": "path",
+            "description": "Opaque share-link token (validated by the ShareToken auth scheme).",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Client-generated GUIDv7 command id. A redelivery with the same key is a no-op that returns the prior result (offline-safe retry).",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateItemRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SharedItemResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Shared"
+        ],
+        "summary": "Delete an item via a read/write share link.",
+        "parameters": [
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "occurredAt",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "token",
+            "in": "path",
+            "description": "Opaque share-link token (validated by the ShareToken auth scheme).",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Client-generated GUIDv7 command id. A redelivery with the same key is a no-op that returns the prior result (offline-safe retry).",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/shared/{token}/items/{itemId}/complete": {
+      "post": {
+        "tags": [
+          "Shared"
+        ],
+        "summary": "Mark an item complete via a read/write share link.",
+        "parameters": [
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "token",
+            "in": "path",
+            "description": "Opaque share-link token (validated by the ShareToken auth scheme).",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Client-generated GUIDv7 command id. A redelivery with the same key is a no-op that returns the prior result (offline-safe retry).",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/ItemTimestampRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SharedItemResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/shared/{token}/items/{itemId}/reopen": {
+      "post": {
+        "tags": [
+          "Shared"
+        ],
+        "summary": "Reopen a completed item via a read/write share link.",
+        "parameters": [
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "token",
+            "in": "path",
+            "description": "Opaque share-link token (validated by the ShareToken auth scheme).",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Client-generated GUIDv7 command id. A redelivery with the same key is a no-op that returns the prior result (offline-safe retry).",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/ItemTimestampRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SharedItemResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/shared/{token}/items/{itemId}/move": {
+      "post": {
+        "tags": [
+          "Shared"
+        ],
+        "summary": "Reparent / reorder an item via a read/write share link.",
+        "parameters": [
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "token",
+            "in": "path",
+            "description": "Opaque share-link token (validated by the ShareToken auth scheme).",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Client-generated GUIDv7 command id. A redelivery with the same key is a no-op that returns the prior result (offline-safe retry).",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MoveItemRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SharedItemResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -1356,6 +2083,14 @@
               "string"
             ]
           },
+          "priority": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
           "tagIds": {
             "type": [
               "null",
@@ -1401,6 +2136,30 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "CreateShareRequest": {
+        "required": [
+          "access"
+        ],
+        "type": "object",
+        "properties": {
+          "access": {
+            "$ref": "#/components/schemas/ShareAccess"
+          },
+          "label": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "expiresAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         }
       },
@@ -1456,6 +2215,7 @@
           "listId",
           "title",
           "completed",
+          "priority",
           "tags",
           "sortOrder",
           "createdAt",
@@ -1539,6 +2299,14 @@
               "string"
             ]
           },
+          "priority": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
           "tags": {
             "type": "array",
             "items": {
@@ -1603,6 +2371,7 @@
           "version",
           "name",
           "kind",
+          "simplePriority",
           "ownerEmail",
           "isArchived",
           "createdAt",
@@ -1635,6 +2404,9 @@
               "null",
               "string"
             ]
+          },
+          "simplePriority": {
+            "type": "boolean"
           },
           "ownerEmail": {
             "type": "string"
@@ -1781,6 +2553,216 @@
           }
         }
       },
+      "ShareAccess": {
+        "enum": [
+          "Read",
+          "ReadWrite"
+        ]
+      },
+      "ShareCollectionResponse": {
+        "required": [
+          "shares"
+        ],
+        "type": "object",
+        "properties": {
+          "shares": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ShareResponse"
+            }
+          }
+        }
+      },
+      "SharedItemResponse": {
+        "required": [
+          "id",
+          "title",
+          "completed",
+          "priority",
+          "tags",
+          "sortOrder"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "parentItemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          },
+          "notes": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "completed": {
+            "type": "boolean"
+          },
+          "completedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "dueAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "quantity": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "unit": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "priority": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "sortOrder": {
+            "type": "string"
+          }
+        }
+      },
+      "SharedListResponse": {
+        "required": [
+          "name",
+          "kind",
+          "simplePriority",
+          "access",
+          "tags",
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ListKind"
+          },
+          "color": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "simplePriority": {
+            "type": "boolean"
+          },
+          "access": {
+            "$ref": "#/components/schemas/ShareAccess"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SharedTagResponse"
+            }
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SharedItemResponse"
+            }
+          }
+        }
+      },
+      "SharedTagResponse": {
+        "required": [
+          "id",
+          "label",
+          "color"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "label": {
+            "type": "string"
+          },
+          "color": {
+            "type": "string"
+          }
+        }
+      },
+      "ShareResponse": {
+        "required": [
+          "shareId",
+          "token",
+          "url",
+          "access",
+          "label",
+          "createdAt",
+          "revoked"
+        ],
+        "type": "object",
+        "properties": {
+          "shareId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "token": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "access": {
+            "$ref": "#/components/schemas/ShareAccess"
+          },
+          "label": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "revoked": {
+            "type": "boolean"
+          }
+        }
+      },
       "SyncResponse": {
         "required": [
           "list",
@@ -1886,6 +2868,17 @@
           "quantityProvided": {
             "type": "boolean"
           },
+          "priority": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "priorityProvided": {
+            "type": "boolean"
+          },
           "addTagIds": {
             "type": [
               "null",
@@ -1932,6 +2925,12 @@
           },
           "colorProvided": {
             "type": "boolean"
+          },
+          "simplePriority": {
+            "type": [
+              "null",
+              "boolean"
+            ]
           }
         }
       },
@@ -1961,6 +2960,9 @@
       "name": "Sync"
     },
     {
+      "name": "LupiraTasksApi"
+    },
+    {
       "name": "Me"
     },
     {
@@ -1971,6 +2973,12 @@
     },
     {
       "name": "Items"
+    },
+    {
+      "name": "Shares"
+    },
+    {
+      "name": "Shared"
     }
   ]
 }

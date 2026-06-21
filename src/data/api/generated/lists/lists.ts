@@ -201,8 +201,8 @@ export const getPatchListsListIdUrl = (listId: string,) => {
 }
 
 /**
- * Each provided field emits its own event. Set `colorProvided` to apply `color` (incl. clearing it).
- * @summary Rename / recolor a list (Editor+).
+ * Each provided field emits its own event. Set `colorProvided` to apply `color` (incl. clearing it). Send `simplePriority` (bool) to switch between simple on/off and the full 0..9 scale.
+ * @summary Rename / recolor a list, or set its priority mode (Editor+).
  */
 export const patchListsListId = async (listId: string,
     updateListRequest: UpdateListRequest, options?: RequestInit): Promise<patchListsListIdResponse> => {

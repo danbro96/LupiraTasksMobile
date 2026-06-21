@@ -4,15 +4,20 @@
  * — re-running this script + `npm run gen:api` is the standard loop for
  * picking up backend contract changes.
  *
- * Two sources:
+ * Three sources, tried in order:
  *
- *  1. **A spec URL** (`npm run fetch:openapi -- http://localhost:5188/openapi/v1.json`).
- *     Plain HTTP fetch of the live OpenAPI document. Also used for production:
- *     `npm run fetch:openapi -- https://tasks-api.lupira.com/openapi/v1.json`.
+ *  1. **Sibling LupiraTasksApi build output** (default, no args).
+ *     If `../LupiraTasksApi/openapi/LupiraTasksApi.json` exists, we copy it. The
+ *     backend project is wired with `Microsoft.Extensions.ApiDescription.Server`,
+ *     so a `dotnet build` of LupiraTasksApi emits this file. No DB / running
+ *     server required — the build-time emitter loads the assembly and walks the
+ *     document provider in-process.
  *
- *  2. **No args** — leaves the existing `backend-openapi.json` placeholder in
- *     place (the skeleton ships with an empty `paths` object so the Orval
- *     config validates before the backend contract exists).
+ *  2. **A running server URL** (`npm run fetch:openapi -- http://localhost:5188/openapi/v1.json`).
+ *     Falls back to plain HTTP fetch.
+ *
+ *  3. **Production** (`npm run fetch:openapi -- https://tasks-api.lupira.com/openapi/v1.json`).
+ *     Same code path as #2.
  */
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -35,9 +40,20 @@ if (arg) {
   await fs.writeFile(outFile, JSON.stringify(json, null, 2) + '\n');
   console.log(`Wrote ${outFile} (${(JSON.stringify(json).length / 1024).toFixed(1)} KB)`);
 } else {
-  console.log(
-    `No URL passed; leaving ${outFile} as-is.\n` +
-    `Pass a spec URL to refresh, e.g.:\n` +
-    `  npm run fetch:openapi -- https://tasks-api.lupira.com/openapi/v1.json`,
-  );
+  // Sibling build-output path. LupiraTasksApi's csproj writes to
+  // `<repo-root>/openapi/LupiraTasksApi.json` after a successful `dotnet build`.
+  const sibling = path.resolve(repoRoot, '..', 'LupiraTasksApi', 'openapi', 'LupiraTasksApi.json');
+  try {
+    const json = JSON.parse(await fs.readFile(sibling, 'utf-8'));
+    await fs.writeFile(outFile, JSON.stringify(json, null, 2) + '\n');
+    console.log(`Copied ${sibling} → ${outFile} (${(JSON.stringify(json).length / 1024).toFixed(1)} KB)`);
+  } catch (e) {
+    console.error(
+      `No sibling spec at ${sibling}. Either:\n` +
+      `  • Run \`dotnet build\` in ../LupiraTasksApi to emit it, or\n` +
+      `  • Pass a URL: \`npm run fetch:openapi -- https://tasks-api.lupira.com/openapi/v1.json\``,
+    );
+    console.error(`(${e instanceof Error ? e.message : String(e)})`);
+    process.exit(1);
+  }
 }
