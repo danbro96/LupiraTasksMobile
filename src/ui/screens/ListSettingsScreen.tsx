@@ -18,6 +18,7 @@ import { Button } from '../components/Button';
 import { ChipRow } from '../components/ChipRow';
 import { TextField } from '../components/TextField';
 import { ColorSwatches } from '../components/ColorSwatches';
+import { ShareLinks } from '../components/ShareLinks';
 import { toast, toastError } from '../../feedback/toast';
 import { SyncBanner } from '../components/SyncBanner';
 import { useItems, useLists } from '../hooks/useMirror';
@@ -269,6 +270,8 @@ export function ListSettingsScreen() {
 
         <Text style={styles.section}>EXPORT</Text>
         <Button title="Export as JSON" variant="secondary" onPress={exportJson} />
+
+        {isOwner ? <ShareLinks listId={listId} /> : null}
 
         {isOwner ? (
           <>

@@ -26,6 +26,7 @@
     "babel-preset-expo": "~56.0.0",
     "expo": "~56.0.9",
     "expo-auth-session": "~56.0.13",
+    "expo-clipboard": "~56.0.4",
     "expo-crypto": "~56.0.4",
     "expo-dev-client": "~56.0.19",
     "expo-font": "~56.0.5",
