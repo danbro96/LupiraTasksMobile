@@ -61,6 +61,69 @@
         ]
       }
     },
+    "/shares/redeem": {
+      "post": {
+        "tags": [
+          "Shares"
+        ],
+        "summary": "Redeem a share link as the authenticated caller (join the list).",
+        "description": "Body `{ token }`. Adds the caller to the linked list — `ReadWrite` → Editor, `Read` → Viewer — and returns `{ listId, role }`. Idempotent: an existing member keeps their current role. Used by the web client to cash in a share link after SSO.",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Client-generated GUIDv7 command id. A redelivery with the same key is a no-op that returns the prior result (offline-safe retry).",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RedeemShareRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RedeemShareResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
     "/.well-known/caldav": {
       "get": {
         "tags": [
@@ -192,7 +255,7 @@
           "Lists"
         ],
         "summary": "Create a list; the caller becomes Owner.",
-        "description": "Body `{ id (GUIDv7), name, kind, color? }`. Re-sending an existing id is an idempotent success.",
+        "description": "Body `{ id (GUIDv7), name, kind, color? }`. `kind` is `Todo`, `Shopping`, or `Agent` (agent/system-owned lists). Re-sending an existing id is an idempotent success.",
         "parameters": [
           {
             "name": "Idempotency-Key",
@@ -739,7 +802,7 @@
           "Items"
         ],
         "summary": "List a list's items (Viewer+).",
-        "description": "Excludes deleted items; ordered by `sortOrder`. Filters: `completed`, `tagId`, `parentItemId`, `assignedTo`.",
+        "description": "Excludes deleted items; ordered by `sortOrder`. Filters: `completed`, `tagId`, `parentItemId`, `assignedTo`, `status`.",
         "parameters": [
           {
             "name": "listId",
@@ -778,6 +841,13 @@
             "in": "query",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/ItemStatus"
             }
           }
         ],
@@ -1218,6 +1288,168 @@
         ]
       }
     },
+    "/lists/{listId}/items/{itemId}/status": {
+      "post": {
+        "tags": [
+          "Items"
+        ],
+        "summary": "Set an item's lifecycle status (Editor+).",
+        "description": "Body `{ status (Open|InProgress|Blocked|Waiting|Done|Cancelled), reason?, occurredAt? }`. `Done` is equivalent to completing the item; `completed` is the derived `status == Done`.",
+        "parameters": [
+          {
+            "name": "listId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Client-generated GUIDv7 command id. A redelivery with the same key is a no-op that returns the prior result (offline-safe retry).",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetStatusRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/lists/{listId}/items/{itemId}/metadata": {
+      "post": {
+        "tags": [
+          "Items"
+        ],
+        "summary": "Set an item's free-form JSON metadata (Editor+).",
+        "description": "Body `{ metadata (JSON object or null), occurredAt? }`. Server-side bookkeeping; never in VTODO or share links. Whole-field LWW.",
+        "parameters": [
+          {
+            "name": "listId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Client-generated GUIDv7 command id. A redelivery with the same key is a no-op that returns the prior result (offline-safe retry).",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetMetadataRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
     "/lists/{listId}/items/{itemId}/move": {
       "post": {
         "tags": [
@@ -1274,6 +1506,207 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/lists/{listId}/items/{itemId}/relations": {
+      "post": {
+        "tags": [
+          "Relations"
+        ],
+        "summary": "Link a task to a cal-api Prompt heartbeat or an external ref (Editor+).",
+        "description": "Body `{ toKind, toRef, relationType, metadata? }`. `toKind` e.g. `cal-item` (the checking heartbeat Prompt) or `url` (issue/PR/incident/release). `relationType` e.g. `monitors`, `spawned-by`, `produced`, `blocked-by`, `relates-to`. Idempotent: re-linking the same edge is a no-op.",
+        "parameters": [
+          {
+            "name": "listId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRelationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelationDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      },
+      "get": {
+        "tags": [
+          "Relations"
+        ],
+        "summary": "List a task's relations (Viewer+).",
+        "parameters": [
+          {
+            "name": "listId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RelationDto"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Relations"
+        ],
+        "summary": "Remove a task relation by its edge tuple (Editor+).",
+        "description": "Identify the edge with `?toKind=&toRef=&relationType=`. Idempotent: removing a link that isn't there is a no-op (204).",
+        "parameters": [
+          {
+            "name": "listId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "toKind",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "toRef",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "relationType",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
           },
           "400": {
             "description": "Bad Request",
@@ -2139,6 +2572,35 @@
           }
         }
       },
+      "CreateRelationRequest": {
+        "required": [
+          "toKind",
+          "toRef",
+          "relationType"
+        ],
+        "type": "object",
+        "properties": {
+          "toKind": {
+            "type": "string"
+          },
+          "toRef": {
+            "type": "string"
+          },
+          "relationType": {
+            "type": "string"
+          },
+          "metadata": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/JsonNode"
+              }
+            ]
+          }
+        }
+      },
       "CreateShareRequest": {
         "required": [
           "access"
@@ -2214,6 +2676,7 @@
           "version",
           "listId",
           "title",
+          "status",
           "completed",
           "priority",
           "tags",
@@ -2250,6 +2713,15 @@
             "type": "string"
           },
           "notes": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/ItemStatus"
+          },
+          "statusReason": {
             "type": [
               "null",
               "string"
@@ -2330,8 +2802,28 @@
           "updatedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "metadata": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/JsonNode"
+              }
+            ]
           }
         }
+      },
+      "ItemStatus": {
+        "enum": [
+          "Open",
+          "InProgress",
+          "Blocked",
+          "Waiting",
+          "Done",
+          "Cancelled"
+        ]
       },
       "ItemTimestampRequest": {
         "type": "object",
@@ -2345,6 +2837,7 @@
           }
         }
       },
+      "JsonNode": {},
       "ListCollectionResponse": {
         "required": [
           "lists"
@@ -2362,7 +2855,8 @@
       "ListKind": {
         "enum": [
           "Todo",
-          "Shopping"
+          "Shopping",
+          "Agent"
         ]
       },
       "ListResponse": {
@@ -2550,6 +3044,122 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "RedeemShareRequest": {
+        "required": [
+          "token"
+        ],
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          }
+        }
+      },
+      "RedeemShareResponse": {
+        "required": [
+          "listId",
+          "role"
+        ],
+        "type": "object",
+        "properties": {
+          "listId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "role": {
+            "$ref": "#/components/schemas/ListRole"
+          }
+        }
+      },
+      "RelationDto": {
+        "required": [
+          "id",
+          "fromKind",
+          "fromId",
+          "toKind",
+          "toRef",
+          "relationType"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fromKind": {
+            "type": "string"
+          },
+          "fromId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "toKind": {
+            "type": "string"
+          },
+          "toRef": {
+            "type": "string"
+          },
+          "relationType": {
+            "type": "string"
+          },
+          "metadata": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/JsonNode"
+              }
+            ]
+          }
+        }
+      },
+      "SetMetadataRequest": {
+        "type": "object",
+        "properties": {
+          "metadata": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/JsonNode"
+              }
+            ]
+          },
+          "occurredAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "SetStatusRequest": {
+        "required": [
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/ItemStatus"
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "occurredAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         }
       },
@@ -2960,6 +3570,9 @@
       "name": "Sync"
     },
     {
+      "name": "Shares"
+    },
+    {
       "name": "LupiraTasksApi"
     },
     {
@@ -2975,7 +3588,7 @@
       "name": "Items"
     },
     {
-      "name": "Shares"
+      "name": "Relations"
     },
     {
       "name": "Shared"

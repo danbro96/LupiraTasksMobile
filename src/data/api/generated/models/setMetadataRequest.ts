@@ -5,8 +5,10 @@
  * Task and command processing backend for Lupira. Authenticate with a Bearer token issued by the OIDC provider (Authentik).
  * OpenAPI spec version: v1
  */
-import type { ListResponse } from './listResponse';
+import type { JsonNode } from './jsonNode';
 
-export interface ListCollectionResponse {
-  lists: ListResponse[];
+export interface SetMetadataRequest {
+  metadata?: null | JsonNode;
+  /** @nullable */
+  occurredAt?: string | null;
 }

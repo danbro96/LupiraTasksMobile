@@ -16,7 +16,9 @@ import { logDebug } from '../../debug/log';
 import { makeType, radii, spacing, useColors, type Palette } from '../theme';
 
 const KINDS = [ListKind.Todo, ListKind.Shopping] as const;
-const KIND_LABELS: Record<ListKind, string> = { [ListKind.Todo]: 'To-do', [ListKind.Shopping]: 'Shopping' };
+// Keyed by the full ListKind union (ChipRow widens its label callback to ListKind). Agent lists
+// aren't user-importable, so the label is inert — KINDS controls which chips actually render.
+const KIND_LABELS: Record<ListKind, string> = { [ListKind.Todo]: 'To-do', [ListKind.Shopping]: 'Shopping', [ListKind.Agent]: 'Agent' };
 
 /** Build the full op batch for an imported list: create the list, then each task in order
  *  (sequential fractional keys; parents tracked per nesting level), with follow-up ops for

@@ -6,8 +6,14 @@
  * OpenAPI spec version: v1
  */
 
-export interface DirectoryPerson {
-  email: string;
-  /** @nullable */
-  displayName?: string | null;
-}
+export type ItemStatus = typeof ItemStatus[keyof typeof ItemStatus];
+
+
+export const ItemStatus = {
+  Open: 'Open',
+  InProgress: 'InProgress',
+  Blocked: 'Blocked',
+  Waiting: 'Waiting',
+  Done: 'Done',
+  Cancelled: 'Cancelled',
+} as const;
