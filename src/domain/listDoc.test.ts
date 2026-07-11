@@ -17,7 +17,7 @@ function member(principalId: string, email: string, role: ListRole = ListRole.Ed
 function doc(members: MemberResponse[], color: string | null = null): ListResponse {
   return {
     id: LIST, version: 1, name: 'L', kind: 'Todo', color, simplePriority: true, owner: ownerRef,
-    isArchived: false, createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z',
+    access: ListRole.Owner, isArchived: false, createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z',
     tags: [], members,
   } as ListResponse;
 }
@@ -61,10 +61,18 @@ describe('applyListOp', () => {
     expect(bobs[0].role).toBe(ListRole.Editor);
   });
 
-  it('changes a member role by principal id', () => {
+  it('changes a member role by principal id (caller access untouched)', () => {
     const op = { ...base, kind: 'list.memberRoleChange', listId: LIST, principalId: BOB_ID, role: ListRole.Owner } as ClientOp;
     const d = applyListOp(doc([owner(), member(BOB_ID, 'bob@x', ListRole.Viewer)]), op, ownerRef);
     expect(d?.members.find(m => m.principalId === BOB_ID)?.role).toBe(ListRole.Owner);
+    expect(d?.access).toBe(ListRole.Owner); // changing someone else doesn't affect my own access
+  });
+
+  it('self role change updates the caller access (owner demotes self)', () => {
+    const op = { ...base, kind: 'list.memberRoleChange', listId: LIST, principalId: OWNER_ID, role: ListRole.Editor } as ClientOp;
+    const d = applyListOp(doc([owner(), member(BOB_ID, 'bob@x', ListRole.Owner)]), op, ownerRef);
+    expect(d?.members.find(m => m.principalId === OWNER_ID)?.role).toBe(ListRole.Editor);
+    expect(d?.access).toBe(ListRole.Editor);
   });
 
   it('removing a non-owner keeps the list', () => {

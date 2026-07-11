@@ -7,7 +7,10 @@ export function useMyRole(listId: string): ListRole | undefined {
   const { lists } = useLists();
   const me = useAuth(s => s.user?.principalId);
   const list = lists.find(l => l.id === listId);
-  return me ? list?.members.find(m => m.principalId === me)?.role : undefined;
+  if (!list || !me) return undefined;
+  // Server-authoritative role (`list.access`), gated on membership so an optimistic self-leave —
+  // the mirror lingers minus-me until the next pull — correctly drops edit rights.
+  return list.members.some(m => m.principalId === me) ? list.access : undefined;
 }
 
 /** Whether a role may modify list contents (add/edit/complete/delete items). Viewers cannot. */

@@ -71,6 +71,7 @@ function optimisticListDoc(op: Extract<ClientOp, { kind: 'list.create' }>, self:
     color: op.color,
     simplePriority: true, // matches the UI's default until the server pull sets the real value
     owner: self ?? { principalId: '', email: '', displayName: null },
+    access: 'Owner', // the creator owns the list they just created
     isArchived: false,
     createdAt: op.occurredAt,
     updatedAt: op.occurredAt,

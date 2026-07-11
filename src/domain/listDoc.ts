@@ -45,6 +45,9 @@ export function applyListOp(doc: ListResponse, op: ClientOp, actor: PersonRef | 
       return {
         ...doc,
         members: doc.members.map(m => (m.principalId === op.principalId ? { ...m, role: op.role } : m)),
+        // Keep the caller's own access coherent (owner demoting themselves) so owner-only UI reacts
+        // before the next pull; changing another member's role leaves the caller's access untouched.
+        access: op.principalId === actor?.principalId ? op.role : doc.access,
         updatedAt: op.occurredAt,
       };
 

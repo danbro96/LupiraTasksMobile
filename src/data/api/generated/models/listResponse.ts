@@ -6,6 +6,7 @@
  * OpenAPI spec version: v1
  */
 import type { ListKind } from './listKind';
+import type { ListRole } from './listRole';
 import type { MemberResponse } from './memberResponse';
 import type { PersonRef } from './personRef';
 import type { TagResponse } from './tagResponse';
@@ -20,6 +21,7 @@ export interface ListResponse {
   color?: string | null;
   simplePriority: boolean;
   owner: PersonRef;
+  access: ListRole;
   isArchived: boolean;
   createdAt: string;
   updatedAt: string;
