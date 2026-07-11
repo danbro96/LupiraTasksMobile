@@ -10,7 +10,7 @@ export type ItemEvent =
   | { type: 'ItemAdded'; itemId: Guid; listId: Guid; parentItemId: Guid | null; title: string; sortOrder: string; occurredAt: Iso; commandId: Guid }
   | { type: 'ItemRenamed'; itemId: Guid; title: string; occurredAt: Iso; commandId: Guid }
   | { type: 'ItemNotesEdited'; itemId: Guid; notes: string | null; occurredAt: Iso; commandId: Guid }
-  | { type: 'ItemAssigned'; itemId: Guid; assigneeEmail: string | null; occurredAt: Iso; commandId: Guid }
+  | { type: 'ItemAssigned'; itemId: Guid; assigneePrincipalId: string | null; occurredAt: Iso; commandId: Guid }
   | { type: 'ItemDueDateSet'; itemId: Guid; dueAt: Iso | null; occurredAt: Iso; commandId: Guid }
   | { type: 'ItemTagAdded'; itemId: Guid; tagId: Guid; occurredAt: Iso; commandId: Guid }
   | { type: 'ItemTagRemoved'; itemId: Guid; tagId: Guid; occurredAt: Iso; commandId: Guid }

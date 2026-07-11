@@ -8,6 +8,8 @@ import { reduceItemEvents } from './itemLww';
 const LIST = '11111111-1111-1111-1111-111111111111';
 const ITEM = '22222222-2222-2222-2222-222222222222';
 const TAG = '33333333-3333-3333-3333-333333333333';
+const ALICE = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'; // actor principal id
+const BOB = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'; // assignee principal id
 
 const at = (sec: number): Iso => new Date(Date.UTC(2026, 0, 1, 0, 0, sec)).toISOString();
 const cmd = (suffix: string): Guid => `00000000-0000-0000-0000-0000000000${suffix}`;
@@ -17,7 +19,7 @@ const CMD_HI = cmd('c2'); // ordinal-greater than CMD_LO, so it wins an Occurred
 const added = (occurredAt: Iso = at(0), commandId: Guid = cmd('00')): ItemEvent => ({
   type: 'ItemAdded', itemId: ITEM, listId: LIST, parentItemId: null, title: 'Milk', sortOrder: 'a', occurredAt, commandId,
 });
-const reduce = (events: ItemEvent[]) => reduceItemEvents(events, 'alice@lupira.com');
+const reduce = (events: ItemEvent[]) => reduceItemEvents(events, ALICE);
 
 describe('item LWW reducer', () => {
   it('replays a stream into the snapshot with actor attribution', () => {
@@ -28,8 +30,8 @@ describe('item LWW reducer', () => {
     ]);
     expect(s.title).toBe('Oat milk');
     expect(s.completed).toBe(true);
-    expect(s.createdBy).toBe('alice@lupira.com');
-    expect(s.completedBy).toBe('alice@lupira.com');
+    expect(s.createdBy).toBe(ALICE);
+    expect(s.completedBy).toBe(ALICE);
   });
 
   it('ignores an older occurredAt (no clobber)', () => {
@@ -45,10 +47,10 @@ describe('item LWW reducer', () => {
     const s = reduce([
       added(),
       { type: 'ItemRenamed', itemId: ITEM, title: 'Eggs', occurredAt: at(20), commandId: cmd('20') },
-      { type: 'ItemAssigned', itemId: ITEM, assigneeEmail: 'bob@x', occurredAt: at(10), commandId: cmd('10') },
+      { type: 'ItemAssigned', itemId: ITEM, assigneePrincipalId: BOB, occurredAt: at(10), commandId: cmd('10') },
     ]);
     expect(s.title).toBe('Eggs');
-    expect(s.assignedTo).toBe('bob@x');
+    expect(s.assignedTo).toBe(BOB);
   });
 
   it('treats an equal (occurredAt, commandId) replay as a no-op', () => {

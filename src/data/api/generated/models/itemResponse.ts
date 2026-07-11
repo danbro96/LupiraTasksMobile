@@ -7,6 +7,7 @@
  */
 import type { ItemStatus } from './itemStatus';
 import type { JsonNode } from './jsonNode';
+import type { PersonRef } from './personRef';
 
 export interface ItemResponse {
   id: string;
@@ -24,10 +25,8 @@ export interface ItemResponse {
   completed: boolean;
   /** @nullable */
   completedAt?: string | null;
-  /** @nullable */
-  completedBy?: string | null;
-  /** @nullable */
-  assignedTo?: string | null;
+  completedBy?: null | PersonRef;
+  assignee?: null | PersonRef;
   /** @nullable */
   dueAt?: string | null;
   /**
@@ -41,8 +40,7 @@ export interface ItemResponse {
   priority: number | string;
   tags: string[];
   sortOrder: string;
-  /** @nullable */
-  createdBy?: string | null;
+  createdBy?: null | PersonRef;
   createdAt: string;
   updatedAt: string;
   metadata?: null | JsonNode;

@@ -17,7 +17,7 @@ export type ClientOp =
   | (Base & { kind: 'item.create'; listId: Guid; itemId: Guid; title: string; sortOrder: string; parentItemId: Guid | null })
   | (Base & { kind: 'item.rename'; listId: Guid; itemId: Guid; title: string })
   | (Base & { kind: 'item.notes'; listId: Guid; itemId: Guid; notes: string | null })
-  | (Base & { kind: 'item.assign'; listId: Guid; itemId: Guid; assigneeEmail: string | null })
+  | (Base & { kind: 'item.assign'; listId: Guid; itemId: Guid; assigneePrincipalId: string | null; assigneeEmail: string | null })
   | (Base & { kind: 'item.due'; listId: Guid; itemId: Guid; dueAt: Iso | null })
   | (Base & { kind: 'item.quantity'; listId: Guid; itemId: Guid; quantity: number | null; unit: string | null })
   | (Base & { kind: 'item.priority'; listId: Guid; itemId: Guid; priority: number })
@@ -32,9 +32,9 @@ export type ClientOp =
   | (Base & { kind: 'list.recolor'; listId: Guid; color: string | null })
   | (Base & { kind: 'list.setSimplePriority'; listId: Guid; simplePriority: boolean })
   | (Base & { kind: 'list.memberAdd'; listId: Guid; email: string; role: ListRole })
-  | (Base & { kind: 'list.memberRoleChange'; listId: Guid; email: string; role: ListRole })
-  | (Base & { kind: 'list.memberRemove'; listId: Guid; email: string })
-  | (Base & { kind: 'list.leave'; listId: Guid; email: string })
+  | (Base & { kind: 'list.memberRoleChange'; listId: Guid; principalId: string; role: ListRole })
+  | (Base & { kind: 'list.memberRemove'; listId: Guid; principalId: string })
+  | (Base & { kind: 'list.leave'; listId: Guid; principalId: string })
   | (Base & { kind: 'list.delete'; listId: Guid })
   | (Base & { kind: 'list.archive'; listId: Guid })
   | (Base & { kind: 'list.restore'; listId: Guid });
@@ -63,7 +63,7 @@ export function opToEvents(op: ClientOp): ItemEvent[] {
     case 'item.notes':
       return [{ type: 'ItemNotesEdited', itemId: op.itemId, notes: op.notes, occurredAt, commandId }];
     case 'item.assign':
-      return [{ type: 'ItemAssigned', itemId: op.itemId, assigneeEmail: op.assigneeEmail, occurredAt, commandId }];
+      return [{ type: 'ItemAssigned', itemId: op.itemId, assigneePrincipalId: op.assigneePrincipalId, occurredAt, commandId }];
     case 'item.due':
       return [{ type: 'ItemDueDateSet', itemId: op.itemId, dueAt: op.dueAt, occurredAt, commandId }];
     case 'item.quantity':

@@ -6,10 +6,9 @@
  * OpenAPI spec version: v1
  */
 
-export interface MeResponse {
+export interface PersonRef {
   principalId: string;
   email: string;
   /** @nullable */
   displayName?: string | null;
-  isAdmin: boolean;
 }

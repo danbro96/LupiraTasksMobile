@@ -50,7 +50,7 @@ export function ListSettingsScreen() {
     () => new Map<string, string>((list?.tags ?? []).map(t => [t.id, t.label] as const)),
     [list],
   );
-  const me = useAuth(s => s.user?.sub) ?? '';
+  const me = useAuth(s => s.user?.principalId) ?? '';
   const myRole = useMyRole(listId);
   const [name, setName] = useState(list?.name ?? '');
   const [newEmail, setNewEmail] = useState('');
@@ -121,29 +121,29 @@ export function ListSettingsScreen() {
     );
   }
 
-  const changeRole = (email: string, role: ListRole) =>
-    run(() => enqueue({ ...stamp(), kind: 'list.memberRoleChange', listId, email, role }), "Couldn't change role");
+  const changeRole = (principalId: string, role: ListRole) =>
+    run(() => enqueue({ ...stamp(), kind: 'list.memberRoleChange', listId, principalId, role }), "Couldn't change role");
 
-  function confirmRoleChange(email: string, role: ListRole) {
+  function confirmRoleChange(principalId: string, role: ListRole) {
     // Downgrading your own role is how an owner accidentally locks themselves out — confirm it.
-    if (!(sameEmail(email, me) && role !== ListRole.Owner)) {
-      void changeRole(email, role);
+    if (!(principalId === me && role !== ListRole.Owner)) {
+      void changeRole(principalId, role);
       return;
     }
     Alert.alert('Change your own role?', `You'll become ${role} and lose owner controls for this list.`, [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Change', style: 'destructive', onPress: () => void changeRole(email, role) },
+      { text: 'Change', style: 'destructive', onPress: () => void changeRole(principalId, role) },
     ]);
   }
 
-  function confirmRemove(email: string) {
-    Alert.alert('Remove member?', `${email} will lose access to this list.`, [
+  function confirmRemove(principalId: string, label: string) {
+    Alert.alert('Remove member?', `${label} will lose access to this list.`, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Remove',
         style: 'destructive',
         onPress: () =>
-          void run(() => enqueue({ ...stamp(), kind: 'list.memberRemove', listId, email }), "Couldn't remove member"),
+          void run(() => enqueue({ ...stamp(), kind: 'list.memberRemove', listId, principalId }), "Couldn't remove member"),
       },
     ]);
   }
@@ -182,7 +182,7 @@ export function ListSettingsScreen() {
         style: 'destructive',
         onPress: () =>
           void run(async () => {
-            await enqueue({ ...stamp(), kind: 'list.leave', listId, email: me });
+            await enqueue({ ...stamp(), kind: 'list.leave', listId, principalId: me });
             nav.popToTop();
           }, "Couldn't leave list"),
       },
@@ -220,21 +220,25 @@ export function ListSettingsScreen() {
 
         <Text style={styles.section}>MEMBERS</Text>
         {list.members.map(m => {
-          const isMe = sameEmail(m.email, me);
+          const isMe = m.principalId === me;
+          const label = m.displayName ?? m.email;
+          // A just-invited member (optimistic placeholder) has no principal id yet — role/remove
+          // controls need one, so hold them until the next pull fills it in.
+          const canManage = isOwner && !!m.principalId;
           return (
-            <View key={m.email} style={styles.member}>
+            <View key={m.principalId || m.email} style={styles.member}>
               <View style={styles.memberHead}>
-                <Text style={styles.memberEmail}>{m.email}{isMe ? ' (you)' : ''}</Text>
-                {isOwner && !isMe ? (
-                  <Pressable onPress={() => confirmRemove(m.email)} hitSlop={8} accessibilityRole="button" accessibilityLabel={`Remove ${m.email}`}>
+                <Text style={styles.memberEmail}>{label}{isMe ? ' (you)' : ''}</Text>
+                {canManage && !isMe ? (
+                  <Pressable onPress={() => confirmRemove(m.principalId, label)} hitSlop={8} accessibilityRole="button" accessibilityLabel={`Remove ${label}`}>
                     <Text style={styles.remove}>Remove</Text>
                   </Pressable>
                 ) : null}
               </View>
-              {isOwner ? (
+              {canManage ? (
                 <View style={styles.roleRow}>
                   {ROLES.map(r => (
-                    <RoleChip key={r} role={r} selected={m.role === r} onPress={() => m.role !== r && confirmRoleChange(m.email, r)} />
+                    <RoleChip key={r} role={r} selected={m.role === r} onPress={() => m.role !== r && confirmRoleChange(m.principalId, r)} />
                   ))}
                 </View>
               ) : (

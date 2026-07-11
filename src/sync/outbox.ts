@@ -10,7 +10,7 @@ import {
 } from '../data/db';
 import { type ClientOp, opToEvents } from '../domain/ops';
 import { applyListOp } from '../domain/listDoc';
-import type { ListResponse } from '../data/api/generated/models';
+import type { ListResponse, PersonRef } from '../data/api/generated/models';
 import { useSyncStatus, bumpMirror } from './syncStatus';
 import { logDebug } from '../debug/log';
 
@@ -59,39 +59,42 @@ function actor(): string | null {
   return authPort().getActor();
 }
 
-/** A best-effort optimistic ListResponse so a list created offline shows immediately. */
-function optimisticListDoc(op: Extract<ClientOp, { kind: 'list.create' }>, owner: string | null) {
+/** A best-effort optimistic ListResponse so a list created offline shows immediately. The server
+ *  fills in the authoritative owner/members on the next pull; `self` may be null before the first
+ *  `/me` resolves the principal id, in which case owner/members stay empty until then. */
+function optimisticListDoc(op: Extract<ClientOp, { kind: 'list.create' }>, self: PersonRef | null): ListResponse {
   return {
     id: op.listId,
     version: 0,
     name: op.name,
     kind: op.listKind,
     color: op.color,
-    ownerEmail: owner ?? '',
+    simplePriority: true, // matches the UI's default until the server pull sets the real value
+    owner: self ?? { principalId: '', email: '', displayName: null },
     isArchived: false,
     createdAt: op.occurredAt,
     updatedAt: op.occurredAt,
     tags: [],
-    members: owner ? [{ email: owner, role: 'Owner', addedAt: op.occurredAt, addedBy: owner }] : [],
+    members: self ? [{ principalId: self.principalId, email: self.email, displayName: self.displayName ?? null, role: 'Owner', addedAt: op.occurredAt, addedBy: self }] : [],
   };
 }
 
 /** Optimistically apply one op to the local mirror (items + list docs). Runs inside the
  *  enqueue transaction; same-transaction reads see earlier writes, so a batch can complete
  *  or annotate an item it created moments before. */
-async function applyOpLocally(db: Awaited<ReturnType<typeof getDb>>, op: ClientOp, who: string | null): Promise<void> {
+async function applyOpLocally(db: Awaited<ReturnType<typeof getDb>>, op: ClientOp, who: string | null, self: PersonRef | null): Promise<void> {
   for (const ev of opToEvents(op)) {
     const prev = (await getItemState(db, ev.itemId)) ?? emptyItemState();
     await putItemState(db, applyItemEvent(prev, ev, who));
   }
   if (op.kind === 'list.create') {
-    await putListDoc(db, { id: op.listId, archived: false, deleted: false, updatedAt: op.occurredAt, doc: optimisticListDoc(op, who) });
+    await putListDoc(db, { id: op.listId, archived: false, deleted: false, updatedAt: op.occurredAt, doc: optimisticListDoc(op, self) });
   } else if (op.kind.startsWith('list.')) {
     // Optimistically patch the mirrored list doc (rename/recolor/membership). A null patch
     // means the change deleted the list locally (last owner leaving).
     const current = await getListDoc<ListResponse>(db, op.listId);
     if (current) {
-      const patched = applyListOp(current, op, who);
+      const patched = applyListOp(current, op, self);
       if (patched === null) {
         await deleteListLocal(db, op.listId);
       } else {
@@ -119,11 +122,12 @@ export async function enqueueMany(ops: ClientOp[]): Promise<void> {
   if (ops.length === 0) return;
   const db = await getDb();
   const who = actor();
+  const self = authPort().getSelf();
 
   try {
     await db.withTransactionAsync(async () => {
       for (const op of ops) {
-        await applyOpLocally(db, op, who);
+        await applyOpLocally(db, op, who, self);
         await insertOutbox(db, op.commandId, JSON.stringify(op), op.occurredAt);
       }
     });

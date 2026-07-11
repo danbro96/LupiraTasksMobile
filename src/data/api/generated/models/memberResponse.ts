@@ -6,11 +6,14 @@
  * OpenAPI spec version: v1
  */
 import type { ListRole } from './listRole';
+import type { PersonRef } from './personRef';
 
 export interface MemberResponse {
+  principalId: string;
   email: string;
+  /** @nullable */
+  displayName?: string | null;
   role: ListRole;
   addedAt: string;
-  /** @nullable */
-  addedBy?: string | null;
+  addedBy?: null | PersonRef;
 }

@@ -7,6 +7,7 @@
  */
 
 export interface DirectoryPerson {
+  principalId: string;
   email: string;
   /** @nullable */
   displayName?: string | null;

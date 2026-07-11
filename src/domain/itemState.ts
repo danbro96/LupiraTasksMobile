@@ -21,9 +21,9 @@ export interface ItemState {
 
   completed: boolean;
   completedAt: Iso | null;
-  completedBy: string | null;
+  completedBy: string | null; // principal id (resolved to a name at render time)
 
-  assignedTo: string | null;
+  assignedTo: string | null; // assignee principal id
   dueAt: Iso | null;
 
   quantity: number | null;
@@ -35,7 +35,7 @@ export interface ItemState {
 
   sortOrder: string;
 
-  createdBy: string | null;
+  createdBy: string | null; // principal id (resolved to a name at render time)
   createdAt: Iso;
   updatedAt: Iso;
 

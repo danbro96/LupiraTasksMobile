@@ -42,7 +42,8 @@ function newerTag(s: ItemState, tagId: Guid, occurredAt: Iso, commandId: Guid): 
 
 /**
  * Apply one event to the previous state, returning a NEW state (the input is not mutated).
- * `actor` is the acting user's email (server attribution header), used for created/completed-by.
+ * `actor` is the acting user's principal id (matches the server's PersonRef.principalId), used
+ * for created/completed-by so optimistic attribution converges with the server pull.
  */
 export function applyItemEvent(prev: ItemState, e: ItemEvent, actor: string | null): ItemState {
   const s = clone(prev);
@@ -70,7 +71,7 @@ export function applyItemEvent(prev: ItemState, e: ItemEvent, actor: string | nu
 
     case 'ItemAssigned':
       if (s.deleted || !wins(e.occurredAt, e.commandId, s.assigneeTs, s.assigneeCmd)) return s;
-      s.assignedTo = e.assigneeEmail; s.assigneeTs = e.occurredAt; s.assigneeCmd = e.commandId; touch(s, e.occurredAt); return s;
+      s.assignedTo = e.assigneePrincipalId; s.assigneeTs = e.occurredAt; s.assigneeCmd = e.commandId; touch(s, e.occurredAt); return s;
 
     case 'ItemDueDateSet':
       if (s.deleted || !wins(e.occurredAt, e.commandId, s.dueTs, s.dueCmd)) return s;

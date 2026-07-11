@@ -24,7 +24,7 @@ export async function pullMe(): Promise<void> {
   try {
     const r = await getMe();
     if (r.status !== 200) return;
-    await authPort().applyProfile({ displayName: r.data.displayName ?? null, isAdmin: r.data.isAdmin });
+    await authPort().applyProfile({ principalId: r.data.principalId, displayName: r.data.displayName ?? null, isAdmin: r.data.isAdmin });
   } catch (e) {
     if (isNetworkError(e)) throw e; // let runSync mark the server unreachable
     logDebug('pullMe:error', e instanceof Error ? e.message : String(e));

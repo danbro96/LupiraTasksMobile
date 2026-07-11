@@ -14,8 +14,8 @@ import {
   postListsListIdArchive,
   postListsListIdRestore,
   postListsListIdMembers,
-  patchListsListIdMembersMemberEmail,
-  deleteListsListIdMembersMemberEmail,
+  patchListsListIdMembersPrincipalId,
+  deleteListsListIdMembersPrincipalId,
 } from '../data/api/generated/lists/lists';
 
 /** Replay an op against the API. The generated fns inject the bearer + throw ApiError on non-2xx. */
@@ -78,12 +78,11 @@ export async function replayOp(op: ClientOp): Promise<void> {
       await postListsListIdMembers(op.listId, { email: op.email, role: op.role }, idem);
       return;
     case 'list.memberRoleChange':
-      // The email is a URL path segment — must be percent-encoded ('@', '+', etc.).
-      await patchListsListIdMembersMemberEmail(op.listId, encodeURIComponent(op.email), { role: op.role }, idem);
+      await patchListsListIdMembersPrincipalId(op.listId, op.principalId, { role: op.role }, idem);
       return;
     case 'list.memberRemove':
     case 'list.leave':
-      await deleteListsListIdMembersMemberEmail(op.listId, encodeURIComponent(op.email), idem);
+      await deleteListsListIdMembersPrincipalId(op.listId, op.principalId, idem);
       return;
     case 'list.delete':
       await deleteListsListId(op.listId, idem);

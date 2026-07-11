@@ -13,6 +13,7 @@ setAuthPort({
   getApiUrl: () => authState.apiUrl,
   getToken: () => authState.token,
   getActor: () => null,
+  getSelf: () => null,
   refresh: force => authState.refresh(force),
   applyProfile: async () => {},
   onSignIn: () => () => {},

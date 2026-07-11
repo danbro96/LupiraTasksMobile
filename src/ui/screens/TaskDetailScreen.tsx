@@ -78,7 +78,12 @@ export function TaskDetailScreen() {
   titleRef.current = title;
   notesRef.current = notes;
 
-  const members = useMemo(() => list?.members.map(m => m.email) ?? [], [list]);
+  const members = useMemo(() => list?.members ?? [], [list]);
+  const memberNames = useMemo(() => new Map(members.map(m => [m.principalId, m.displayName ?? m.email])), [members]);
+  // Assignees are always members (resolved inline); created/completed-by may be a non-member, so
+  // fall back to the org directory.
+  const personName = (principalId: string | null | undefined): string =>
+    principalId ? (memberNames.get(principalId) ?? name(principalId)) : '';
   const subtasks = useMemo(() => childrenOf(items, itemId), [items, itemId]);
   const subtasksDone = subtasks.filter(s => s.completed).length;
   const due = formatDue(item?.dueAt);
@@ -170,8 +175,11 @@ export function TaskDetailScreen() {
   const setDue = (iso: string | null) =>
     run(() => enqueue({ ...stamp(), kind: 'item.due', listId, itemId, dueAt: iso }), "Couldn't set due date");
 
-  const setAssignee = (email: string | null) =>
-    run(() => enqueue({ ...stamp(), kind: 'item.assign', listId, itemId, assigneeEmail: email }), "Couldn't assign task");
+  const setAssignee = (member: { principalId: string; email: string } | null) =>
+    run(
+      () => enqueue({ ...stamp(), kind: 'item.assign', listId, itemId, assigneePrincipalId: member?.principalId ?? null, assigneeEmail: member?.email ?? null }),
+      "Couldn't assign task",
+    );
 
   const setPriority = (priority: number) =>
     run(() => enqueue({ ...stamp(), kind: 'item.priority', listId, itemId, priority }), "Couldn't set priority");
@@ -233,10 +241,10 @@ export function TaskDetailScreen() {
 
   const assigneeActions: ActionItem[] = [
     { label: 'Unassigned', selected: !item.assignedTo, onPress: () => void setAssignee(null) },
-    ...members.map(email => ({
-      label: name(email),
-      selected: item.assignedTo?.toLowerCase() === email.toLowerCase(),
-      onPress: () => void setAssignee(email),
+    ...members.map(m => ({
+      label: m.displayName ?? m.email,
+      selected: item.assignedTo === m.principalId,
+      onPress: () => void setAssignee(m),
     })),
   ];
 
@@ -286,7 +294,7 @@ export function TaskDetailScreen() {
           <DetailRow
             icon="person-outline"
             label="Assignee"
-            value={item.assignedTo ? name(item.assignedTo) : 'Unassigned'}
+            value={item.assignedTo ? personName(item.assignedTo) : 'Unassigned'}
             onPress={canEdit ? () => setAssigneeMenu(true) : undefined}
             divider={false}
           />
@@ -380,10 +388,10 @@ export function TaskDetailScreen() {
 
         {item.createdBy || item.completedBy ? (
           <View style={styles.provenance}>
-            {item.createdBy ? <Text style={styles.provText}>Added by {name(item.createdBy)}</Text> : null}
+            {item.createdBy ? <Text style={styles.provText}>Added by {personName(item.createdBy)}</Text> : null}
             {item.completed && item.completedBy ? (
               <Text style={styles.provText}>
-                Completed by {name(item.completedBy)}
+                Completed by {personName(item.completedBy)}
                 {item.completedAt ? ` · ${fmtDate(item.completedAt)}` : ''}
               </Text>
             ) : null}

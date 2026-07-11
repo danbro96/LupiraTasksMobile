@@ -59,6 +59,18 @@ describe('itemResponseToState', () => {
     expect(s.createdBy).toBeNull();
   });
 
+  it('extracts the principal id from each identity PersonRef', () => {
+    const s = itemResponseToState(makeResponse({
+      assignee: { principalId: 'p-assignee', email: 'a@x', displayName: 'Ann' },
+      createdBy: { principalId: 'p-creator', email: 'c@x', displayName: null },
+      completed: true,
+      completedBy: { principalId: 'p-completer', email: 'd@x' },
+    }));
+    expect(s.assignedTo).toBe('p-assignee');
+    expect(s.createdBy).toBe('p-creator');
+    expect(s.completedBy).toBe('p-completer');
+  });
+
   it('coerces a string quantity to a number', () => {
     expect(itemResponseToState(makeResponse({ quantity: '2' })).quantity).toBe(2);
     expect(itemResponseToState(makeResponse({ quantity: 5 })).quantity).toBe(5);

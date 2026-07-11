@@ -396,7 +396,7 @@ export const getPostListsListIdMembersUrl = (listId: string,) => {
 }
 
 /**
- * Body `{ email, role? }`. Direct-add, no invite/accept. A wrong email is inert.
+ * Body `{ email, role? }`. Direct-add, no invite/accept. An unseen email provisions a placeholder principal (its `sub` is upgraded when the person first logs in). Members are returned with their `principalId`; use that for role change / removal.
  * @summary Add a member by email (any member; defaults to Editor).
  */
 export const postListsListIdMembers = async (listId: string,
@@ -412,57 +412,57 @@ export const postListsListIdMembers = async (listId: string,
 );}
 
 
-export type patchListsListIdMembersMemberEmailResponse200 = {
+export type patchListsListIdMembersPrincipalIdResponse200 = {
   data: ListResponse
   status: 200
 }
 
-export type patchListsListIdMembersMemberEmailResponse400 = {
+export type patchListsListIdMembersPrincipalIdResponse400 = {
   data: ProblemDetails
   status: 400
 }
 
-export type patchListsListIdMembersMemberEmailResponse401 = {
+export type patchListsListIdMembersPrincipalIdResponse401 = {
   data: void
   status: 401
 }
 
-export type patchListsListIdMembersMemberEmailResponse403 = {
+export type patchListsListIdMembersPrincipalIdResponse403 = {
   data: ProblemDetails
   status: 403
 }
 
-export type patchListsListIdMembersMemberEmailResponse404 = {
+export type patchListsListIdMembersPrincipalIdResponse404 = {
   data: void
   status: 404
 }
 
-export type patchListsListIdMembersMemberEmailResponseSuccess = (patchListsListIdMembersMemberEmailResponse200) & {
+export type patchListsListIdMembersPrincipalIdResponseSuccess = (patchListsListIdMembersPrincipalIdResponse200) & {
   headers: Headers;
 };
-export type patchListsListIdMembersMemberEmailResponseError = (patchListsListIdMembersMemberEmailResponse400 | patchListsListIdMembersMemberEmailResponse401 | patchListsListIdMembersMemberEmailResponse403 | patchListsListIdMembersMemberEmailResponse404) & {
+export type patchListsListIdMembersPrincipalIdResponseError = (patchListsListIdMembersPrincipalIdResponse400 | patchListsListIdMembersPrincipalIdResponse401 | patchListsListIdMembersPrincipalIdResponse403 | patchListsListIdMembersPrincipalIdResponse404) & {
   headers: Headers;
 };
 
-export type patchListsListIdMembersMemberEmailResponse = (patchListsListIdMembersMemberEmailResponseSuccess | patchListsListIdMembersMemberEmailResponseError)
+export type patchListsListIdMembersPrincipalIdResponse = (patchListsListIdMembersPrincipalIdResponseSuccess | patchListsListIdMembersPrincipalIdResponseError)
 
-export const getPatchListsListIdMembersMemberEmailUrl = (listId: string,
-    memberEmail: string,) => {
-
-
+export const getPatchListsListIdMembersPrincipalIdUrl = (listId: string,
+    principalId: string,) => {
 
 
-  return `/lists/${listId}/members/${memberEmail}`
+
+
+  return `/lists/${listId}/members/${principalId}`
 }
 
 /**
- * @summary Change a member's role (Owner only).
+ * @summary Change a member's role by principal id (Owner only).
  */
-export const patchListsListIdMembersMemberEmail = async (listId: string,
-    memberEmail: string,
-    updateMemberRoleRequest: UpdateMemberRoleRequest, options?: RequestInit): Promise<patchListsListIdMembersMemberEmailResponse> => {
+export const patchListsListIdMembersPrincipalId = async (listId: string,
+    principalId: string,
+    updateMemberRoleRequest: UpdateMemberRoleRequest, options?: RequestInit): Promise<patchListsListIdMembersPrincipalIdResponse> => {
 
-  return apiFetch<patchListsListIdMembersMemberEmailResponse>(getPatchListsListIdMembersMemberEmailUrl(listId,memberEmail),
+  return apiFetch<patchListsListIdMembersPrincipalIdResponse>(getPatchListsListIdMembersPrincipalIdUrl(listId,principalId),
   {
     ...options,
     method: 'PATCH',
@@ -472,56 +472,56 @@ export const patchListsListIdMembersMemberEmail = async (listId: string,
 );}
 
 
-export type deleteListsListIdMembersMemberEmailResponse204 = {
+export type deleteListsListIdMembersPrincipalIdResponse204 = {
   data: void
   status: 204
 }
 
-export type deleteListsListIdMembersMemberEmailResponse400 = {
+export type deleteListsListIdMembersPrincipalIdResponse400 = {
   data: ProblemDetails
   status: 400
 }
 
-export type deleteListsListIdMembersMemberEmailResponse401 = {
+export type deleteListsListIdMembersPrincipalIdResponse401 = {
   data: void
   status: 401
 }
 
-export type deleteListsListIdMembersMemberEmailResponse403 = {
+export type deleteListsListIdMembersPrincipalIdResponse403 = {
   data: ProblemDetails
   status: 403
 }
 
-export type deleteListsListIdMembersMemberEmailResponse404 = {
+export type deleteListsListIdMembersPrincipalIdResponse404 = {
   data: void
   status: 404
 }
 
-export type deleteListsListIdMembersMemberEmailResponseSuccess = (deleteListsListIdMembersMemberEmailResponse204) & {
+export type deleteListsListIdMembersPrincipalIdResponseSuccess = (deleteListsListIdMembersPrincipalIdResponse204) & {
   headers: Headers;
 };
-export type deleteListsListIdMembersMemberEmailResponseError = (deleteListsListIdMembersMemberEmailResponse400 | deleteListsListIdMembersMemberEmailResponse401 | deleteListsListIdMembersMemberEmailResponse403 | deleteListsListIdMembersMemberEmailResponse404) & {
+export type deleteListsListIdMembersPrincipalIdResponseError = (deleteListsListIdMembersPrincipalIdResponse400 | deleteListsListIdMembersPrincipalIdResponse401 | deleteListsListIdMembersPrincipalIdResponse403 | deleteListsListIdMembersPrincipalIdResponse404) & {
   headers: Headers;
 };
 
-export type deleteListsListIdMembersMemberEmailResponse = (deleteListsListIdMembersMemberEmailResponseSuccess | deleteListsListIdMembersMemberEmailResponseError)
+export type deleteListsListIdMembersPrincipalIdResponse = (deleteListsListIdMembersPrincipalIdResponseSuccess | deleteListsListIdMembersPrincipalIdResponseError)
 
-export const getDeleteListsListIdMembersMemberEmailUrl = (listId: string,
-    memberEmail: string,) => {
-
-
+export const getDeleteListsListIdMembersPrincipalIdUrl = (listId: string,
+    principalId: string,) => {
 
 
-  return `/lists/${listId}/members/${memberEmail}`
+
+
+  return `/lists/${listId}/members/${principalId}`
 }
 
 /**
- * @summary Remove a member, or leave (self). Last owner leaving deletes the list for everyone.
+ * @summary Remove a member by principal id, or leave (self). Last owner leaving deletes the list for everyone.
  */
-export const deleteListsListIdMembersMemberEmail = async (listId: string,
-    memberEmail: string, options?: RequestInit): Promise<deleteListsListIdMembersMemberEmailResponse> => {
+export const deleteListsListIdMembersPrincipalId = async (listId: string,
+    principalId: string, options?: RequestInit): Promise<deleteListsListIdMembersPrincipalIdResponse> => {
 
-  return apiFetch<deleteListsListIdMembersMemberEmailResponse>(getDeleteListsListIdMembersMemberEmailUrl(listId,memberEmail),
+  return apiFetch<deleteListsListIdMembersPrincipalIdResponse>(getDeleteListsListIdMembersPrincipalIdUrl(listId,principalId),
   {
     ...options,
     method: 'DELETE'

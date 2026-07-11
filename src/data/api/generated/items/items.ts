@@ -8,6 +8,7 @@
 import type {
   CreateItemRequest,
   DeleteListsListIdItemsItemIdParams,
+  GetItemsParams,
   GetListsListIdItemsParams,
   ItemCollectionResponse,
   ItemResponse,
@@ -20,6 +21,164 @@ import type {
 } from '../models';
 
 import { apiFetch } from '../../mutator';
+
+export type getItemsResponse200 = {
+  data: ItemCollectionResponse
+  status: 200
+}
+
+export type getItemsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getItemsResponseSuccess = (getItemsResponse200) & {
+  headers: Headers;
+};
+export type getItemsResponseError = (getItemsResponse401) & {
+  headers: Headers;
+};
+
+export type getItemsResponse = (getItemsResponseSuccess | getItemsResponseError)
+
+export const getGetItemsUrl = (params?: GetItemsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/items?${stringifiedParams}` : `/items`
+}
+
+/**
+ * Case-insensitive `query` title substring, optional `completed`/`status`. Spans every list the caller is a member of (archived included).
+ * @summary Search items across the caller's lists (Viewer+).
+ */
+export const getItems = async (params?: GetItemsParams, options?: RequestInit): Promise<getItemsResponse> => {
+
+  return apiFetch<getItemsResponse>(getGetItemsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+export type patchItemsItemIdResponse200 = {
+  data: ItemResponse
+  status: 200
+}
+
+export type patchItemsItemIdResponse400 = {
+  data: ProblemDetails
+  status: 400
+}
+
+export type patchItemsItemIdResponse401 = {
+  data: void
+  status: 401
+}
+
+export type patchItemsItemIdResponse404 = {
+  data: void
+  status: 404
+}
+
+export type patchItemsItemIdResponseSuccess = (patchItemsItemIdResponse200) & {
+  headers: Headers;
+};
+export type patchItemsItemIdResponseError = (patchItemsItemIdResponse400 | patchItemsItemIdResponse401 | patchItemsItemIdResponse404) & {
+  headers: Headers;
+};
+
+export type patchItemsItemIdResponse = (patchItemsItemIdResponseSuccess | patchItemsItemIdResponseError)
+
+export const getPatchItemsItemIdUrl = (itemId: string,) => {
+
+
+
+
+  return `/items/${itemId}`
+}
+
+/**
+ * Same body as the list-scoped PATCH (`*Provided` flags). 404 if no such item or the caller can't edit its list.
+ * @summary Edit item fields addressed by id (Editor+); the list is resolved server-side.
+ */
+export const patchItemsItemId = async (itemId: string,
+    updateItemRequest: UpdateItemRequest, options?: RequestInit): Promise<patchItemsItemIdResponse> => {
+
+  return apiFetch<patchItemsItemIdResponse>(getPatchItemsItemIdUrl(itemId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(updateItemRequest)
+  }
+);}
+
+
+export type postItemsItemIdMetadataResponse200 = {
+  data: ItemResponse
+  status: 200
+}
+
+export type postItemsItemIdMetadataResponse400 = {
+  data: ProblemDetails
+  status: 400
+}
+
+export type postItemsItemIdMetadataResponse401 = {
+  data: void
+  status: 401
+}
+
+export type postItemsItemIdMetadataResponse404 = {
+  data: void
+  status: 404
+}
+
+export type postItemsItemIdMetadataResponseSuccess = (postItemsItemIdMetadataResponse200) & {
+  headers: Headers;
+};
+export type postItemsItemIdMetadataResponseError = (postItemsItemIdMetadataResponse400 | postItemsItemIdMetadataResponse401 | postItemsItemIdMetadataResponse404) & {
+  headers: Headers;
+};
+
+export type postItemsItemIdMetadataResponse = (postItemsItemIdMetadataResponseSuccess | postItemsItemIdMetadataResponseError)
+
+export const getPostItemsItemIdMetadataUrl = (itemId: string,) => {
+
+
+
+
+  return `/items/${itemId}/metadata`
+}
+
+/**
+ * Body `{ metadata (JSON object or null), occurredAt? }`. Whole-field LWW. 404 if no such item or the caller can't edit its list.
+ * @summary Set an item's metadata addressed by id (Editor+); the list is resolved server-side.
+ */
+export const postItemsItemIdMetadata = async (itemId: string,
+    setMetadataRequest: SetMetadataRequest, options?: RequestInit): Promise<postItemsItemIdMetadataResponse> => {
+
+  return apiFetch<postItemsItemIdMetadataResponse>(getPostItemsItemIdMetadataUrl(itemId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(setMetadataRequest)
+  }
+);}
+
 
 export type getListsListIdItemsResponse200 = {
   data: ItemCollectionResponse

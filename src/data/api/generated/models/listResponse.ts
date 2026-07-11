@@ -7,6 +7,7 @@
  */
 import type { ListKind } from './listKind';
 import type { MemberResponse } from './memberResponse';
+import type { PersonRef } from './personRef';
 import type { TagResponse } from './tagResponse';
 
 export interface ListResponse {
@@ -18,7 +19,7 @@ export interface ListResponse {
   /** @nullable */
   color?: string | null;
   simplePriority: boolean;
-  ownerEmail: string;
+  owner: PersonRef;
   isArchived: boolean;
   createdAt: string;
   updatedAt: string;

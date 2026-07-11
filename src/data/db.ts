@@ -7,6 +7,11 @@ import { rowsForList } from '../domain/outboxScope';
 // The mirror is what the UI reads offline; the outbox is replayed on reconnect.
 
 const DB_NAME = 'lupira-tasks-offline.db';
+// The mirror stores whole-object ListResponse/ItemState JSON, so a server contract change (v2:
+// the email→principalId identity re-key) can't be migrated per-column — bump this to wipe the
+// mirror + outbox and force a clean re-pull in the new shape. There's no in-flight user data to
+// preserve (the outbox re-derives from the server on next sync).
+const SCHEMA_VERSION = 2;
 let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 
 export function getDb(): Promise<SQLite.SQLiteDatabase> {
@@ -16,8 +21,20 @@ export function getDb(): Promise<SQLite.SQLiteDatabase> {
 
 async function init(): Promise<SQLite.SQLiteDatabase> {
   const db = await SQLite.openDatabaseAsync(DB_NAME);
+  // Existing pre-v2 installs report user_version 0 (the old schema never set it), so they get
+  // wiped here; on a fresh install the DROPs are harmless no-ops before the CREATEs below.
+  const { user_version: version } = (await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version')) ?? { user_version: 0 };
+  if (version < SCHEMA_VERSION) {
+    await db.execAsync(`
+      DROP TABLE IF EXISTS lists;
+      DROP TABLE IF EXISTS items;
+      DROP TABLE IF EXISTS outbox;
+      DROP TABLE IF EXISTS sync_state;
+    `);
+  }
   await db.execAsync(`
     PRAGMA journal_mode = WAL;
+    PRAGMA user_version = ${SCHEMA_VERSION};
     CREATE TABLE IF NOT EXISTS lists (
       id TEXT PRIMARY KEY NOT NULL,
       doc_json TEXT NOT NULL,

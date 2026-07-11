@@ -124,28 +124,6 @@
         ]
       }
     },
-    "/.well-known/caldav": {
-      "get": {
-        "tags": [
-          "LupiraTasksApi"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      },
-      "options": {
-        "tags": [
-          "LupiraTasksApi"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
     "/me": {
       "get": {
         "tags": [
@@ -571,7 +549,7 @@
           "Lists"
         ],
         "summary": "Add a member by email (any member; defaults to Editor).",
-        "description": "Body `{ email, role? }`. Direct-add, no invite/accept. A wrong email is inert.",
+        "description": "Body `{ email, role? }`. Direct-add, no invite/accept. An unseen email provisions a placeholder principal (its `sub` is upgraded when the person first logs in). Members are returned with their `principalId`; use that for role change / removal.",
         "parameters": [
           {
             "name": "listId",
@@ -637,12 +615,12 @@
         ]
       }
     },
-    "/lists/{listId}/members/{memberEmail}": {
+    "/lists/{listId}/members/{principalId}": {
       "patch": {
         "tags": [
           "Lists"
         ],
-        "summary": "Change a member's role (Owner only).",
+        "summary": "Change a member's role by principal id (Owner only).",
         "parameters": [
           {
             "name": "listId",
@@ -654,11 +632,12 @@
             }
           },
           {
-            "name": "memberEmail",
+            "name": "principalId",
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "format": "uuid"
             }
           },
           {
@@ -729,7 +708,7 @@
         "tags": [
           "Lists"
         ],
-        "summary": "Remove a member, or leave (self). Last owner leaving deletes the list for everyone.",
+        "summary": "Remove a member by principal id, or leave (self). Last owner leaving deletes the list for everyone.",
         "parameters": [
           {
             "name": "listId",
@@ -741,11 +720,12 @@
             }
           },
           {
-            "name": "memberEmail",
+            "name": "principalId",
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "format": "uuid"
             }
           },
           {
@@ -784,6 +764,202 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/items": {
+      "get": {
+        "tags": [
+          "Items"
+        ],
+        "summary": "Search items across the caller's lists (Viewer+).",
+        "description": "Case-insensitive `query` title substring, optional `completed`/`status`. Spans every list the caller is a member of (archived included).",
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "completed",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/ItemStatus"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemCollectionResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/items/{itemId}": {
+      "patch": {
+        "tags": [
+          "Items"
+        ],
+        "summary": "Edit item fields addressed by id (Editor+); the list is resolved server-side.",
+        "description": "Same body as the list-scoped PATCH (`*Provided` flags). 404 if no such item or the caller can't edit its list.",
+        "parameters": [
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Client-generated GUIDv7 command id. A redelivery with the same key is a no-op that returns the prior result (offline-safe retry).",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateItemRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/items/{itemId}/metadata": {
+      "post": {
+        "tags": [
+          "Items"
+        ],
+        "summary": "Set an item's metadata addressed by id (Editor+); the list is resolved server-side.",
+        "description": "Body `{ metadata (JSON object or null), occurredAt? }`. Whole-field LWW. 404 if no such item or the caller can't edit its list.",
+        "parameters": [
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Client-generated GUIDv7 command id. A redelivery with the same key is a no-op that returns the prior result (offline-safe retry).",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetMetadataRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
           },
           "404": {
             "description": "Not Found"
@@ -2627,10 +2803,15 @@
       },
       "DirectoryPerson": {
         "required": [
+          "principalId",
           "email"
         ],
         "type": "object",
         "properties": {
+          "principalId": {
+            "type": "string",
+            "format": "uuid"
+          },
           "email": {
             "type": "string"
           },
@@ -2738,15 +2919,23 @@
             "format": "date-time"
           },
           "completedBy": {
-            "type": [
-              "null",
-              "string"
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PersonRef"
+              }
             ]
           },
-          "assignedTo": {
-            "type": [
-              "null",
-              "string"
+          "assignee": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PersonRef"
+              }
             ]
           },
           "dueAt": {
@@ -2790,9 +2979,13 @@
             "type": "string"
           },
           "createdBy": {
-            "type": [
-              "null",
-              "string"
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PersonRef"
+              }
             ]
           },
           "createdAt": {
@@ -2866,7 +3059,7 @@
           "name",
           "kind",
           "simplePriority",
-          "ownerEmail",
+          "owner",
           "isArchived",
           "createdAt",
           "updatedAt",
@@ -2902,8 +3095,8 @@
           "simplePriority": {
             "type": "boolean"
           },
-          "ownerEmail": {
-            "type": "string"
+          "owner": {
+            "$ref": "#/components/schemas/PersonRef"
           },
           "isArchived": {
             "type": "boolean"
@@ -2939,14 +3132,25 @@
       },
       "MemberResponse": {
         "required": [
+          "principalId",
           "email",
           "role",
           "addedAt"
         ],
         "type": "object",
         "properties": {
+          "principalId": {
+            "type": "string",
+            "format": "uuid"
+          },
           "email": {
             "type": "string"
+          },
+          "displayName": {
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "role": {
             "$ref": "#/components/schemas/ListRole"
@@ -2956,20 +3160,29 @@
             "format": "date-time"
           },
           "addedBy": {
-            "type": [
-              "null",
-              "string"
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PersonRef"
+              }
             ]
           }
         }
       },
       "MeResponse": {
         "required": [
+          "principalId",
           "email",
           "isAdmin"
         ],
         "type": "object",
         "properties": {
+          "principalId": {
+            "type": "string",
+            "format": "uuid"
+          },
           "email": {
             "type": "string"
           },
@@ -3006,6 +3219,28 @@
               "string"
             ],
             "format": "date-time"
+          }
+        }
+      },
+      "PersonRef": {
+        "required": [
+          "principalId",
+          "email"
+        ],
+        "type": "object",
+        "properties": {
+          "principalId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -3571,9 +3806,6 @@
     },
     {
       "name": "Shares"
-    },
-    {
-      "name": "LupiraTasksApi"
     },
     {
       "name": "Me"

@@ -25,14 +25,14 @@ describe('tasksToJson', () => {
 
   it('includes notes, due, and resolved tag labels', () => {
     const doc = parse(
-      [item({ id: 'a', title: 'Call plumber', notes: 'before noon', dueAt: '2026-06-20T09:00:00.000Z', assignedTo: 'dad@x.com', tags: ['t1', 'missing'] })],
+      [item({ id: 'a', title: 'Call plumber', notes: 'before noon', dueAt: '2026-06-20T09:00:00.000Z', assignedTo: 'dddddddd-dddd-dddd-dddd-dddddddddddd', tags: ['t1', 'missing'] })],
       new Map([['t1', 'Urgent']]),
     );
     expect(doc.tasks[0]).toEqual({
       title: 'Call plumber',
       notes: 'before noon',
       due: '2026-06-20T09:00:00.000Z',
-      assignee: 'dad@x.com',
+      assignee: 'dddddddd-dddd-dddd-dddd-dddddddddddd',
       tags: ['Urgent', 'missing'],
     });
   });

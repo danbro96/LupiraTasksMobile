@@ -50,6 +50,8 @@ interface RowProps {
   /** Long-press drag handle — off for completed rows when they live in their own section. */
   draggable: boolean;
   isShopping: boolean;
+  /** Resolved assignee display name (from list.members), or '' when unassigned/unresolved. */
+  assigneeName: string;
   /** The list's priority mode: a star (0↔1) when true, a 0–9 picker badge when false. */
   simplePriority: boolean;
   status?: OpStatus;
@@ -65,7 +67,7 @@ interface RowProps {
 
 // Memoized: rows must not re-render on unrelated screen state (e.g. each keystroke in the
 // add-task field) — with stable callbacks below, only rows whose props changed re-render.
-const TaskRow = memo(function TaskRow({ row, canEdit, draggable, isShopping, simplePriority, status, expanded, styles, palette, onToggle, onOpen, onToggleExpand, onSetPriority, onDelete }: RowProps) {
+const TaskRow = memo(function TaskRow({ row, canEdit, draggable, isShopping, assigneeName, simplePriority, status, expanded, styles, palette, onToggle, onOpen, onToggleExpand, onSetPriority, onDelete }: RowProps) {
   const drag = useReorderableDrag();
   const isActive = useIsActive();
   const translateX = useSharedValue(0);
@@ -93,10 +95,10 @@ const TaskRow = memo(function TaskRow({ row, canEdit, draggable, isShopping, sim
           {qty ? <Text style={styles.qty}>{qty}  </Text> : null}
           {item.title}
         </Text>
-        {(due || item.assignedTo) && !item.completed ? (
+        {(due || assigneeName) && !item.completed ? (
           <View style={styles.metaRow}>
             {due ? <Text style={[styles.meta, due.overdue && styles.overdue]}>{due.label}</Text> : null}
-            {item.assignedTo ? <Text style={styles.meta} numberOfLines={1}>{item.assignedTo}</Text> : null}
+            {assigneeName ? <Text style={styles.meta} numberOfLines={1}>{assigneeName}</Text> : null}
           </View>
         ) : null}
       </View>
@@ -164,6 +166,10 @@ export function ListDetailScreen() {
   const color = list?.color ?? null;
   const isShopping = list?.kind === ListKind.Shopping;
   const simplePriority = list?.simplePriority ?? true;
+  const assigneeNames = useMemo(
+    () => new Map((list?.members ?? []).map(m => [m.principalId, m.displayName ?? m.email] as const)),
+    [list],
+  );
   const opStatus = useOutboxStatus();
   const pendingDeletes = usePendingDeletes();
   const canEdit = canEditWithRole(useMyRole(listId));
@@ -364,6 +370,7 @@ export function ListDetailScreen() {
               canEdit={canEdit}
               draggable={canEdit && !(completedMode === 'below' && row.item.completed)}
               isShopping={isShopping}
+              assigneeName={row.item.assignedTo ? (assigneeNames.get(row.item.assignedTo) ?? '') : ''}
               simplePriority={simplePriority}
               status={opStatus.get(row.item.id)}
               expanded={expanded.has(row.item.id)}
