@@ -4,6 +4,7 @@ import * as Crypto from 'expo-crypto';
 import * as Sentry from '@sentry/react-native';
 import { DEFAULT_API_URL } from '../config';
 import { setAuthPort } from '../data/api/authProvider';
+import { adoptDbOwner } from '../data/db';
 import { refreshTokens, RefreshError } from '../data/auth/oidc';
 import { useSyncStatus } from '../sync/syncStatus';
 import { toast } from '../feedback/toast';
@@ -31,7 +32,6 @@ async function setSentryUser(email: string | null): Promise<void> {
   }
 }
 
-const KEY_API_URL = 'lupira.tasks.apiUrl';
 const KEY_TOKEN = 'lupira.tasks.token';
 const KEY_REFRESH = 'lupira.tasks.refreshToken';
 const KEY_EXPIRES = 'lupira.tasks.expiresAt';
@@ -68,7 +68,6 @@ type AuthState = {
 
 type AuthActions = {
   load: () => Promise<void>;
-  setApiUrl: (apiUrl: string) => Promise<void>;
   setSession: (session: Session, user: AuthUser) => Promise<void>;
   /** Merge server profile fields (from `/me`) into the cached user; persists displayName + principalId. */
   updateProfile: (profile: { principalId?: string; displayName?: string | null; isAdmin?: boolean }) => Promise<void>;
@@ -81,7 +80,6 @@ type AuthActions = {
    *  `sentToken` (forced callers) is the token the 401'd request sent — if the session token has
    *  already changed since, the refresh is skipped and the current token returned. */
   refreshIfNeeded: (opts?: { force?: boolean; sentToken?: string }) => Promise<string | null>;
-  isAuthenticated: () => boolean;
 };
 
 export const useAuth = create<AuthState & AuthActions>((set, get) => ({
@@ -93,8 +91,7 @@ export const useAuth = create<AuthState & AuthActions>((set, get) => ({
   user: null,
 
   load: async () => {
-    const [apiUrl, token, refreshToken, expiresAt, userSub, userName, userPrincipal] = await Promise.all([
-      SecureStore.getItemAsync(KEY_API_URL),
+    const [token, refreshToken, expiresAt, userSub, userName, userPrincipal] = await Promise.all([
       SecureStore.getItemAsync(KEY_TOKEN),
       SecureStore.getItemAsync(KEY_REFRESH),
       SecureStore.getItemAsync(KEY_EXPIRES),
@@ -104,21 +101,31 @@ export const useAuth = create<AuthState & AuthActions>((set, get) => ({
     ]);
     set({
       loaded: true,
-      apiUrl: apiUrl || DEFAULT_API_URL,
       token: token ?? null,
       refreshToken: refreshToken ?? null,
       expiresAt: expiresAt ? Number(expiresAt) : null,
       user: userSub ? { sub: userSub, displayName: userName ?? undefined, principalId: userPrincipal ?? undefined } : null,
     });
     void setSentryUser(userSub ?? null);
-  },
-
-  setApiUrl: async apiUrl => {
-    await SecureStore.setItemAsync(KEY_API_URL, apiUrl);
-    set({ apiUrl });
+    // Stamp DB ownership for the restored account (no-op if already stamped; an install that
+    // predates ownership stamping adopts without wiping).
+    if (userSub) void adoptDbOwner(userSub);
   },
 
   setSession: async (session, user) => {
+    // A different account than the one this device's DB belongs to must adopt (wipe) it BEFORE
+    // any state flips: the onSignIn subscriber below fires synchronously inside set() and
+    // immediately drains the outbox — the previous account's un-pushed ops must be gone by then.
+    // Same-sub calls (token rotation) skip straight through, keeping rotation DB-free.
+    if (get().user?.sub !== user.sub) {
+      try {
+        await adoptDbOwner(user.sub);
+      } catch (e) {
+        // The sign-in itself must not be blocked by a local-DB failure — record it loudly.
+        logDebug('auth:adopt-db-error', e instanceof Error ? e.message : String(e));
+        Sentry.captureException(e, { tags: { area: 'auth' } });
+      }
+    }
     // In-memory state first: a rotated refresh token must survive even if persistence fails —
     // the old one is already invalid server-side, so losing the new one here would strand the
     // session (the next refresh would replay a dead token → definitive 400 → forced logout).
@@ -245,8 +252,6 @@ export const useAuth = create<AuthState & AuthActions>((set, get) => ({
     })().finally(() => { refreshing = null; });
     return refreshing;
   },
-
-  isAuthenticated: () => !!get().token && !!get().user,
 }));
 
 // Register the auth capabilities the lower layers (API mutator, offline sync/outbox) depend on,

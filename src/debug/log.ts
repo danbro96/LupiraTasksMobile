@@ -29,7 +29,6 @@ export const useDebugLog = create<DebugLogState>(set => ({
 export function logDebug(stage: string, detail?: string): void {
   const t = new Date().toISOString();
   useDebugLog.getState().push({ t, stage, detail });
-  // eslint-disable-next-line no-console
   console.log('[debug]', stage, detail ?? '');
   try {
     Sentry.addBreadcrumb({

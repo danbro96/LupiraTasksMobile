@@ -16,7 +16,7 @@ export interface TokenSet {
 /**
  * A refresh attempt failed. `definitive` = the refresh token / client was rejected by the
  * server (re-auth required); otherwise the failure is transient (network/timeout/5xx) and the
- * session should be kept and retried later. See refreshIfNeeded in store/auth-store.ts.
+ * session should be kept and retried later. See refreshIfNeeded in state/auth-store.ts.
  */
 export class RefreshError extends Error {
   definitive: boolean;

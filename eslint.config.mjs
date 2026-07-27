@@ -5,8 +5,8 @@ import tseslint from 'typescript-eslint';
 /** v6 object-selector helper: `to('domain','generated')` → [{ to: { type: 'domain' } }, …]. */
 const to = (...types) => types.map((t) => ({ to: { type: t } }));
 
-// Lint config focused on ONE thing: enforcing the layered architecture (see ARCHITECTURE / the
-// plan). It is deliberately NOT a style overhaul — only the import-boundary rule is on, so it acts
+// Lint config focused on ONE thing: enforcing the layered architecture (see README).
+// It is deliberately NOT a style overhaul — only the import-boundary rule is on, so it acts
 // as a structural gate. Broader rule sets (eslint-config-expo, type-aware rules) can be layered in
 // later. The dependency rule is downward-only: domain → nothing (but the generated DTO *types*);
 // data → domain; sync → data/domain; state → sync/…; ui → everything; the cross-cutting leaves

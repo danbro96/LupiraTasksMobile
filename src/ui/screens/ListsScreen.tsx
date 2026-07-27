@@ -33,7 +33,7 @@ export function ListsScreen() {
         </View>
       ),
     });
-  }, [nav]);
+  }, [nav, styles]);
 
   async function refresh() {
     setRefreshing(true);

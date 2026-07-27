@@ -8,15 +8,30 @@ import { rowsForList } from '../domain/outboxScope';
 
 const DB_NAME = 'lupira-tasks-offline.db';
 // The mirror stores whole-object ListResponse/ItemState JSON, so a server contract change (v2:
-// the email→principalId identity re-key) can't be migrated per-column — bump this to wipe the
-// mirror + outbox and force a clean re-pull in the new shape. There's no in-flight user data to
-// preserve (the outbox re-derives from the server on next sync).
+// the email→principalId identity re-key) can't be migrated per-column — bumping this wipes every
+// table and forces a clean re-pull. A bump destroys the outbox too: un-pushed local edits exist
+// nowhere else and are lost. Bump only for genuinely incompatible persisted shapes; prefer
+// additive CREATE TABLE IF NOT EXISTS migrations (like `meta` below).
 const SCHEMA_VERSION = 2;
 let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 
 export function getDb(): Promise<SQLite.SQLiteDatabase> {
   if (!dbPromise) dbPromise = init();
   return dbPromise;
+}
+
+// expo-sqlite's withTransactionAsync is a bare BEGIN/task/COMMIT on the one shared connection —
+// no JS mutex — so two overlapping transactions throw on the nested BEGIN and the loser's
+// ROLLBACK destroys the winner's uncommitted writes. Every multi-statement write goes through
+// this chain instead. Single-statement writes (e.g. the drain's acks) stay unchained: if one
+// lands inside another context's open transaction and is rolled back with it, the op simply
+// replays, which the Idempotency-Key makes a server-side no-op.
+let writeChain: Promise<void> = Promise.resolve();
+
+export function withWriteTxn(db: SQLite.SQLiteDatabase, fn: () => Promise<void>): Promise<void> {
+  const run = writeChain.then(() => db.withTransactionAsync(fn));
+  writeChain = run.catch(() => {}); // a failed transaction must not poison the chain
+  return run;
 }
 
 async function init(): Promise<SQLite.SQLiteDatabase> {
@@ -30,8 +45,11 @@ async function init(): Promise<SQLite.SQLiteDatabase> {
       DROP TABLE IF EXISTS items;
       DROP TABLE IF EXISTS outbox;
       DROP TABLE IF EXISTS sync_state;
+      DROP TABLE IF EXISTS meta;
     `);
   }
+  // v2 databases created before columns/tables were retired keep them as harmless orphans
+  // (lists.deleted, items.completed, sync_state — all defaulted or unreferenced).
   await db.execAsync(`
     PRAGMA journal_mode = WAL;
     PRAGMA user_version = ${SCHEMA_VERSION};
@@ -39,7 +57,6 @@ async function init(): Promise<SQLite.SQLiteDatabase> {
       id TEXT PRIMARY KEY NOT NULL,
       doc_json TEXT NOT NULL,
       archived INTEGER NOT NULL DEFAULT 0,
-      deleted INTEGER NOT NULL DEFAULT 0,
       updated_at TEXT NOT NULL
     );
     CREATE TABLE IF NOT EXISTS items (
@@ -47,7 +64,6 @@ async function init(): Promise<SQLite.SQLiteDatabase> {
       list_id TEXT NOT NULL,
       state_json TEXT NOT NULL,
       sort_order TEXT NOT NULL DEFAULT '',
-      completed INTEGER NOT NULL DEFAULT 0,
       deleted INTEGER NOT NULL DEFAULT 0,
       updated_at TEXT NOT NULL
     );
@@ -62,10 +78,9 @@ async function init(): Promise<SQLite.SQLiteDatabase> {
       created_at TEXT NOT NULL
     );
     CREATE INDEX IF NOT EXISTS idx_outbox_status ON outbox (status, seq);
-    CREATE TABLE IF NOT EXISTS sync_state (
-      list_id TEXT PRIMARY KEY NOT NULL,
-      cursor TEXT,
-      last_pulled_at TEXT
+    CREATE TABLE IF NOT EXISTS meta (
+      key TEXT PRIMARY KEY NOT NULL,
+      value TEXT NOT NULL
     );
   `);
   return db;
@@ -75,13 +90,12 @@ async function init(): Promise<SQLite.SQLiteDatabase> {
 
 export async function putItemState(db: SQLite.SQLiteDatabase, s: ItemState): Promise<void> {
   await db.runAsync(
-    `INSERT INTO items (id, list_id, state_json, sort_order, completed, deleted, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?)
+    `INSERT INTO items (id, list_id, state_json, sort_order, deleted, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?)
      ON CONFLICT(id) DO UPDATE SET
        list_id = excluded.list_id, state_json = excluded.state_json,
-       sort_order = excluded.sort_order, completed = excluded.completed,
-       deleted = excluded.deleted, updated_at = excluded.updated_at`,
-    [s.id, s.listId, JSON.stringify(s), s.sortOrder, s.completed ? 1 : 0, s.deleted ? 1 : 0, s.updatedAt],
+       sort_order = excluded.sort_order, deleted = excluded.deleted, updated_at = excluded.updated_at`,
+    [s.id, s.listId, JSON.stringify(s), s.sortOrder, s.deleted ? 1 : 0, s.updatedAt],
   );
 }
 
@@ -98,53 +112,61 @@ export async function getItemsByList(db: SQLite.SQLiteDatabase, listId: string):
   return rows.map(r => JSON.parse(r.state_json) as ItemState);
 }
 
+/** Hard-delete a list's item rows absent from the server payload (server-side deletions). */
+export async function deleteItemsNotIn(db: SQLite.SQLiteDatabase, listId: string, keepIds: string[]): Promise<void> {
+  if (keepIds.length === 0) {
+    await db.runAsync(`DELETE FROM items WHERE list_id = ?`, [listId]);
+    return;
+  }
+  const placeholders = keepIds.map(() => '?').join(', ');
+  await db.runAsync(`DELETE FROM items WHERE list_id = ? AND id NOT IN (${placeholders})`, [listId, ...keepIds]);
+}
+
 // --- Lists mirror (stores the server ListResponse JSON; `doc` is opaque here) ---
 
 export async function putListDoc(
   db: SQLite.SQLiteDatabase,
-  list: { id: string; archived: boolean; deleted: boolean; updatedAt: string; doc: unknown },
+  list: { id: string; archived: boolean; updatedAt: string; doc: unknown },
 ): Promise<void> {
   await db.runAsync(
-    `INSERT INTO lists (id, doc_json, archived, deleted, updated_at)
-     VALUES (?, ?, ?, ?, ?)
+    `INSERT INTO lists (id, doc_json, archived, updated_at)
+     VALUES (?, ?, ?, ?)
      ON CONFLICT(id) DO UPDATE SET
-       doc_json = excluded.doc_json, archived = excluded.archived,
-       deleted = excluded.deleted, updated_at = excluded.updated_at`,
-    [list.id, JSON.stringify(list.doc), list.archived ? 1 : 0, list.deleted ? 1 : 0, list.updatedAt],
+       doc_json = excluded.doc_json, archived = excluded.archived, updated_at = excluded.updated_at`,
+    [list.id, JSON.stringify(list.doc), list.archived ? 1 : 0, list.updatedAt],
   );
 }
 
 export async function getListDocs<T = unknown>(db: SQLite.SQLiteDatabase): Promise<T[]> {
   const rows = await db.getAllAsync<{ doc_json: string }>(
-    `SELECT doc_json FROM lists WHERE deleted = 0 AND archived = 0 ORDER BY updated_at DESC`,
+    `SELECT doc_json FROM lists WHERE archived = 0 ORDER BY updated_at DESC`,
   );
   return rows.map(r => JSON.parse(r.doc_json) as T);
 }
 
-/** Archived (but not deleted) lists, for the "Archived lists" view. */
+/** Archived lists, for the "Archived lists" view. */
 export async function getArchivedListDocs<T = unknown>(db: SQLite.SQLiteDatabase): Promise<T[]> {
   const rows = await db.getAllAsync<{ doc_json: string }>(
-    `SELECT doc_json FROM lists WHERE deleted = 0 AND archived = 1 ORDER BY updated_at DESC`,
+    `SELECT doc_json FROM lists WHERE archived = 1 ORDER BY updated_at DESC`,
   );
   return rows.map(r => JSON.parse(r.doc_json) as T);
 }
 
 export async function getListDoc<T = unknown>(db: SQLite.SQLiteDatabase, id: string): Promise<T | null> {
   const row = await db.getFirstAsync<{ doc_json: string }>(
-    `SELECT doc_json FROM lists WHERE id = ? AND deleted = 0`, [id],
+    `SELECT doc_json FROM lists WHERE id = ?`, [id],
   );
   return row ? (JSON.parse(row.doc_json) as T) : null;
 }
 
 export async function getListIds(db: SQLite.SQLiteDatabase): Promise<string[]> {
-  const rows = await db.getAllAsync<{ id: string }>(`SELECT id FROM lists WHERE deleted = 0`);
+  const rows = await db.getAllAsync<{ id: string }>(`SELECT id FROM lists`);
   return rows.map(r => r.id);
 }
 
-/** Hard-remove a list and its items/cursor from the local mirror (server data is retained). */
+/** Hard-remove a list and its items from the local mirror (server data is retained). */
 export async function deleteListLocal(db: SQLite.SQLiteDatabase, listId: string): Promise<void> {
   await db.runAsync(`DELETE FROM items WHERE list_id = ?`, [listId]);
-  await db.runAsync(`DELETE FROM sync_state WHERE list_id = ?`, [listId]);
   await db.runAsync(`DELETE FROM lists WHERE id = ?`, [listId]);
 }
 
@@ -152,10 +174,7 @@ export async function deleteListLocal(db: SQLite.SQLiteDatabase, listId: string)
 
 export interface OutboxRow {
   seq: number;
-  command_id: string;
   op_json: string;
-  status: string;
-  attempts: number;
 }
 
 export async function insertOutbox(
@@ -172,7 +191,7 @@ export async function insertOutbox(
 
 export async function pendingOutbox(db: SQLite.SQLiteDatabase): Promise<OutboxRow[]> {
   return db.getAllAsync<OutboxRow>(
-    `SELECT seq, command_id, op_json, status, attempts FROM outbox WHERE status = 'pending' ORDER BY seq ASC`,
+    `SELECT seq, op_json FROM outbox WHERE status = 'pending' ORDER BY seq ASC`,
   );
 }
 
@@ -228,17 +247,29 @@ export async function bumpOutboxFailure(
   await db.runAsync(`UPDATE outbox SET status = ?, attempts = attempts + 1, last_error = ? WHERE seq = ?`, [status, error, seq]);
 }
 
-// --- Sync cursor ---
+// --- DB ownership (one account per device DB) ---
 
-export async function getCursor(db: SQLite.SQLiteDatabase, listId: string): Promise<string | null> {
-  const row = await db.getFirstAsync<{ cursor: string | null }>(`SELECT cursor FROM sync_state WHERE list_id = ?`, [listId]);
-  return row?.cursor ?? null;
-}
-
-export async function setCursor(db: SQLite.SQLiteDatabase, listId: string, cursor: string, at: string): Promise<void> {
-  await db.runAsync(
-    `INSERT INTO sync_state (list_id, cursor, last_pulled_at) VALUES (?, ?, ?)
-     ON CONFLICT(list_id) DO UPDATE SET cursor = excluded.cursor, last_pulled_at = excluded.last_pulled_at`,
-    [listId, cursor, at],
-  );
+/**
+ * Bind the local DB to the signed-in account. Same owner → no-op; unowned (fresh install, or one
+ * that predates ownership stamping) → stamp without wiping, so a same-user relogin keeps offline
+ * data and un-pushed edits; a DIFFERENT owner → wipe mirror + outbox before stamping, so the
+ * previous account's data is never shown to — nor its pending ops replayed as — the new account.
+ * (A DB left unowned-but-populated by a pre-stamping sign-out is adopted unwiped once; wiping
+ * there would destroy a returning user's un-pushed edits, which is worse.)
+ */
+export async function adoptDbOwner(sub: string): Promise<void> {
+  const db = await getDb();
+  const row = await db.getFirstAsync<{ value: string }>(`SELECT value FROM meta WHERE key = 'owner_sub'`);
+  if (row?.value === sub) return;
+  await withWriteTxn(db, async () => {
+    if (row) {
+      await db.runAsync(`DELETE FROM items`);
+      await db.runAsync(`DELETE FROM lists`);
+      await db.runAsync(`DELETE FROM outbox`);
+    }
+    await db.runAsync(
+      `INSERT INTO meta (key, value) VALUES ('owner_sub', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+      [sub],
+    );
+  });
 }

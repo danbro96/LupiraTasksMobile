@@ -31,15 +31,18 @@ vi.mock('../data/auth/oidc', () => {
   }
   return { RefreshError, refreshTokens: vi.fn() };
 });
+vi.mock('../data/db', () => ({ adoptDbOwner: vi.fn().mockResolvedValue(undefined) }));
 
 import * as SecureStore from 'expo-secure-store';
 import { useAuth } from './auth-store';
 import { refreshTokens, RefreshError } from '../data/auth/oidc';
+import { adoptDbOwner } from '../data/db';
 import { toast } from '../feedback/toast';
 
 const refreshMock = refreshTokens as unknown as ReturnType<typeof vi.fn>;
 const toastMock = toast as unknown as ReturnType<typeof vi.fn>;
 const setItemMock = SecureStore.setItemAsync as unknown as ReturnType<typeof vi.fn>;
+const adoptMock = adoptDbOwner as unknown as ReturnType<typeof vi.fn>;
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -146,6 +149,41 @@ describe('setSession', () => {
     expect(useAuth.getState().token).toBe('tok-2');
     expect(useAuth.getState().refreshToken).toBe('ref-2');
   });
+
+  it('same-account rotation never touches the local DB', async () => {
+    await useAuth.getState().setSession(
+      { accessToken: 'tok-2', refreshToken: 'ref-2', expiresAt: Date.now() + 3_600_000 },
+      { sub: 'u@example.com' },
+    );
+    expect(adoptMock).not.toHaveBeenCalled();
+  });
+
+  it('a different account adopts (wipes) the DB before the sign-in flips state', async () => {
+    useAuth.setState({ token: null, refreshToken: null, expiresAt: null, user: null });
+    let adoptedBeforeSignIn = false;
+    const unsub = useAuth.subscribe((s, prev) => {
+      // The onSignIn trigger fires on this transition — the previous account's outbox must
+      // already be gone by then.
+      if (!prev.token && s.token) adoptedBeforeSignIn = adoptMock.mock.calls.length > 0;
+    });
+    await useAuth.getState().setSession(
+      { accessToken: 'tok-9', refreshToken: 'ref-9', expiresAt: Date.now() + 3_600_000 },
+      { sub: 'other@example.com' },
+    );
+    unsub();
+    expect(adoptMock).toHaveBeenCalledWith('other@example.com');
+    expect(adoptedBeforeSignIn).toBe(true);
+  });
+
+  it('a failing DB adoption does not block the sign-in', async () => {
+    adoptMock.mockRejectedValueOnce(new Error('disk full'));
+    useAuth.setState({ token: null, refreshToken: null, expiresAt: null, user: null });
+    await useAuth.getState().setSession(
+      { accessToken: 'tok-9', refreshToken: 'ref-9', expiresAt: Date.now() + 3_600_000 },
+      { sub: 'other@example.com' },
+    );
+    expect(useAuth.getState().token).toBe('tok-9');
+  });
 });
 
 describe('clearSession', () => {
@@ -156,5 +194,10 @@ describe('clearSession', () => {
     toastMock.mockClear();
     await useAuth.getState().clearSession();
     expect(toastMock).not.toHaveBeenCalled();
+  });
+
+  it('does not wipe the local DB (same-user relogin keeps offline data)', async () => {
+    await useAuth.getState().clearSession();
+    expect(adoptMock).not.toHaveBeenCalled();
   });
 });

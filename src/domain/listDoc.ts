@@ -75,3 +75,17 @@ export function applyListOp(doc: ListResponse, op: ClientOp, actor: PersonRef | 
       return doc; // item ops + list.create don't patch an existing list doc here
   }
 }
+
+/**
+ * Fold pending ops over a pulled doc (the rebase of `list.*` ops onto a server base). Returns
+ * null when any op deletes the list locally — the pull must not resurrect it.
+ */
+export function applyListOps(doc: ListResponse, ops: ClientOp[], actor: PersonRef | null): ListResponse | null {
+  let cur = doc;
+  for (const op of ops) {
+    const next = applyListOp(cur, op, actor);
+    if (next === null) return null;
+    cur = next;
+  }
+  return cur;
+}

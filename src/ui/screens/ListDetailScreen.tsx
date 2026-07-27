@@ -20,7 +20,7 @@ import { TextField } from '../components/TextField';
 import { SyncBanner } from '../components/SyncBanner';
 import { SyncDot } from '../components/SyncDot';
 import type { OpStatus } from '../hooks/useOutboxStatus';
-import { toast, toastError } from '../../feedback/toast';
+import { toastError } from '../../feedback/toast';
 import { useItems, useLists } from '../hooks/useMirror';
 import { useOutboxStatus } from '../hooks/useOutboxStatus';
 import { useMyRole, canEditWithRole } from '../hooks/useMyRole';
@@ -206,7 +206,8 @@ export function ListDetailScreen() {
   // ListSettings are pushed on top, so a mount-only effect would leave tasks stale on return.
   useFocusEffect(
     useCallback(() => {
-      void pullList(listId).finally(() => setPulled(true));
+      // Background refresh: errors surface via the sync banner, not an unhandled rejection.
+      void pullList(listId).catch(() => {}).finally(() => setPulled(true));
     }, [listId]),
   );
 

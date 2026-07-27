@@ -36,8 +36,7 @@ async function fetchWithTimeout(fullUrl: string, init: RequestInit, headers: Hea
  * `result.data` (e.g. `getLists()` → `r.data.lists`).
  *
  * Owns:
- *  - base URL prefix (read live from `useAuth.getState().apiUrl` so the
- *    settings-screen override is always honoured)
+ *  - base URL prefix (read live through the auth port)
  *  - bearer token injection
  *  - JSON content-type handling
  *  - bounded retry of transient failures (timeout/5xx/429) for idempotent requests
@@ -77,7 +76,7 @@ export async function apiFetch<T>(
   }
 
   // Idempotency-Key: set per-operation by the outbox replay layer (see replayOp in
-  // src/offline/ops.ts), which passes it via `init.headers` so redelivered commands are
+  // src/sync/replayOp.ts), which passes it via `init.headers` so redelivered commands are
   // server-side no-ops. Nothing to do here — it flows through `init` untouched.
 
   const fullUrl = apiUrl.replace(/\/$/, '') + url;

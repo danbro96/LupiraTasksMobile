@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { applyListOp } from './listDoc';
+import { applyListOp, applyListOps } from './listDoc';
 import type { ListResponse, MemberResponse, PersonRef } from '../data/api/generated/models';
 import { ListRole } from '../data/api/generated/models';
 import type { ClientOp } from './ops';
@@ -105,5 +105,34 @@ describe('applyListOp', () => {
   it('deletes the list (null) regardless of co-owners', () => {
     const op = { ...base, kind: 'list.delete', listId: LIST } as ClientOp;
     expect(applyListOp(doc([owner(), member(BOB_ID, 'bob@x', ListRole.Owner)]), op, ownerRef)).toBeNull();
+  });
+});
+
+describe('applyListOps (rebase fold)', () => {
+  it('composes ops in order', () => {
+    const ops = [
+      { ...base, kind: 'list.rename', listId: LIST, name: 'Renamed' },
+      { ...base, kind: 'list.recolor', listId: LIST, color: '#123456' },
+    ] as ClientOp[];
+    const d = applyListOps(doc([owner()]), ops, ownerRef);
+    expect(d?.name).toBe('Renamed');
+    expect(d?.color).toBe('#123456');
+  });
+
+  it('returns null as soon as an op deletes the list', () => {
+    const ops = [
+      { ...base, kind: 'list.delete', listId: LIST },
+      { ...base, kind: 'list.rename', listId: LIST, name: 'Never' },
+    ] as ClientOp[];
+    expect(applyListOps(doc([owner()]), ops, ownerRef)).toBeNull();
+  });
+
+  it('passes item ops and list.create through unchanged', () => {
+    const ops = [
+      { ...base, kind: 'item.complete', listId: LIST, itemId: 'i1' },
+      { ...base, kind: 'list.create', listId: LIST, name: 'X', listKind: 'Todo', color: null },
+    ] as ClientOp[];
+    const before = doc([owner()]);
+    expect(applyListOps(before, ops, ownerRef)).toEqual(before);
   });
 });

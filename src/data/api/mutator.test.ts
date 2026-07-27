@@ -26,7 +26,6 @@ vi.mock('../../domain/retryPolicy', async importOriginal => {
 });
 
 import { apiFetch } from './mutator';
-import { ApiError } from '../../domain/apiError';
 
 const json200 = (obj: unknown) =>
   new Response(JSON.stringify(obj), { status: 200, headers: { 'content-type': 'application/json' } });

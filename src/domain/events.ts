@@ -20,5 +20,3 @@ export type ItemEvent =
   | { type: 'ItemReopened'; itemId: Guid; occurredAt: Iso; commandId: Guid }
   | { type: 'ItemMoved'; itemId: Guid; parentItemId: Guid | null; sortOrder: string; occurredAt: Iso; commandId: Guid }
   | { type: 'ItemDeleted'; itemId: Guid; occurredAt: Iso; commandId: Guid };
-
-export type ItemEventType = ItemEvent['type'];

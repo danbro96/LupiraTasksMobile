@@ -25,7 +25,7 @@ import { PriorityControl } from '../components/PriorityControl';
 import { ActionMenu, type ActionItem } from '../components/ActionMenu';
 import { SyncBanner } from '../components/SyncBanner';
 import { SyncDot } from '../components/SyncDot';
-import { toast, toastError } from '../../feedback/toast';
+import { toastError } from '../../feedback/toast';
 import { hapticSuccess } from '../../feedback/haptics';
 import { useItems, useLists } from '../hooks/useMirror';
 import { useMyRole, canEditWithRole } from '../hooks/useMyRole';
@@ -73,10 +73,16 @@ export function TaskDetailScreen() {
   // (hardware/gesture back doesn't reliably fire onBlur) without re-enqueueing saved text.
   const titleRef = useRef(title);
   const notesRef = useRef(notes);
+  const qtyRef = useRef(qty);
+  const unitRef = useRef(unit);
   const savedTitle = useRef(item?.title ?? '');
   const savedNotes = useRef(item?.notes ?? '');
+  const savedQty = useRef(item?.quantity != null ? String(item.quantity) : '');
+  const savedUnit = useRef(item?.unit ?? '');
   titleRef.current = title;
   notesRef.current = notes;
+  qtyRef.current = qty;
+  unitRef.current = unit;
 
   const members = useMemo(() => list?.members ?? [], [list]);
   const memberNames = useMemo(() => new Map(members.map(m => [m.principalId, m.displayName ?? m.email])), [members]);
@@ -112,22 +118,37 @@ export function TaskDetailScreen() {
       if ((n ?? null) !== (savedNotes.current || null)) {
         void enqueue({ ...stamp(), kind: 'item.notes', listId, itemId, notes: n }).catch(() => {});
       }
+      const parsed = qtyRef.current.trim() === '' ? null : Number(qtyRef.current.trim());
+      const quantity = parsed != null && Number.isFinite(parsed) ? parsed : null;
+      const u = unitRef.current.trim() || null;
+      const savedQ = savedQty.current === '' ? null : Number(savedQty.current);
+      if (quantity !== savedQ || (u ?? null) !== (savedUnit.current || null)) {
+        void enqueue({ ...stamp(), kind: 'item.quantity', listId, itemId, quantity, unit: u }).catch(() => {});
+      }
     };
   }, [listId, itemId]);
 
-  // Seed editable fields once the item loads from the mirror (hooks read asynchronously). Keyed on
-  // item id so a remote in-place edit doesn't clobber an in-progress local edit.
+  // Seed editable fields once the item loads (hooks read asynchronously), and adopt refreshed
+  // server values into fields the user hasn't touched (input still equals the last-saved
+  // baseline) — otherwise the unmount flush would re-enqueue the stale baseline with a newer
+  // occurredAt and revert the remote edit under LWW. Fields mid-edit keep the local draft.
+  const seededId = useRef<string | null>(null);
   useEffect(() => {
-    if (item) {
-      setTitle(item.title);
-      setNotes(item.notes ?? '');
-      setQty(item.quantity != null ? String(item.quantity) : '');
-      setUnit(item.unit ?? '');
-      savedTitle.current = item.title;
-      savedNotes.current = item.notes ?? '';
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [item?.id]);
+    if (!item) return;
+    const fresh = seededId.current !== item.id;
+    seededId.current = item.id;
+    const adopt = (server: string, saved: { current: string }, latest: { current: string }, set: (v: string) => void) => {
+      if (fresh || latest.current === saved.current) {
+        set(server);
+        latest.current = server;
+      }
+      saved.current = server;
+    };
+    adopt(item.title, savedTitle, titleRef, setTitle);
+    adopt(item.notes ?? '', savedNotes, notesRef, setNotes);
+    adopt(item.quantity != null ? String(item.quantity) : '', savedQty, qtyRef, setQty);
+    adopt(item.unit ?? '', savedUnit, unitRef, setUnit);
+  }, [item]);
 
   if (!item) {
     return (
@@ -169,6 +190,8 @@ export function TaskDetailScreen() {
     const qVal = parsed != null && Number.isFinite(parsed) ? parsed : null;
     const u = unit.trim() || null;
     if ((qVal ?? null) === (item!.quantity ?? null) && (u ?? null) === (item!.unit ?? null)) return;
+    savedQty.current = qVal != null ? String(qVal) : '';
+    savedUnit.current = u ?? '';
     void run(() => enqueue({ ...stamp(), kind: 'item.quantity', listId, itemId, quantity: qVal, unit: u }), "Couldn't set quantity");
   }
 

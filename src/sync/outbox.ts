@@ -6,15 +6,13 @@ import { emptyItemState } from '../domain/itemState';
 import {
   getDb, getItemState, putItemState, putListDoc, insertOutbox,
   pendingOutbox, pendingCount, deleteOutbox, bumpOutboxFailure, parkedCount, parkedOutbox, requeueOutbox,
-  getListDoc, deleteListLocal,
+  getListDoc, deleteListLocal, withWriteTxn,
 } from '../data/db';
 import { type ClientOp, opToEvents } from '../domain/ops';
 import { applyListOp } from '../domain/listDoc';
 import type { ListResponse, PersonRef } from '../data/api/generated/models';
 import { useSyncStatus, bumpMirror } from './syncStatus';
 import { logDebug } from '../debug/log';
-
-export { bumpMirror } from './syncStatus';
 
 export async function refreshPending(): Promise<void> {
   const db = await getDb();
@@ -85,11 +83,14 @@ function optimisticListDoc(op: Extract<ClientOp, { kind: 'list.create' }>, self:
  *  or annotate an item it created moments before. */
 async function applyOpLocally(db: Awaited<ReturnType<typeof getDb>>, op: ClientOp, who: string | null, self: PersonRef | null): Promise<void> {
   for (const ev of opToEvents(op)) {
-    const prev = (await getItemState(db, ev.itemId)) ?? emptyItemState();
-    await putItemState(db, applyItemEvent(prev, ev, who));
+    const prev = await getItemState(db, ev.itemId);
+    // An edit to an item no longer in the mirror (deleted by a pull mid-tap) must not seed a
+    // ghost row from empty state — the op still pushes and reconciles (or parks) server-side.
+    if (!prev && ev.type !== 'ItemAdded') continue;
+    await putItemState(db, applyItemEvent(prev ?? emptyItemState(), ev, who));
   }
   if (op.kind === 'list.create') {
-    await putListDoc(db, { id: op.listId, archived: false, deleted: false, updatedAt: op.occurredAt, doc: optimisticListDoc(op, self) });
+    await putListDoc(db, { id: op.listId, archived: false, updatedAt: op.occurredAt, doc: optimisticListDoc(op, self) });
   } else if (op.kind.startsWith('list.')) {
     // Optimistically patch the mirrored list doc (rename/recolor/membership). A null patch
     // means the change deleted the list locally (last owner leaving).
@@ -99,7 +100,7 @@ async function applyOpLocally(db: Awaited<ReturnType<typeof getDb>>, op: ClientO
       if (patched === null) {
         await deleteListLocal(db, op.listId);
       } else {
-        await putListDoc(db, { id: patched.id, archived: patched.isArchived, deleted: false, updatedAt: patched.updatedAt, doc: patched });
+        await putListDoc(db, { id: patched.id, archived: patched.isArchived, updatedAt: patched.updatedAt, doc: patched });
       }
     }
   }
@@ -126,7 +127,7 @@ export async function enqueueMany(ops: ClientOp[]): Promise<void> {
   const self = authPort().getSelf();
 
   try {
-    await db.withTransactionAsync(async () => {
+    await withWriteTxn(db, async () => {
       for (const op of ops) {
         await applyOpLocally(db, op, who, self);
         await insertOutbox(db, op.commandId, JSON.stringify(op), op.occurredAt);
@@ -158,10 +159,23 @@ function replayLogDetail(d: ReplayDecision, e: unknown, opKind: string): string 
 }
 
 // Serialized replay: one in-flight request, strict seq order, so causal chains stay ordered.
+// A call landing while a drain is running queues exactly one follow-up run — a row enqueued
+// after the running drain's final empty check must not sit until the next external trigger.
 let draining: Promise<void> | null = null;
+let drainQueued = false;
 
 export function drainOutbox(): Promise<void> {
-  if (!draining) draining = runDrain().finally(() => { draining = null; });
+  if (draining) {
+    drainQueued = true;
+    return draining;
+  }
+  draining = runDrain().finally(() => {
+    draining = null;
+    if (drainQueued) {
+      drainQueued = false;
+      void drainOutbox();
+    }
+  });
   return draining;
 }
 
@@ -198,6 +212,6 @@ async function runDrain(): Promise<void> {
     }
   } finally {
     await refreshPending();
-    useSyncStatus.getState().setFailed(await parkedCount(db));
+    await refreshFailed();
   }
 }

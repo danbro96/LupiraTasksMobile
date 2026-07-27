@@ -1,59 +1,68 @@
 # Lupira Tasks (mobile)
 
-React Native + Expo client for the Lupira Tasks API.
+React Native + Expo client for the Lupira Tasks API. Offline-first: a SQLite mirror of the
+server read model plus a durable mutation outbox, replayed on reconnect.
 
 ## Stack
 
-- Expo 55 / React Native 0.83 / React 19
-- TypeScript (strict)
+- Expo 56 / React Native 0.85 / React 19, TypeScript (strict)
 - React Navigation (native stack)
-- TanStack React Query v5
-- Zustand 5 for client state (auth/session)
-- Orval — generates a typed React Query client from the backend OpenAPI spec
-- `expo-secure-store` for token persistence
-- Offline support libraries staged for a later phase: `expo-sqlite`,
-  `@react-native-community/netinfo`, `uuid`
+- Zustand 5 (auth/session, prefs, sync status)
+- `expo-sqlite` — offline mirror + outbox
+- Orval — typed fetch client generated from the backend OpenAPI spec
+- `expo-secure-store` for token persistence, `expo-auth-session` for OIDC (Authentik)
+- Sentry (pseudonymous ids, no PII)
 
 ## Getting started
 
 ```bash
 npm install
 npm run typecheck
+npm run lint
+npm test
 npm run start
 ```
 
+## Architecture
+
+Layered, downward-only imports, enforced by `eslint-plugin-boundaries` (`eslint.config.mjs`):
+
+```
+src/
+  domain/     pure logic: ops/events, LWW reducer, item tree, import/export, retry policy
+  data/       SQLite (db.ts), API client (api/mutator.ts + api/generated/), OIDC helpers
+  sync/       outbox enqueue/drain, pull/rebase (sync.ts), replayOp, sync status store
+  state/      auth + prefs stores (register the AuthPort the lower layers read)
+  ui/         screens, components, hooks, navigation, theme
+  feedback/   toast + haptics (leaf, importable by anyone)
+  debug/      shared debug log buffer
+  config.ts   defaults (API URL, version, Sentry DSN)
+```
+
+Writes flow UI → `enqueue(op)` → one SQLite transaction (optimistic apply + outbox row) →
+background drain replays to the API with an `Idempotency-Key`. Pulls write the server base into
+the mirror and rebase still-pending local ops on top.
+
 ## API client
 
-The typed client under `src/api/generated/` is generated from the backend
-OpenAPI document. Refresh and regenerate with:
+The typed client under `src/data/api/generated/` is generated from the backend OpenAPI document:
 
 ```bash
 # Fetch the spec from a running server or production
 npm run fetch:openapi -- https://tasks-api.lupira.com/openapi/v1.json
 
-# Regenerate the React Query hooks
+# Regenerate the client
 npm run gen:api
 ```
 
-`src/api/mutator.ts` (`apiFetch`) owns the base URL, bearer-token injection,
-JSON handling, and error normalisation (`ApiError` carries `.status`). The base
-URL is read live from the auth store so an in-app override is always honoured.
+`src/data/api/mutator.ts` (`apiFetch`) owns the base URL, bearer-token injection + reactive
+refresh on 401, JSON handling, bounded transient retries, and error normalisation (`ApiError`
+carries `.status`).
 
 ## Configuration
 
-No secrets in source. The default API URL lives in `src/config.ts`
-(`DEFAULT_API_URL`) and is overrideable at runtime via the auth store
-(`setApiUrl`), which persists to secure storage.
+No secrets in source. The API base URL lives in `src/config.ts` (`DEFAULT_API_URL`).
 
-## Layout
+## Releases
 
-```
-src/
-  api/         apiFetch mutator, hand types, generated client (gen:api output)
-  navigation/  root stack + typed param lists
-  offline/     reserved for SQLite store / outbox / sync (later phase)
-  query/       React Query client
-  screens/     UI screens
-  store/       Zustand stores (auth/session)
-  config.ts    defaults (API URL)
-```
+See `docs/RELEASE.md` (EAS build profiles, channels, OTA updates).

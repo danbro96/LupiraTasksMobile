@@ -18,8 +18,3 @@ export function hapticError(): void {
 export function hapticImpact(style: Haptics.ImpactFeedbackStyle = Haptics.ImpactFeedbackStyle.Medium): void {
   void Haptics.impactAsync(style).catch(() => {});
 }
-
-/** Light tick for crossing a threshold / changing a selection. */
-export function hapticSelection(): void {
-  void Haptics.selectionAsync().catch(() => {});
-}

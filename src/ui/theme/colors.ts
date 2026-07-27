@@ -12,9 +12,7 @@ export interface Palette {
   textMuted: string;
   textSubtle: string;
   textDisabled: string;
-  onAccent: string;
   danger: string;
-  warning: string;
   pending: string;
   failed: string;
   bannerOffline: string;
@@ -35,9 +33,7 @@ export const lightColors: Palette = {
   textMuted: '#6e7686',
   textSubtle: '#8a909c',
   textDisabled: '#9aa0ac',
-  onAccent: '#ffffff',
   danger: '#b3261e',
-  warning: '#5b4b18',
   pending: '#d8a200',
   failed: '#b3261e',
   bannerOffline: '#5b4b18',
@@ -58,9 +54,7 @@ export const darkColors: Palette = {
   textMuted: '#9aa3b2',
   textSubtle: '#7c8492',
   textDisabled: '#5b626e',
-  onAccent: '#ffffff',
   danger: '#f2675e',
-  warning: '#d8b24a',
   pending: '#d8a200',
   failed: '#f2675e',
   bannerOffline: '#5b4b18',

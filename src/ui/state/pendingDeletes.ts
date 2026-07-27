@@ -1,12 +1,15 @@
+import { AppState } from 'react-native';
 import { create } from 'zustand';
 import { enqueue } from '../../sync/outbox';
-import { stamp } from '../../domain/ops';
+import { stamp, type ClientOp } from '../../domain/ops';
 import { toast } from '../../feedback/toast';
 
 // Soft-delete with an Undo window. The item(s) are hidden from lists immediately, but the durable
 // `item.delete` op(s) are only enqueued after the window lapses — so Undo cancels with zero loss
 // (no re-create, ids and history preserved). Lives outside the screens so a delete can be
-// triggered from the task detail screen yet undone via a toast over the list screen.
+// triggered from the task detail screen yet undone via a toast over the list screen. The window
+// is memory-only, so leaving the foreground flushes every pending group immediately — otherwise
+// an app kill would silently drop a delete the UI already confirmed.
 
 const UNDO_MS = 6000;
 
@@ -16,8 +19,15 @@ interface PendingDeletesState {
 
 const useStore = create<PendingDeletesState>(() => ({ ids: new Set<string>() }));
 
-// One timer per pending id (a subtree delete shares a single timer across its ids).
-const timers = new Map<string, ReturnType<typeof setTimeout>>();
+// One group per delete gesture (a subtree delete shares one timer + one Undo). The ops are
+// stamped at request time so the deletes carry the user-action timestamp under LWW, not the
+// commit-time one.
+interface PendingGroup {
+  ids: string[];
+  ops: ClientOp[];
+  timer: ReturnType<typeof setTimeout>;
+}
+const groups = new Set<PendingGroup>();
 
 function setIds(mutate: (next: Set<string>) => void) {
   const next = new Set(useStore.getState().ids);
@@ -25,14 +35,28 @@ function setIds(mutate: (next: Set<string>) => void) {
   useStore.setState({ ids: next });
 }
 
-function commit(listId: string, ids: string[]) {
-  for (const id of ids) timers.delete(id);
-  void Promise.allSettled(ids.map(itemId => enqueue({ ...stamp(), kind: 'item.delete', listId, itemId })))
+function commit(group: PendingGroup) {
+  clearTimeout(group.timer);
+  if (!groups.delete(group)) return; // already committed or undone
+  void Promise.allSettled(group.ops.map(op => enqueue(op)))
     .then(rs => {
       if (rs.some(r => r.status === 'rejected')) toast("Couldn't delete item");
     })
-    .finally(() => setIds(s => ids.forEach(id => s.delete(id))));
+    .finally(() => setIds(s => group.ids.forEach(id => s.delete(id))));
 }
+
+function cancel(group: PendingGroup) {
+  clearTimeout(group.timer);
+  groups.delete(group);
+  setIds(s => group.ids.forEach(id => s.delete(id)));
+}
+
+// The undo window only ticks in the foreground; backgrounding commits every pending delete now.
+AppState.addEventListener('change', s => {
+  if (s === 'background' || s === 'inactive') {
+    for (const group of [...groups]) commit(group);
+  }
+});
 
 /**
  * Hide one or more items and schedule their deletion after a short Undo window (a parent and its
@@ -40,23 +64,23 @@ function commit(listId: string, ids: string[]) {
  */
 export function requestItemDeleteMany(listId: string, ids: string[], label?: string): void {
   if (ids.length === 0) return;
-  // Re-entrant on any of these ids: drop the prior timer so it can't fire after an Undo.
-  for (const id of ids) {
-    const existing = timers.get(id);
-    if (existing) clearTimeout(existing);
+  // Re-entrant on any of these ids: cancel the overlapping group so its timer can't fire after
+  // an Undo — the newest gesture owns the ids.
+  for (const group of [...groups]) {
+    if (group.ids.some(id => ids.includes(id))) cancel(group);
   }
+  const group: PendingGroup = {
+    ids,
+    ops: ids.map(itemId => ({ ...stamp(), kind: 'item.delete' as const, listId, itemId })),
+    timer: setTimeout(() => commit(group), UNDO_MS),
+  };
+  groups.add(group);
   setIds(s => ids.forEach(id => s.add(id)));
-  const timer = setTimeout(() => commit(listId, ids), UNDO_MS);
-  for (const id of ids) timers.set(id, timer);
   toast(label ?? (ids.length > 1 ? `${ids.length} items deleted` : 'Item deleted'), {
     durationMs: UNDO_MS,
     action: {
       label: 'Undo',
-      onPress: () => {
-        clearTimeout(timer);
-        for (const id of ids) timers.delete(id);
-        setIds(s => ids.forEach(id => s.delete(id)));
-      },
+      onPress: () => cancel(group),
     },
   });
 }
