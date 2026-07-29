@@ -33,9 +33,15 @@ function byParent(items: ItemState[]): Map<string | null, ItemState[]> {
 
 /** Flatten the item forest to visible rows (depth-first), descending only into expanded ids.
  *  When hideCompleted is true, completed items are skipped (their incomplete children, if any,
- *  surface as roots). */
-export function buildVisibleRows(items: ItemState[], expanded: Set<string>, hideCompleted: boolean): VisibleRow[] {
-  const src = hideCompleted ? items.filter(i => !i.completed) : items;
+ *  surface as roots) — except ids in `keep`, so a task someone else just ticked off can be seen
+ *  being ticked off instead of vanishing. */
+export function buildVisibleRows(
+  items: ItemState[],
+  expanded: Set<string>,
+  hideCompleted: boolean,
+  keep: ReadonlySet<string> = new Set(),
+): VisibleRow[] {
+  const src = hideCompleted ? items.filter(i => !i.completed || keep.has(i.id)) : items;
   const children = byParent(src);
   const rows: VisibleRow[] = [];
   const walk = (parentId: string | null, depth: number) => {

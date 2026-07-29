@@ -1,4 +1,4 @@
-import { memo, useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
@@ -7,7 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { generateKeyBetween } from 'fractional-indexing';
 import ReorderableList, { useReorderableDrag, useIsActive } from 'react-native-reorderable-list';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { LinearTransition, runOnJS, SlideOutLeft, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import Animated, { LinearTransition, runOnJS, SlideOutLeft, useAnimatedStyle, useSharedValue, withDelay, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 import { hapticImpact, hapticSuccess } from '../../feedback/haptics';
 import { ListKind } from '../../data/api/generated/models';
 import type { RootStackParamList } from '../navigation/types';
@@ -28,6 +28,7 @@ import { useMyRole, canEditWithRole } from '../hooks/useMyRole';
 import { usePendingDeletes, requestItemDeleteMany } from '../state/pendingDeletes';
 import { ROW_SPACING_PAD, TEXT_SIZE_SCALE, usePrefs } from '../../state/prefs-store';
 import { buildVisibleRows, collapseDescendants, descendantIds, siblingReorder, type VisibleRow } from '../../domain/itemTree';
+import { changeLabel, type ItemChange, type ItemChangeKind } from '../../domain/itemChange';
 import { oneLine } from '../../domain/text';
 import { enqueue } from '../../sync/outbox';
 import { pullList } from '../../sync/sync';
@@ -37,6 +38,10 @@ import { makeType, spacing, useColors, type Palette } from '../theme';
 
 const INDENT = spacing.lg; // left inset per nesting level
 const SWIPE_DELETE_THRESHOLD = -80; // swipe left past this (px) and release to delete
+// How long a remotely-changed row stays highlighted and held in place.
+const REMOTE_FLASH_MS = 4000;
+const FLASH_IN_MS = 180;
+const FLASH_OUT_MS = 1200;
 
 /** "2 kg"-style quantity label for shopping items, or null when there's nothing to show. */
 function qtyLabel(it: ItemState): string | null {
@@ -55,6 +60,10 @@ interface RowProps {
   assigneeName: string;
   /** The list's priority mode: a star (0↔1) when true, a 0–9 picker badge when false. */
   simplePriority: boolean;
+  /** Set while someone else's edit to this row is being announced. Primitives, so the memo still
+   *  bails out. */
+  changeKind?: ItemChangeKind;
+  changeWho?: string | null;
   status?: OpStatus;
   expanded: boolean;
   styles: ReturnType<typeof makeStyles>;
@@ -68,11 +77,21 @@ interface RowProps {
 
 // Memoized: rows must not re-render on unrelated screen state (e.g. each keystroke in the
 // add-task field) — with stable callbacks below, only rows whose props changed re-render.
-const TaskRow = memo(function TaskRow({ row, canEdit, draggable, isShopping, assigneeName, simplePriority, status, expanded, styles, palette, onToggle, onOpen, onToggleExpand, onSetPriority, onDelete }: RowProps) {
+const TaskRow = memo(function TaskRow({ row, canEdit, draggable, isShopping, assigneeName, simplePriority, changeKind, changeWho, status, expanded, styles, palette, onToggle, onOpen, onToggleExpand, onSetPriority, onDelete }: RowProps) {
   const drag = useReorderableDrag();
   const isActive = useIsActive();
   const translateX = useSharedValue(0);
   const rowStyle = useAnimatedStyle(() => ({ transform: [{ translateX: translateX.value }] }));
+  // Tint in fast, hold, fade out slowly — the slow tail is what stops it reading as a UI glitch.
+  const highlight = useSharedValue(0);
+  const highlightStyle = useAnimatedStyle(() => ({ opacity: highlight.value }));
+  useEffect(() => {
+    if (!changeKind) return;
+    highlight.value = withSequence(
+      withTiming(1, { duration: FLASH_IN_MS }),
+      withDelay(Math.max(0, REMOTE_FLASH_MS - FLASH_IN_MS - FLASH_OUT_MS), withTiming(0, { duration: FLASH_OUT_MS })),
+    );
+  }, [changeKind, changeWho, highlight]);
   // Red delete backdrop is invisible until the row is actually swiped — so it never shows at rest
   // or while the row is picked up for reordering.
   const deleteBgStyle = useAnimatedStyle(() => ({ opacity: translateX.value < -1 ? 1 : 0 }));
@@ -90,12 +109,19 @@ const TaskRow = memo(function TaskRow({ row, canEdit, draggable, isShopping, ass
       accessibilityLabel={`${qty ? qty + ' ' : ''}${item.title}${due ? `, due ${due.label}` : ''}`}
       accessibilityHint="Opens task details. Long-press to reorder."
     >
+      {changeKind ? <Animated.View style={[styles.remoteHighlight, highlightStyle]} pointerEvents="none" /> : null}
       <Checkbox checked={item.completed} disabled={!canEdit} onPress={() => onToggle(item)} />
       <View style={styles.rowBody}>
-        <Text style={[styles.itemTitle, item.completed && styles.itemDone]} numberOfLines={2}>
-          {qty ? <Text style={styles.qty}>{qty}  </Text> : null}
-          {item.title}
-        </Text>
+        {/* Notice shares the title's line: its own line would grow rows that have no meta line. */}
+        <View style={styles.titleLine}>
+          <Text style={[styles.itemTitle, item.completed && styles.itemDone]} numberOfLines={2}>
+            {qty ? <Text style={styles.qty}>{qty}  </Text> : null}
+            {item.title}
+          </Text>
+          {changeKind ? (
+            <Text style={styles.changeMeta} numberOfLines={1}>{changeLabel(changeKind, changeWho ?? null)}</Text>
+          ) : null}
+        </View>
         {(due || assigneeName) && !item.completed ? (
           <View style={styles.metaRow}>
             {due ? <Text style={[styles.meta, due.overdue && styles.overdue]}>{due.label}</Text> : null}
@@ -161,7 +187,7 @@ export function ListDetailScreen() {
   const { params } = useRoute<RouteProp<RootStackParamList, 'ListDetail'>>();
   const nav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const listId = params.listId;
-  const { items } = useItems(listId);
+  const { items, changes } = useItems(listId);
   const { lists } = useLists();
   const list = lists.find(l => l.id === listId);
   const color = list?.color ?? null;
@@ -214,18 +240,47 @@ export function ListDetailScreen() {
 
   useListPolling(listId);
 
+  // Each batch owns its expiry timer — a change arriving mid-flash must not cancel the previous
+  // batch's cleanup and leave those rows highlighted for good.
+  const [flashes, setFlashes] = useState<Map<string, ItemChange>>(new Map());
+  const flashTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  useEffect(() => () => flashTimers.current.forEach(clearTimeout), []);
+  useEffect(() => {
+    if (changes.list.length === 0) return;
+    const batch = changes.list;
+    setFlashes(prev => {
+      const next = new Map(prev);
+      for (const c of batch) next.set(c.itemId, c);
+      return next;
+    });
+    flashTimers.current.push(setTimeout(() => {
+      setFlashes(prev => {
+        const next = new Map(prev);
+        for (const c of batch) next.delete(c.itemId);
+        return next;
+      });
+    }, REMOTE_FLASH_MS));
+  }, [changes]);
+
+  // Held in place until the flash ends: otherwise a remote completion hides the row, or flings it
+  // to the COMPLETED section, at the instant it changes.
+  const heldCompleted = useMemo(
+    () => new Set([...flashes.values()].filter(c => c.kind === 'completed').map(c => c.itemId)),
+    [flashes],
+  );
+
   const visibleItems = useMemo(() => items.filter(i => !pendingDeletes.has(i.id)), [items, pendingDeletes]);
   const rows = useMemo(() => {
-    if (completedMode !== 'below') return buildVisibleRows(visibleItems, expanded, completedMode === 'hidden');
+    if (completedMode !== 'below') return buildVisibleRows(visibleItems, expanded, completedMode === 'hidden', heldCompleted);
     // 'below': open tasks keep their tree; completed ones gather flat underneath, newest first.
-    const open = buildVisibleRows(visibleItems, expanded, true);
+    const open = buildVisibleRows(visibleItems, expanded, true, heldCompleted);
     const doneKey = (i: ItemState) => i.completedAt ?? i.updatedAt;
     const done = visibleItems
-      .filter(i => i.completed)
+      .filter(i => i.completed && !heldCompleted.has(i.id))
       .sort((a, b) => (doneKey(b) < doneKey(a) ? -1 : doneKey(b) > doneKey(a) ? 1 : 0))
       .map(item => ({ item, depth: 0, hasChildren: false }));
     return [...open, ...done];
-  }, [visibleItems, expanded, completedMode]);
+  }, [visibleItems, expanded, completedMode, heldCompleted]);
 
   // Freeze the rendered data while a drag is active: a mirror reload landing mid-gesture (a sync
   // pull or another device's edit) would otherwise swap the rows under the drag and snap it.
@@ -234,10 +289,11 @@ export function ListDetailScreen() {
   if (!dragging) frozenRows.current = rows;
   const listData = dragging ? frozenRows.current : rows;
   // Index of the first completed row in 'below' mode — the COMPLETED header renders above it.
-  // Derived from the rendered array so it stays consistent while rows are frozen mid-drag.
+  // Derived from the rendered array so it stays consistent while rows are frozen mid-drag. A held
+  // row still sits in the open section, so it must not be taken for the section start.
   const firstCompletedIndex = useMemo(
-    () => (completedMode === 'below' ? listData.findIndex(r => r.item.completed) : -1),
-    [completedMode, listData],
+    () => (completedMode === 'below' ? listData.findIndex(r => r.item.completed && !heldCompleted.has(r.item.id)) : -1),
+    [completedMode, listData, heldCompleted],
   );
 
   async function refresh() {
@@ -304,7 +360,7 @@ export function ListDetailScreen() {
     if (from === to) return;
     // 'below' mode: reordering is confined to the open section. Recompute the boundary from the
     // frozen array and bail when the drag starts in or drops into the completed section.
-    const boundary = completedMode === 'below' ? dragRows.findIndex(r => r.item.completed) : -1;
+    const boundary = completedMode === 'below' ? dragRows.findIndex(r => r.item.completed && !heldCompleted.has(r.item.id)) : -1;
     if (boundary >= 0 && (from >= boundary || to >= boundary)) return;
     const draggedId = dragRows[from]?.item.id;
     if (!draggedId) return;
@@ -376,6 +432,8 @@ export function ListDetailScreen() {
               isShopping={isShopping}
               assigneeName={row.item.assignedTo ? (assigneeNames.get(row.item.assignedTo) ?? '') : ''}
               simplePriority={simplePriority}
+              changeKind={flashes.get(row.item.id)?.kind}
+              changeWho={flashes.get(row.item.id)?.actor ? assigneeNames.get(flashes.get(row.item.id)!.actor!) ?? null : null}
               status={opStatus.get(row.item.id)}
               expanded={expanded.has(row.item.id)}
               styles={styles}
@@ -413,12 +471,16 @@ const makeStyles = (c: Palette, fontScale = 1, rowPad = 14) => {
     },
     rowActive: { backgroundColor: c.surface, borderBottomColor: 'transparent' },
     rowBody: { flex: 1 },
-    itemTitle: { ...t.bodyLg, fontSize: Math.round(17 * fontScale) },
+    titleLine: { flexDirection: 'row', alignItems: 'baseline', gap: spacing.sm },
+    itemTitle: { ...t.bodyLg, fontSize: Math.round(17 * fontScale), flex: 1 },
     itemDone: { color: c.textDisabled, textDecorationLine: 'line-through' },
     qty: { color: c.textMuted, fontWeight: '700' },
     metaRow: { flexDirection: 'row', gap: spacing.sm, marginTop: 2 },
     meta: { ...t.hint, fontSize: Math.round(11 * fontScale), color: c.textMuted, flexShrink: 1 },
     overdue: { color: c.danger, fontWeight: '600' },
+    // The title yields width, not this — capped so a long name can't ellipsise it away.
+    changeMeta: { ...t.hint, fontSize: Math.round(11 * fontScale), color: c.primary, fontWeight: '600', flexShrink: 0, maxWidth: '45%' },
+    remoteHighlight: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, backgroundColor: c.remoteChange },
     swipeContainer: { justifyContent: 'center' },
     swipeDelete: {
       position: 'absolute',

@@ -4,6 +4,9 @@ import { create } from 'zustand';
 // mirror-revision counter screens subscribe to. Kept in its own module so both the outbox
 // (push) and sync (pull) layers can import it without a circular dependency.
 
+/** What caused the mirror to change: our own optimistic apply, or a pull of someone else's edit. */
+export type MirrorOrigin = 'local' | 'pull';
+
 interface SyncStatus {
   online: boolean;
   /** Whether the last server contact succeeded (false = reachable host but request failed/timed out). */
@@ -14,6 +17,9 @@ interface SyncStatus {
   lastError: string | null;
   pending: number;
   mirrorRevision: number;
+  /** Origin of the change that produced `mirrorRevision` — lets screens tell a remote edit from
+   *  the user's own tap and highlight only the former. */
+  mirrorOrigin: MirrorOrigin;
   /** True once the first full sync attempt of this session has completed (success OR failure).
    *  Lets screens show a spinner instead of an "empty" state before the first pull lands. */
   firstSyncDone: boolean;
@@ -23,7 +29,7 @@ interface SyncStatus {
   setLastError: (lastError: string | null) => void;
   setPending: (pending: number) => void;
   setFirstSyncDone: (done: boolean) => void;
-  bump: () => void;
+  bump: (origin: MirrorOrigin) => void;
 }
 
 export const useSyncStatus = create<SyncStatus>(set => ({
@@ -33,6 +39,7 @@ export const useSyncStatus = create<SyncStatus>(set => ({
   lastError: null,
   pending: 0,
   mirrorRevision: 0,
+  mirrorOrigin: 'local',
   firstSyncDone: false,
   setOnline: online => set({ online }),
   setServerReachable: serverReachable => set({ serverReachable }),
@@ -40,10 +47,11 @@ export const useSyncStatus = create<SyncStatus>(set => ({
   setLastError: lastError => set({ lastError }),
   setPending: pending => set({ pending }),
   setFirstSyncDone: done => set({ firstSyncDone: done }),
-  bump: () => set(s => ({ mirrorRevision: s.mirrorRevision + 1 })),
+  bump: origin => set(s => ({ mirrorRevision: s.mirrorRevision + 1, mirrorOrigin: origin })),
 }));
 
-/** Notify mirror subscribers (screens) that local data changed, so they reload. */
-export function bumpMirror(): void {
-  useSyncStatus.getState().bump();
+/** Notify mirror subscribers (screens) that local data changed, so they reload. Defaults to
+ *  'local' so an unattributed bump can never be mistaken for someone else's edit. */
+export function bumpMirror(origin: MirrorOrigin = 'local'): void {
+  useSyncStatus.getState().bump(origin);
 }

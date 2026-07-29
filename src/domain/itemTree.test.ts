@@ -66,6 +66,14 @@ describe('buildVisibleRows', () => {
     expect(buildVisibleRows(items, new Set(), false).map(r => r.item.id)).toEqual(['A', 'B']);
   });
 
+  it('keeps a completed item that is being held, and its place in the tree', () => {
+    const items = [item('A', 'a'), item('B', 'b', null, true), item('B1', 'b0', 'B'), item('C', 'c', null, true)];
+    const rows = buildVisibleRows(items, new Set(['B']), true, new Set(['B']));
+
+    // B survives with its child still nested under it; the unheld completed C is still hidden.
+    expect(rows.map(r => [r.item.id, r.depth])).toEqual([['A', 0], ['B', 0], ['B1', 1]]);
+  });
+
   it('treats an item with a missing parent as a root (nothing disappears)', () => {
     const rows = buildVisibleRows([item('orphan', 'a', 'gone')], new Set(), false);
     expect(rows.map(r => [r.item.id, r.depth])).toEqual([['orphan', 0]]);

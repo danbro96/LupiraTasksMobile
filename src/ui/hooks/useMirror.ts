@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ListResponse } from '../../data/api/generated/models';
 import type { ItemState } from '../../domain/itemState';
+import { diffItems, type ItemChange } from '../../domain/itemChange';
 import { getDb, getItemsByList, getListDocs, getArchivedListDocs } from '../../data/db';
 import { useSyncStatus } from '../../sync/syncStatus';
 import { logDebug } from '../../debug/log';
@@ -10,13 +11,11 @@ import { logDebug } from '../../debug/log';
 // two overlapping reloads resolving out of order must not leave stale data on screen.
 
 /**
- * Gate on the read's content, not on the fact a reload ran: a polled pull re-writes the same rows
- * every few seconds, and handing the screen fresh objects each time would re-render every task row
- * (and re-run its layout animation) with nothing to show for it.
+ * Gate on the read's content, not on the fact a reload ran — a polled pull rewrites the same rows
+ * every few seconds, and fresh objects would re-render every task row for nothing.
  *
- * Deliberately serialize the rows rather than trust a version/timestamp field — the comparison
- * cannot then miss a change and leave the screen stale, which is the only failure mode that matters
- * here. Both queries build their rows the same way every time, so key order is stable.
+ * Serializes rather than trusting a version field: the comparison then can't miss a change and
+ * leave the screen stale, the one failure mode that matters here.
  */
 function useUnchangedGuard<T>(): (rows: T[], apply: (rows: T[]) => void) => void {
   const last = useRef<string | null>(null);
@@ -65,10 +64,21 @@ export function useArchivedLists(): { lists: ListResponse[] } {
   return { lists };
 }
 
-export function useItems(listId: string): { items: ItemState[]; loading: boolean } {
+/**
+ * A list's items, plus what the latest reload changed when it came from a pull rather than the
+ * user's own tap. `changes` carries a nonce so an identical repeat still reads as a new event.
+ */
+export function useItems(listId: string): {
+  items: ItemState[];
+  loading: boolean;
+  changes: { nonce: number; list: ItemChange[] };
+} {
   const rev = useSyncStatus(s => s.mirrorRevision);
   const [items, setItems] = useState<ItemState[]>([]);
   const [loading, setLoading] = useState(true);
+  const [changes, setChanges] = useState<{ nonce: number; list: ItemChange[] }>({ nonce: 0, list: [] });
+  // Keyed by list: diffing against another list's read would report every row as added.
+  const prev = useRef<{ listId: string; rows: Map<string, ItemState> }>({ listId, rows: new Map() });
   const publish = useUnchangedGuard<ItemState>();
 
   useEffect(() => {
@@ -77,11 +87,17 @@ export function useItems(listId: string): { items: ItemState[]; loading: boolean
       const db = await getDb();
       const rows = await getItemsByList(db, listId);
       if (cancelled) return;
+      // Read, don't subscribe: only the revision should retrigger this effect.
+      const remote = useSyncStatus.getState().mirrorOrigin === 'pull';
+      const same = prev.current.listId === listId;
+      const diff = remote && same ? diffItems(prev.current.rows, rows) : [];
+      prev.current = { listId, rows: new Map(rows.map(r => [r.id, r])) };
       publish(rows, setItems);
+      if (diff.length > 0) setChanges(c => ({ nonce: c.nonce + 1, list: diff }));
       setLoading(false);
     })();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- publish is a stable ref-backed closure
   }, [rev, listId]);
-  return { items, loading };
+  return { items, loading, changes };
 }

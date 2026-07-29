@@ -82,7 +82,7 @@ export async function pullLists(): Promise<string[]> {
     }
   });
 
-  bumpMirror();
+  bumpMirror('pull');
   return active.data.lists.map(l => l.id);
 }
 
@@ -139,7 +139,7 @@ export async function pullList(listId: string): Promise<void> {
     }
   });
 
-  bumpMirror();
+  bumpMirror('pull');
 }
 
 // Coalesce overlapping full-syncs (foreground + reconnect can fire together).

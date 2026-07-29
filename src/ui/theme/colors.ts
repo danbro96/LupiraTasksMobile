@@ -15,6 +15,8 @@ export interface Palette {
   danger: string;
   pending: string;
   failed: string;
+  /** Backdrop for a row that just changed because someone else edited it. */
+  remoteChange: string;
   bannerOffline: string;
   bannerUnreachable: string;
   bannerSyncing: string;
@@ -36,6 +38,7 @@ export const lightColors: Palette = {
   danger: '#b3261e',
   pending: '#d8a200',
   failed: '#b3261e',
+  remoteChange: '#dce9f9',
   bannerOffline: '#5b4b18',
   bannerUnreachable: '#7a1f1f',
   bannerSyncing: '#1d3a5f',
@@ -57,6 +60,7 @@ export const darkColors: Palette = {
   danger: '#f2675e',
   pending: '#d8a200',
   failed: '#f2675e',
+  remoteChange: '#25384f',
   bannerOffline: '#5b4b18',
   bannerUnreachable: '#7a1f1f',
   bannerSyncing: '#244a73',
