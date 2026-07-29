@@ -86,8 +86,6 @@ async function init(): Promise<SQLite.SQLiteDatabase> {
   return db;
 }
 
-// --- Items mirror ---
-
 export async function putItemState(db: SQLite.SQLiteDatabase, s: ItemState): Promise<void> {
   await db.runAsync(
     `INSERT INTO items (id, list_id, state_json, sort_order, deleted, updated_at)
@@ -168,8 +166,6 @@ export async function deleteListLocal(db: SQLite.SQLiteDatabase, listId: string)
   await db.runAsync(`DELETE FROM items WHERE list_id = ?`, [listId]);
   await db.runAsync(`DELETE FROM lists WHERE id = ?`, [listId]);
 }
-
-// --- Outbox ---
 
 export interface OutboxRow {
   seq: number;

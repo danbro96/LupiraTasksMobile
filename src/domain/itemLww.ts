@@ -1,19 +1,12 @@
 import type { Guid, Iso, ItemEvent } from './events';
 import { type ItemState, emptyItemState } from './itemState';
 
-// Pure last-writer-wins reducer for an item — the client mirror of the server's
-// Domain/Items/ItemLww.cs. Same rules, so the server snapshot and this reducer converge
-// on identical state regardless of the order offline edits sync:
+// Pure last-writer-wins reducer for an item — the client mirror of the server's Domain/Items/ItemLww.cs,
+// which documents the rules. Same rules here, so the server snapshot and this reducer converge on identical
+// state regardless of the order offline edits sync.
 //
-//  * Per-field LWW keyed on (occurredAt, commandId): write only when strictly newer —
-//    later occurredAt, or equal occurredAt with a greater commandId. Equal pair (a replay)
-//    is a no-op (idempotent).
-//  * Tag add/remove are commutative per-tag deltas resolved by (occurredAt, commandId).
-//  * ItemDeleted is a permanent tombstone checked first in every field apply.
-//
-// The commandId tiebreak is an ORDINAL comparison of the canonical lowercase GUID string —
-// the exact same rule as the server's ItemLww.CompareCommandId (string.CompareOrdinal),
-// NOT .NET Guid.CompareTo, so the two implementations agree byte-for-byte.
+// The commandId tiebreak is an ORDINAL comparison of the canonical lowercase GUID string — exactly the
+// server's string.CompareOrdinal, NOT .NET Guid.CompareTo, so the two agree byte-for-byte.
 
 /** Ordinal compare of two canonical lowercase GUID strings. */
 function compareCommandId(a: Guid, b: Guid): number {

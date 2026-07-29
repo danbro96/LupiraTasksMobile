@@ -8,7 +8,6 @@
 import type { PersonRef } from './generated/models';
 
 export interface AuthPort {
-  /** Base URL for API requests. */
   getApiUrl: () => string;
   /** Current access token, or null when signed out. */
   getToken: () => string | null;

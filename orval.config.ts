@@ -1,23 +1,11 @@
 import { defineConfig } from 'orval';
 
 /**
- * Orval config for the Lupira Tasks backend.
+ * Orval config for the Lupira Tasks backend; `backend-openapi.json` is refreshed by `npm run fetch:openapi`.
  *
- * Source spec: `./backend-openapi.json` — refreshed by `npm run fetch:openapi`,
- * which copies the spec emitted by the backend (or fetched from a running
- * server / production URL).
- *
- * Output mode: `tags-split` — one file per OpenAPI tag, giving cleaner imports
- * and tighter PR diffs.
- *
- * Client: `fetch` — generates plain typed fetch functions (no react-query hooks). The app
- * reads through the offline SQLite mirror and calls these raw fetchers directly from the
- * sync/outbox layer, so react-query's cache is unused; keeping it out avoids a second,
- * mirror-unaware cache and a redundant dependency.
- *
- * Mutator: `./src/data/api/mutator.ts#apiFetch` — owns base URL, auth token, and
- * error normalisation. Reads the session through the AuthPort at call time so the API URL
- * override (settings screen) is always picked up live.
+ * `client: 'fetch'` rather than react-query: the app reads through the offline SQLite mirror and the sync/outbox
+ * layer calls these fetchers directly, so a react-query cache would be a second, mirror-unaware one. The mutator
+ * reads the session through the AuthPort at call time, so the settings-screen API URL override applies live.
  */
 export default defineConfig({
   lupiraTasks: {
