@@ -38,6 +38,7 @@ export * from './problemDetails';
 export * from './redeemShareRequest';
 export * from './redeemShareResponse';
 export * from './relationDto';
+export * from './setListOrderRequest';
 export * from './setMetadataRequest';
 export * from './setStatusRequest';
 export * from './shareAccess';

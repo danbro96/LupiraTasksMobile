@@ -13,6 +13,7 @@ import {
   deleteListsListId,
   postListsListIdArchive,
   postListsListIdRestore,
+  postListsListIdOrder,
   postListsListIdMembers,
   patchListsListIdMembersPrincipalId,
   deleteListsListIdMembersPrincipalId,
@@ -73,6 +74,9 @@ export async function replayOp(op: ClientOp): Promise<void> {
       return;
     case 'list.setSimplePriority':
       await patchListsListId(op.listId, { simplePriority: op.simplePriority }, idem);
+      return;
+    case 'list.reorder':
+      await postListsListIdOrder(op.listId, { sortOrder: op.sortOrder }, idem);
       return;
     case 'list.memberAdd':
       await postListsListIdMembers(op.listId, { email: op.email, role: op.role }, idem);

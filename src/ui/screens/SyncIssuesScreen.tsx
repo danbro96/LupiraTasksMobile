@@ -27,6 +27,7 @@ const OP_LABELS: Record<ClientOp['kind'], string> = {
   'list.rename': 'Rename list',
   'list.recolor': 'Change list color',
   'list.setSimplePriority': 'Change priority mode',
+  'list.reorder': 'Reorder lists',
   'list.memberAdd': 'Add member',
   'list.memberRoleChange': 'Change member role',
   'list.memberRemove': 'Remove member',

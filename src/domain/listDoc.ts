@@ -38,6 +38,11 @@ export function applyListOp(doc: ListResponse, op: ClientOp, actor: PersonRef | 
     case 'list.setSimplePriority':
       return { ...doc, simplePriority: op.simplePriority, updatedAt: op.occurredAt };
 
+    // No `updatedAt` bump, matching the server: the caller's screen position is not a change to
+    // the list, and bumping it would announce a remote edit to every other member.
+    case 'list.reorder':
+      return { ...doc, sortOrder: op.sortOrder };
+
     case 'list.memberAdd':
       return { ...doc, members: upsertInvite(doc.members, op.email, op.role, op.occurredAt, actor), updatedAt: op.occurredAt };
 

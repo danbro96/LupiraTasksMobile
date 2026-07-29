@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { ListResponse } from '../../data/api/generated/models';
 import type { ItemState } from '../../domain/itemState';
 import { diffItems, type ItemChange } from '../../domain/itemChange';
+import { sortActiveLists, sortArchivedLists } from '../../domain/listOrder';
 import { getDb, getItemsByList, getListDocs, getArchivedListDocs } from '../../data/db';
 import { useSyncStatus } from '../../sync/syncStatus';
 import { logDebug } from '../../debug/log';
@@ -36,7 +37,7 @@ export function useLists(): { lists: ListResponse[] } {
     let cancelled = false;
     void (async () => {
       const db = await getDb();
-      const docs = await getListDocs<ListResponse>(db);
+      const docs = sortActiveLists(await getListDocs<ListResponse>(db));
       logDebug('useLists', `count=${docs.length}`); // diagnostic: is the optimistic list in the mirror?
       if (!cancelled) publish(docs, setLists);
     })();
@@ -55,7 +56,7 @@ export function useArchivedLists(): { lists: ListResponse[] } {
     let cancelled = false;
     void (async () => {
       const db = await getDb();
-      const docs = await getArchivedListDocs<ListResponse>(db);
+      const docs = sortArchivedLists(await getArchivedListDocs<ListResponse>(db));
       if (!cancelled) publish(docs, setLists);
     })();
     return () => { cancelled = true; };

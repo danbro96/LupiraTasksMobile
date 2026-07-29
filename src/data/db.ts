@@ -137,18 +137,17 @@ export async function putListDoc(
   );
 }
 
+// Both readers return the docs unordered: display order depends on fields inside `doc_json`
+// (the caller's sortOrder / archivedAt), so the callers sort via src/domain/listOrder.ts.
+
 export async function getListDocs<T = unknown>(db: SQLite.SQLiteDatabase): Promise<T[]> {
-  const rows = await db.getAllAsync<{ doc_json: string }>(
-    `SELECT doc_json FROM lists WHERE archived = 0 ORDER BY updated_at DESC`,
-  );
+  const rows = await db.getAllAsync<{ doc_json: string }>(`SELECT doc_json FROM lists WHERE archived = 0`);
   return rows.map(r => JSON.parse(r.doc_json) as T);
 }
 
 /** Archived lists, for the "Archived lists" view. */
 export async function getArchivedListDocs<T = unknown>(db: SQLite.SQLiteDatabase): Promise<T[]> {
-  const rows = await db.getAllAsync<{ doc_json: string }>(
-    `SELECT doc_json FROM lists WHERE archived = 1 ORDER BY updated_at DESC`,
-  );
+  const rows = await db.getAllAsync<{ doc_json: string }>(`SELECT doc_json FROM lists WHERE archived = 1`);
   return rows.map(r => JSON.parse(r.doc_json) as T);
 }
 

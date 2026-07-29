@@ -31,6 +31,7 @@ export type ClientOp =
   | (Base & { kind: 'list.rename'; listId: Guid; name: string })
   | (Base & { kind: 'list.recolor'; listId: Guid; color: string | null })
   | (Base & { kind: 'list.setSimplePriority'; listId: Guid; simplePriority: boolean })
+  | (Base & { kind: 'list.reorder'; listId: Guid; sortOrder: string })
   | (Base & { kind: 'list.memberAdd'; listId: Guid; email: string; role: ListRole })
   | (Base & { kind: 'list.memberRoleChange'; listId: Guid; principalId: string; role: ListRole })
   | (Base & { kind: 'list.memberRemove'; listId: Guid; principalId: string })
@@ -88,6 +89,7 @@ export function opToEvents(op: ClientOp): ItemEvent[] {
     case 'list.rename':
     case 'list.recolor':
     case 'list.setSimplePriority':
+    case 'list.reorder':
     case 'list.memberAdd':
     case 'list.memberRoleChange':
     case 'list.memberRemove':

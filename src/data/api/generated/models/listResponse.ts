@@ -22,7 +22,11 @@ export interface ListResponse {
   simplePriority: boolean;
   owner: PersonRef;
   access: ListRole;
+  /** @nullable */
+  sortOrder?: string | null;
   isArchived: boolean;
+  /** @nullable */
+  archivedAt?: string | null;
   createdAt: string;
   updatedAt: string;
   tags: TagResponse[];

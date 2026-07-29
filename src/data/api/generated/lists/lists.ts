@@ -12,6 +12,7 @@ import type {
   ListCollectionResponse,
   ListResponse,
   ProblemDetails,
+  SetListOrderRequest,
   UpdateListRequest,
   UpdateMemberRoleRequest
 } from '../models';
@@ -354,6 +355,60 @@ export const postListsListIdRestore = async (listId: string, options?: RequestIn
     method: 'POST'
 
 
+  }
+);}
+
+
+export type postListsListIdOrderResponse200 = {
+  data: ListResponse
+  status: 200
+}
+
+export type postListsListIdOrderResponse400 = {
+  data: ProblemDetails
+  status: 400
+}
+
+export type postListsListIdOrderResponse401 = {
+  data: void
+  status: 401
+}
+
+export type postListsListIdOrderResponse404 = {
+  data: void
+  status: 404
+}
+
+export type postListsListIdOrderResponseSuccess = (postListsListIdOrderResponse200) & {
+  headers: Headers;
+};
+export type postListsListIdOrderResponseError = (postListsListIdOrderResponse400 | postListsListIdOrderResponse401 | postListsListIdOrderResponse404) & {
+  headers: Headers;
+};
+
+export type postListsListIdOrderResponse = (postListsListIdOrderResponseSuccess | postListsListIdOrderResponseError)
+
+export const getPostListsListIdOrderUrl = (listId: string,) => {
+
+
+
+
+  return `/lists/${listId}/order`
+}
+
+/**
+ * Body `{ sortOrder }` — a fractional-index key generated between the neighbours the list was dropped between. Per-user: other members' ordering is untouched, and this does not count as a change to the list. Returned as `sortOrder` on the caller's `ListResponse`; lists the caller has never ordered come back null and sort by name after the ordered ones.
+ * @summary Set the caller's own position for this list (Viewer+).
+ */
+export const postListsListIdOrder = async (listId: string,
+    setListOrderRequest: SetListOrderRequest, options?: RequestInit): Promise<postListsListIdOrderResponse> => {
+
+  return apiFetch<postListsListIdOrderResponse>(getPostListsListIdOrderUrl(listId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(setListOrderRequest)
   }
 );}
 
