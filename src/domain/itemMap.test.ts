@@ -8,7 +8,7 @@ const TS = '2026-06-01T10:00:00.000Z';
 
 function makeResponse(over: Partial<ItemResponse> = {}): ItemResponse {
   return {
-    id: 'item-1', version: 1, listId: 'list-1',
+    id: 'item-1', listId: 'list-1',
     title: 'Buy milk', status: ItemStatus.Open, completed: false, priority: 0,
     tags: [], sortOrder: 'a0',
     createdAt: '2026-05-01T00:00:00.000Z', updatedAt: TS,

@@ -13,8 +13,6 @@ import type { TagResponse } from './tagResponse';
 
 export interface ListResponse {
   id: string;
-  /** @pattern ^-?(?:0|[1-9]\d*)$ */
-  version: number | string;
   name: string;
   kind: ListKind;
   /** @nullable */

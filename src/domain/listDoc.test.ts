@@ -16,7 +16,7 @@ function member(principalId: string, email: string, role: ListRole = ListRole.Ed
 
 function doc(members: MemberResponse[], color: string | null = null): ListResponse {
   return {
-    id: LIST, version: 1, name: 'L', kind: 'Todo', color, simplePriority: true, owner: ownerRef,
+    id: LIST, name: 'L', kind: 'Todo', color, simplePriority: true, owner: ownerRef,
     access: ListRole.Owner, isArchived: false, createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z',
     tags: [], members,
   } as ListResponse;

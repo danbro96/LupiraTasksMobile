@@ -28,14 +28,14 @@ const T2 = '2026-03-01T00:00:00.000Z';
 
 function list(id: string, over: Partial<ListResponse> = {}): ListResponse {
   return {
-    id, version: 1, name: `List ${id}`, kind: 'Todo', color: null, simplePriority: true,
+    id, name: `List ${id}`, kind: 'Todo', color: null, simplePriority: true,
     owner: ME, access: 'Owner', isArchived: false, createdAt: T0, updatedAt: T0, tags: [], members: [], ...over,
   };
 }
 
 function item(id: string, over: Partial<ItemResponse> = {}): ItemResponse {
   return {
-    id, version: 1, listId: 'L1', parentItemId: null, title: `Item ${id}`, notes: null,
+    id, listId: 'L1', parentItemId: null, title: `Item ${id}`, notes: null,
     status: 'Open', completed: false, completedAt: null, assignee: null, dueAt: null,
     quantity: null, unit: null, priority: 0, tags: [], sortOrder: id,
     createdAt: T0, updatedAt: T0, ...over,

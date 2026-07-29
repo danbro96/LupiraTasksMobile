@@ -11,8 +11,6 @@ import type { PersonRef } from './personRef';
 
 export interface ItemResponse {
   id: string;
-  /** @pattern ^-?(?:0|[1-9]\d*)$ */
-  version: number | string;
   listId: string;
   /** @nullable */
   parentItemId?: string | null;

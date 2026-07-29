@@ -63,7 +63,6 @@ function actor(): string | null {
 function optimisticListDoc(op: Extract<ClientOp, { kind: 'list.create' }>, self: PersonRef | null): ListResponse {
   return {
     id: op.listId,
-    version: 0,
     name: op.name,
     kind: op.listKind,
     color: op.color,
