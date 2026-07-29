@@ -67,6 +67,12 @@ export async function apiFetch<T>(
   if (token && !headers.has('Authorization')) {
     headers.set('Authorization', `Bearer ${token}`);
   }
+  // RN on Android runs fetch through OkHttp, which installs a response cache. A polled read served
+  // from it would look like "the server has no new data" forever, so never let a read be cached.
+  // (`RequestInit.cache` is not honoured by RN's fetch polyfill — the header is.)
+  if (!headers.has('Cache-Control')) {
+    headers.set('Cache-Control', 'no-store');
+  }
 
   // FormData sets its own multipart/form-data boundary — leave it alone.
   const isFormData =

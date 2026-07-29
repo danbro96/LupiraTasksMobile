@@ -22,6 +22,7 @@ import { SyncDot } from '../components/SyncDot';
 import type { OpStatus } from '../hooks/useOutboxStatus';
 import { toastError } from '../../feedback/toast';
 import { useItems, useLists } from '../hooks/useMirror';
+import { useListPolling } from '../hooks/useListPolling';
 import { useOutboxStatus } from '../hooks/useOutboxStatus';
 import { useMyRole, canEditWithRole } from '../hooks/useMyRole';
 import { usePendingDeletes, requestItemDeleteMany } from '../state/pendingDeletes';
@@ -210,6 +211,8 @@ export function ListDetailScreen() {
       void pullList(listId).catch(() => {}).finally(() => setPulled(true));
     }, [listId]),
   );
+
+  useListPolling(listId);
 
   const visibleItems = useMemo(() => items.filter(i => !pendingDeletes.has(i.id)), [items, pendingDeletes]);
   const rows = useMemo(() => {
