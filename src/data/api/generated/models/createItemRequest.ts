@@ -15,15 +15,11 @@ export interface CreateItemRequest {
   dueAt?: string | null;
   /** @nullable */
   assigneeEmail?: string | null;
-  /**
-     * @nullable
-     * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
-     */
-  quantity?: number | string | null;
+  /** @nullable */
+  quantity?: number | null;
   /** @nullable */
   unit?: string | null;
-  /** @pattern ^-?(?:0|[1-9]\d*)$ */
-  priority?: number | string;
+  priority?: number;
   /** @nullable */
   tagIds?: string[] | null;
   sortOrder: string;

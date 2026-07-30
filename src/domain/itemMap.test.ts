@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import type { ItemResponse } from '../data/api/generated/models';
 import { ItemStatus } from '../data/api/generated/models';
-import { itemResponseToState, num } from './itemMap';
+import { itemResponseToState } from './itemMap';
 import { ZERO_GUID } from './itemState';
 
 const TS = '2026-06-01T10:00:00.000Z';
@@ -15,15 +15,6 @@ function makeResponse(over: Partial<ItemResponse> = {}): ItemResponse {
     ...over,
   };
 }
-
-describe('num', () => {
-  it('coerces strings, passes numbers, maps null/undefined to null', () => {
-    expect(num('3.5')).toBe(3.5);
-    expect(num(2)).toBe(2);
-    expect(num(null)).toBeNull();
-    expect(num(undefined)).toBeNull();
-  });
-});
 
 describe('itemResponseToState', () => {
   it('copies core fields and marks the item not-deleted', () => {
@@ -71,15 +62,14 @@ describe('itemResponseToState', () => {
     expect(s.completedBy).toBe('p-completer');
   });
 
-  it('coerces a string quantity to a number', () => {
-    expect(itemResponseToState(makeResponse({ quantity: '2' })).quantity).toBe(2);
+  it('maps quantity, defaulting a missing one to null', () => {
     expect(itemResponseToState(makeResponse({ quantity: 5 })).quantity).toBe(5);
+    expect(itemResponseToState(makeResponse()).quantity).toBeNull();
   });
 
-  it('maps priority (default 0, coercing strings)', () => {
+  it('maps priority, defaulting a missing one to 0', () => {
     expect(itemResponseToState(makeResponse()).priority).toBe(0);
     expect(itemResponseToState(makeResponse({ priority: 4 })).priority).toBe(4);
-    expect(itemResponseToState(makeResponse({ priority: '6' })).priority).toBe(6);
   });
 
   it('copies tags into a fresh array and seeds a per-tag guard for each', () => {

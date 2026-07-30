@@ -11,6 +11,5 @@ import type { ListResponse } from './listResponse';
 export interface SyncResponse {
   list: ListResponse;
   items: ItemResponse[];
-  /** @pattern ^-?(?:0|[1-9]\d*)$ */
-  nextCursor: number | string;
+  nextCursor: number;
 }

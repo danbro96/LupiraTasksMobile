@@ -7,8 +7,5 @@
  */
 
 export type GetListsListIdSyncParams = {
-/**
- * @pattern ^-?(?:0|[1-9]\d*)$
- */
-since?: number | string;
+since?: number;
 };

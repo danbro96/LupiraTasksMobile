@@ -19,16 +19,12 @@ export interface UpdateItemRequest {
   /** @nullable */
   assigneeEmail?: string | null;
   assigneeEmailProvided?: boolean;
-  /**
-     * @nullable
-     * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
-     */
-  quantity?: number | string | null;
+  /** @nullable */
+  quantity?: number | null;
   /** @nullable */
   unit?: string | null;
   quantityProvided?: boolean;
-  /** @pattern ^-?(?:0|[1-9]\d*)$ */
-  priority?: number | string;
+  priority?: number;
   priorityProvided?: boolean;
   /** @nullable */
   addTagIds?: string[] | null;

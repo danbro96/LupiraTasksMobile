@@ -4,12 +4,6 @@ import { type ItemState, ZERO_GUID } from './itemState';
 // Server snapshot → mirror ItemState mapping. Pure (no SQLite/API), so the seeding rules are
 // unit-testable on their own.
 
-/** Coerce the API's `number | string | null` numerics to a plain `number | null`. */
-export function num(v: number | string | null | undefined): number | null {
-  if (v === null || v === undefined) return null;
-  return typeof v === 'string' ? Number(v) : v;
-}
-
 /**
  * The /sync endpoint returns current values, not events, so we seed every per-field guard at
  * the item's `updatedAt`: a pending local edit with a later `occurredAt` then wins on rebase,
@@ -26,8 +20,8 @@ export function itemResponseToState(r: ItemResponse): ItemState {
     title: r.title, notes: r.notes ?? null,
     completed: r.completed, completedAt: r.completedAt ?? null, completedBy: r.completedBy?.principalId ?? null,
     assignedTo: r.assignee?.principalId ?? null, dueAt: r.dueAt ?? null,
-    quantity: num(r.quantity), unit: r.unit ?? null,
-    priority: num(r.priority) ?? 0,
+    quantity: r.quantity ?? null, unit: r.unit ?? null,
+    priority: r.priority ?? 0,
     tags: [...r.tags], sortOrder: r.sortOrder,
     createdBy: r.createdBy?.principalId ?? null, createdAt: r.createdAt, updatedAt: r.updatedAt,
     deleted: false,
