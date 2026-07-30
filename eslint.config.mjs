@@ -2,8 +2,8 @@ import boundaries from 'eslint-plugin-boundaries';
 import reactHooks from 'eslint-plugin-react-hooks';
 import tseslint from 'typescript-eslint';
 
-/** v6 object-selector helper: `to('domain','generated')` → [{ to: { type: 'domain' } }, …]. */
-const to = (...types) => types.map((t) => ({ to: { type: t } }));
+/** v7 object-selector helper: `to('domain','generated')` → [{ to: { element: { type: 'domain' } } }, …]. */
+const to = (...types) => types.map((t) => ({ to: { element: { type: t } } }));
 
 // Lint config focused on ONE thing: enforcing the layered architecture (see README).
 // It is deliberately NOT a style overhaul — only the import-boundary rule is on, so it acts
@@ -48,17 +48,17 @@ export default [
     rules: {
       'boundaries/dependencies': ['error', {
         default: 'disallow',
-        rules: [
-          { from: { type: 'domain' }, allow: to('domain', 'generated') },
-          { from: { type: 'generated' }, allow: to('generated', 'data') },
-          { from: { type: 'data' }, allow: to('data', 'domain', 'generated', 'debug', 'feedback', 'config') },
-          { from: { type: 'sync' }, allow: to('sync', 'data', 'domain', 'generated', 'debug', 'feedback', 'config') },
-          { from: { type: 'state' }, allow: to('state', 'sync', 'data', 'domain', 'generated', 'debug', 'feedback', 'config') },
-          { from: { type: 'ui' }, allow: to('ui', 'state', 'sync', 'data', 'domain', 'generated', 'debug', 'feedback', 'config') },
-          { from: { type: 'feedback' }, allow: to('feedback') },
-          { from: { type: 'debug' }, allow: to('debug') },
-          { from: { type: 'polyfills' }, allow: to('polyfills') },
-          { from: { type: 'config' }, allow: [] },
+        policies: [
+          { from: { element: { type: 'domain' } }, allow: to('domain', 'generated') },
+          { from: { element: { type: 'generated' } }, allow: to('generated', 'data') },
+          { from: { element: { type: 'data' } }, allow: to('data', 'domain', 'generated', 'debug', 'feedback', 'config') },
+          { from: { element: { type: 'sync' } }, allow: to('sync', 'data', 'domain', 'generated', 'debug', 'feedback', 'config') },
+          { from: { element: { type: 'state' } }, allow: to('state', 'sync', 'data', 'domain', 'generated', 'debug', 'feedback', 'config') },
+          { from: { element: { type: 'ui' } }, allow: to('ui', 'state', 'sync', 'data', 'domain', 'generated', 'debug', 'feedback', 'config') },
+          { from: { element: { type: 'feedback' } }, allow: to('feedback') },
+          { from: { element: { type: 'debug' } }, allow: to('debug') },
+          { from: { element: { type: 'polyfills' } }, allow: to('polyfills') },
+          { from: { element: { type: 'config' } }, allow: [] },
         ],
       }],
       // Hook correctness (RN standard). exhaustive-deps stays a warning — the screens carry a few

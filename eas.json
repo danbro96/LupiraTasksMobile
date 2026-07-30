@@ -8,18 +8,18 @@
       "developmentClient": true,
       "distribution": "internal",
       "channel": "development",
-      "node": "22.18.0",
+      "node": "24.18.1",
       "android": { "buildType": "apk" }
     },
     "preview": {
       "distribution": "internal",
       "channel": "preview",
-      "node": "22.18.0",
+      "node": "24.18.1",
       "android": { "buildType": "apk" }
     },
     "production": {
       "channel": "production",
-      "node": "22.18.0",
+      "node": "24.18.1",
       "android": { "buildType": "app-bundle" },
       "autoIncrement": true
     }
