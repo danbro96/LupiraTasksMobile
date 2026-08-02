@@ -4,8 +4,10 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
 import * as Sentry from '@sentry/react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { NavigationContainer, DefaultTheme, DarkTheme, type Theme } from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme, DarkTheme, type Theme, type LinkingOptions } from '@react-navigation/native';
+import * as ExpoLinking from 'expo-linking';
 import { RootStack } from './src/ui/navigation/RootStack';
+import type { RootStackParamList } from './src/ui/navigation/types';
 import { ToastHost } from './src/ui/components/ToastHost';
 import { useAuth } from './src/state/auth-store';
 import { usePrefs } from './src/state/prefs-store';
@@ -36,6 +38,15 @@ Sentry.init({
   dist: APP_VERSION,
   environment: __DEV__ ? 'development' : 'production',
 });
+
+// Deep links: lupiratasks://task/<listId>/<itemId> (minted by e.g. the calendar's TaskCard). The OIDC
+// callback (lupiratasks://oauthredirect) must never reach navigation — expo-auth-session owns it; when
+// signed out, TaskDetail isn't mounted and react-navigation drops the link on Login (no replay).
+const linking: LinkingOptions<RootStackParamList> = {
+  prefixes: [ExpoLinking.createURL('/'), 'lupiratasks://'],
+  filter: url => !url.includes('oauthredirect'),
+  config: { screens: { TaskDetail: 'task/:listId/:itemId' } },
+};
 
 /** Last-resort fallback shown when a render crash is caught (and reported) by the error boundary. */
 function ErrorFallback({ palette }: { palette: Palette }) {
@@ -74,7 +85,7 @@ function App() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <Sentry.ErrorBoundary fallback={<ErrorFallback palette={palette} />}>
-          <NavigationContainer theme={navTheme(scheme)}>
+          <NavigationContainer theme={navTheme(scheme)} linking={linking}>
             <RootStack />
           </NavigationContainer>
         </Sentry.ErrorBoundary>
