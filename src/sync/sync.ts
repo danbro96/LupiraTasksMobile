@@ -67,17 +67,17 @@ export async function pullLists(): Promise<string[]> {
   logDebug('pullLists', `server=${serverIds.length} mirror=${mirrorIds.length} protected=${protectedIds.size} prune=${toPrune.length}`);
 
   const self = authPort().getSelf();
-  await withWriteTxn(db, async () => {
+  await withWriteTxn(async tx => {
     for (const list of serverLists) {
       // Re-apply the list's pending list.* ops so a not-yet-pushed rename/archive isn't visually
       // reverted by the server doc; null = a pending local delete — don't resurrect.
       const ops = rowsForList(pendingRows, list.id).map(r => JSON.parse(r.op_json) as ClientOp);
       const doc = applyListOps(list, ops, self);
       if (doc === null) continue;
-      await putListDoc(db, { id: doc.id, archived: doc.isArchived, updatedAt: doc.updatedAt, doc });
+      await putListDoc(tx, { id: doc.id, archived: doc.isArchived, updatedAt: doc.updatedAt, doc });
     }
     for (const id of toPrune) {
-      await deleteListLocal(db, id);
+      await deleteListLocal(tx, id);
       logDebug('prune', id);
     }
   });
@@ -105,24 +105,24 @@ export async function pullList(listId: string): Promise<void> {
   const who = authPort().getActor();
   const self = authPort().getSelf();
 
-  await withWriteTxn(db, async () => {
-    const rows = unionBySeq(preRows, await pendingOutboxForList(db, listId));
+  await withWriteTxn(async tx => {
+    const rows = unionBySeq(preRows, await pendingOutboxForList(tx, listId));
     const ops = rows.map(row => JSON.parse(row.op_json) as ClientOp);
 
     // Rebase pending list.* ops onto the server doc; null = a pending list.delete or
     // last-owner-leave — remove the list locally rather than resurrect it.
     const doc = applyListOps(sync.list, ops, self);
     if (doc === null) {
-      await deleteListLocal(db, listId);
+      await deleteListLocal(tx, listId);
       return;
     }
-    await putListDoc(db, { id: doc.id, archived: doc.isArchived, updatedAt: doc.updatedAt, doc });
+    await putListDoc(tx, { id: doc.id, archived: doc.isArchived, updatedAt: doc.updatedAt, doc });
 
     // Deletion pass, then upserts. Locally-created items (pending item.create) are removed here
     // and recreated by the rebase below.
-    await deleteItemsNotIn(db, listId, sync.items.map(i => i.id));
+    await deleteItemsNotIn(tx, listId, sync.items.map(i => i.id));
     for (const it of sync.items) {
-      await putItemState(db, itemResponseToState(it));
+      await putItemState(tx, itemResponseToState(it));
     }
 
     // Rebase: re-apply this list's not-yet-acked local ops on top of the server base. Scoped to
@@ -130,11 +130,11 @@ export async function pullList(listId: string): Promise<void> {
     for (const op of ops) {
       if (op.kind === 'list.create') continue;
       for (const ev of opToEvents(op)) {
-        const prev = await getItemState(db, ev.itemId);
+        const prev = await getItemState(tx, ev.itemId);
         // A pending edit to a server-deleted item must not seed a ghost row from empty state —
         // the item stays deleted and the op parks on replay (404) for the Sync Issues view.
         if (!prev && ev.type !== 'ItemAdded') continue;
-        await putItemState(db, applyItemEvent(prev ?? emptyItemState(), ev, who));
+        await putItemState(tx, applyItemEvent(prev ?? emptyItemState(), ev, who));
       }
     }
   });

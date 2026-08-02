@@ -53,7 +53,6 @@ beforeAll(async () => {
 beforeEach(async () => {
   // Join any drain (and its queued rerun) a previous test's enqueue fired off, then reset.
   await c.outbox.drainOutbox();
-  await c.outbox.drainOutbox();
   c.replayOp.mockReset();
   await c.db.runAsync('DELETE FROM outbox');
   await c.db.runAsync('DELETE FROM items');
@@ -100,10 +99,10 @@ describe('enqueue', () => {
     c.replayOp.mockRejectedValue(new c.ApiError(0, 'offline'));
     await c.dbm.putItemState(c.db, { ...emptyItemState(), id: 'X', listId: 'L1', sortOrder: 'a' });
 
-    const pull = c.dbm.withWriteTxn(c.db, async () => {
-      await c.dbm.putListDoc(c.db, { id: 'L1', archived: false, updatedAt: T1, doc: { id: 'L1' } });
+    const pull = c.dbm.withWriteTxn(async tx => {
+      await c.dbm.putListDoc(tx, { id: 'L1', archived: false, updatedAt: T1, doc: { id: 'L1' } });
       await new Promise(r => setTimeout(r, 10)); // hold the txn open across awaits
-      await c.dbm.putItemState(c.db, { ...emptyItemState(), id: 'Y', listId: 'L1', sortOrder: 'b' });
+      await c.dbm.putItemState(tx, { ...emptyItemState(), id: 'Y', listId: 'L1', sortOrder: 'b' });
     });
     const tap = c.outbox.enqueue(completeOp('c1', 'X'));
     await Promise.all([pull, tap]);

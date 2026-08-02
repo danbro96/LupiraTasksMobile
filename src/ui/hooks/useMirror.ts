@@ -11,6 +11,12 @@ import { logDebug } from '../../debug/log';
 // (after any enqueue or pull). Each effect drops its result if a newer bump superseded it —
 // two overlapping reloads resolving out of order must not leave stale data on screen.
 
+/** A failed read keeps the last good rows on screen; the next bump retries. Caught rather than
+ *  left to reject so it doesn't surface as an unhandled rejection with no context. */
+function logReadError(stage: string, e: unknown): void {
+  logDebug(`${stage}:error`, e instanceof Error ? e.message : String(e));
+}
+
 /**
  * Gate on the read's content, not on the fact a reload ran — a polled pull rewrites the same rows
  * every few seconds, and fresh objects would re-render every task row for nothing.
@@ -40,7 +46,7 @@ export function useLists(): { lists: ListResponse[] } {
       const docs = sortActiveLists(await getListDocs<ListResponse>(db));
       logDebug('useLists', `count=${docs.length}`); // diagnostic: is the optimistic list in the mirror?
       if (!cancelled) publish(docs, setLists);
-    })();
+    })().catch(e => logReadError('useLists', e));
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- publish is a stable ref-backed closure
   }, [rev]);
@@ -58,7 +64,7 @@ export function useArchivedLists(): { lists: ListResponse[] } {
       const db = await getDb();
       const docs = sortArchivedLists(await getArchivedListDocs<ListResponse>(db));
       if (!cancelled) publish(docs, setLists);
-    })();
+    })().catch(e => logReadError('useArchivedLists', e));
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- publish is a stable ref-backed closure
   }, [rev]);
@@ -96,7 +102,10 @@ export function useItems(listId: string): {
       publish(rows, setItems);
       if (diff.length > 0) setChanges(c => ({ nonce: c.nonce + 1, list: diff }));
       setLoading(false);
-    })();
+    })().catch(e => {
+      logReadError('useItems', e);
+      if (!cancelled) setLoading(false); // never leave the screen on its initial-load spinner
+    });
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- publish is a stable ref-backed closure
   }, [rev, listId]);

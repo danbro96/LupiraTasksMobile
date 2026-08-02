@@ -6,7 +6,7 @@ import { emptyItemState } from '../domain/itemState';
 import {
   getDb, getItemState, putItemState, putListDoc, insertOutbox,
   pendingOutbox, pendingCount, deleteOutbox, bumpOutboxFailure, parkedCount, parkedOutbox, requeueOutbox,
-  getListDoc, deleteListLocal, withWriteTxn,
+  getListDoc, deleteListLocal, withWriteTxn, type Sql,
 } from '../data/db';
 import { type ClientOp, opToEvents } from '../domain/ops';
 import { applyListOp } from '../domain/listDoc';
@@ -80,7 +80,7 @@ function optimisticListDoc(op: Extract<ClientOp, { kind: 'list.create' }>, self:
 /** Optimistically apply one op to the local mirror (items + list docs). Runs inside the
  *  enqueue transaction; same-transaction reads see earlier writes, so a batch can complete
  *  or annotate an item it created moments before. */
-async function applyOpLocally(db: Awaited<ReturnType<typeof getDb>>, op: ClientOp, who: string | null, self: PersonRef | null): Promise<void> {
+async function applyOpLocally(db: Sql, op: ClientOp, who: string | null, self: PersonRef | null): Promise<void> {
   for (const ev of opToEvents(op)) {
     const prev = await getItemState(db, ev.itemId);
     // An edit to an item no longer in the mirror (deleted by a pull mid-tap) must not seed a
@@ -121,15 +121,14 @@ export function enqueue(op: ClientOp): Promise<void> {
  */
 export async function enqueueMany(ops: ClientOp[]): Promise<void> {
   if (ops.length === 0) return;
-  const db = await getDb();
   const who = actor();
   const self = authPort().getSelf();
 
   try {
-    await withWriteTxn(db, async () => {
+    await withWriteTxn(async tx => {
       for (const op of ops) {
-        await applyOpLocally(db, op, who, self);
-        await insertOutbox(db, op.commandId, JSON.stringify(op), op.occurredAt);
+        await applyOpLocally(tx, op, who, self);
+        await insertOutbox(tx, op.commandId, JSON.stringify(op), op.occurredAt);
       }
     });
   } catch (e) {
@@ -168,13 +167,15 @@ export function drainOutbox(): Promise<void> {
     drainQueued = true;
     return draining;
   }
-  draining = runDrain().finally(() => {
-    draining = null;
-    if (drainQueued) {
+  // The returned promise covers the queued rerun, so `await drainOutbox()` really does mean "no
+  // drain is in flight" — useListPolling relies on that to push before it pulls.
+  draining = runDrain()
+    .finally(() => { draining = null; })
+    .then(() => {
+      if (!drainQueued) return;
       drainQueued = false;
-      void drainOutbox();
-    }
-  });
+      return drainOutbox();
+    });
   return draining;
 }
 

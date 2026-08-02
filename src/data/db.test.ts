@@ -8,6 +8,7 @@ import { emptyItemState, type ItemState } from '../domain/itemState';
 
 const holder = vi.hoisted(() => ({ db: null as unknown }));
 vi.mock('expo-sqlite', () => ({ openDatabaseAsync: async () => holder.db }));
+vi.mock('../debug/log', () => ({ logDebug: vi.fn() }));
 
 type DbModule = typeof import('./db');
 
@@ -16,6 +17,8 @@ async function freshDb(seed?: FakeSqliteDb): Promise<DbModule> {
   holder.db = seed ?? createFakeDb();
   return import('./db');
 }
+
+const fakeDb = () => holder.db as FakeSqliteDb;
 
 function mkItem(id: string, over: Partial<ItemState> = {}): ItemState {
   return { ...emptyItemState(), id, listId: 'L1', sortOrder: id, updatedAt: '2026-01-01T00:00:00.000Z', ...over };
@@ -54,13 +57,13 @@ describe('withWriteTxn', () => {
   it('serializes overlapping transactions so both commit', async () => {
     const m = await freshDb();
     const db = await m.getDb();
-    const a = m.withWriteTxn(db, async () => {
-      await m.putItemState(db, mkItem('A'));
+    const a = m.withWriteTxn(async tx => {
+      await m.putItemState(tx, mkItem('A'));
       await new Promise(r => setTimeout(r, 5)); // hold the txn open across awaits
-      await m.putItemState(db, mkItem('B'));
+      await m.putItemState(tx, mkItem('B'));
     });
-    const b = m.withWriteTxn(db, async () => {
-      await m.putItemState(db, mkItem('C'));
+    const b = m.withWriteTxn(async tx => {
+      await m.putItemState(tx, mkItem('C'));
     });
     await Promise.all([a, b]);
     expect((await m.getItemsByList(db, 'L1')).map(i => i.id).sort()).toEqual(['A', 'B', 'C']);
@@ -79,16 +82,88 @@ describe('withWriteTxn', () => {
     const m = await freshDb();
     const db = await m.getDb();
     await expect(
-      m.withWriteTxn(db, async () => {
-        await m.putItemState(db, mkItem('A'));
+      m.withWriteTxn(async tx => {
+        await m.putItemState(tx, mkItem('A'));
         throw new Error('boom');
       }),
     ).rejects.toThrow('boom');
     expect(await m.getItemState(db, 'A')).toBeNull(); // rolled back
-    await m.withWriteTxn(db, async () => {
-      await m.putItemState(db, mkItem('B'));
+    await m.withWriteTxn(async tx => {
+      await m.putItemState(tx, mkItem('B'));
     });
-    expect(await m.getItemState(db, 'B')).not.toBeNull(); // chain still live
+    expect(await m.getItemState(db, 'B')).not.toBeNull(); // gate still live
+  });
+});
+
+// Every statement passes through one gate, so the app never has two expo-sqlite calls in flight.
+// That is both a correctness property (no read observes a half-applied transaction) and the
+// mitigation for expo-modules-core's unsynchronized shared-object registry.
+describe('serialization gate', () => {
+  it('never runs two statements at once across reads, writes and a transaction', async () => {
+    const m = await freshDb();
+    const db = await m.getDb();
+    fakeDb().maxInFlight = 0; // discard the schema init
+
+    await Promise.all([
+      m.withWriteTxn(async tx => {
+        await m.putItemState(tx, mkItem('A'));
+        await new Promise(r => setTimeout(r, 5)); // hold the txn open across awaits
+        await m.putItemState(tx, mkItem('B'));
+      }),
+      m.getItemsByList(db, 'L1'),
+      m.getListIds(db),
+      m.pendingCount(db),
+      m.putItemState(db, mkItem('C')),
+    ]);
+
+    expect(fakeDb().maxInFlight).toBe(1);
+  });
+
+  it('a read issued after a transaction starts sees the committed state, never a partial one', async () => {
+    const m = await freshDb();
+    const db = await m.getDb();
+    const txn = m.withWriteTxn(async tx => {
+      await m.putItemState(tx, mkItem('A'));
+      await new Promise(r => setTimeout(r, 5));
+      await m.putItemState(tx, mkItem('B'));
+    });
+    const read = m.getItemsByList(db, 'L1');
+    const [, rows] = await Promise.all([txn, read]);
+    expect(rows.map(i => i.id)).toEqual(['A', 'B']); // ['A'] would be a mid-transaction read
+  });
+});
+
+// expo-modules-core reads its SharedObjectRegistry map without the lock it writes under, so a
+// freshly-created NativeStatement can spuriously report as released. The lookup fails before any
+// SQL runs, so re-issuing is safe and gets a fresh registry id.
+describe('released-shared-object retry', () => {
+  const releasedError = () => new Error(
+    "Call to function 'NativeDatabase.prepareAsync' has been rejected.\n" +
+    '→ Caused by: The 2nd argument cannot be cast to type class expo.modules.sqlite.NativeStatement (received class java.lang.Integer)\n' +
+    '→ Caused by: Cannot use shared object that was already released',
+  );
+
+  it('retries the statement once and succeeds', async () => {
+    const m = await freshDb();
+    const db = await m.getDb();
+    await m.putItemState(db, mkItem('A'));
+
+    fakeDb().failNext('getAllAsync', releasedError());
+    expect((await m.getItemsByList(db, 'L1')).map(i => i.id)).toEqual(['A']);
+  });
+
+  it('finds the cause nested under a wrapper error', async () => {
+    const m = await freshDb();
+    const db = await m.getDb();
+    fakeDb().failNext('getAllAsync', new Error('wrapped', { cause: releasedError() }));
+    expect(await m.getListIds(db)).toEqual([]);
+  });
+
+  it('propagates any other error untouched', async () => {
+    const m = await freshDb();
+    const db = await m.getDb();
+    fakeDb().failNext('getAllAsync', new Error('disk I/O error'));
+    await expect(m.getItemsByList(db, 'L1')).rejects.toThrow('disk I/O error');
   });
 });
 

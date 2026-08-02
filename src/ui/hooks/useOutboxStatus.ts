@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { getDb, allOutboxRows } from '../../data/db';
 import { useSyncStatus } from '../../sync/syncStatus';
 import type { ClientOp } from '../../domain/ops';
+import { logDebug } from '../../debug/log';
 
 export type OpStatus = 'pending' | 'failed';
 
@@ -50,7 +51,8 @@ export function useOutboxStatus(): Map<string, OpStatus> {
         next.set(id, status);
       }
       if (!cancelled) setMap(next);
-    })();
+      // A failed read keeps the previous badges on screen; the next bump retries.
+    })().catch(e => logDebug('useOutboxStatus:error', e instanceof Error ? e.message : String(e)));
     return () => { cancelled = true; };
   }, [rev, pending, failed]);
 
