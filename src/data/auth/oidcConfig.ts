@@ -2,7 +2,8 @@
 // The Authority/issuer + client id must match the Authentik `tasks` application/provider
 // (see DevOps/Websites/lupira-tasks-api/deployment.md Part 2).
 
-export const OIDC_ISSUER = 'https://auth.lupira.com/application/o/tasks/';
+// No trailing slash — Authentik 2026.8 404s the doubled slash expo-auth-session would produce.
+export const OIDC_ISSUER = 'https://auth.lupira.com/application/o/tasks';
 
 /** Public client id — also the token `aud` the API validates. */
 export const OIDC_CLIENT_ID = 'lupira-tasks';
