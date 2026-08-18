@@ -4,7 +4,8 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
 import * as Sentry from '@sentry/react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { NavigationContainer, DefaultTheme, DarkTheme, type Theme, type LinkingOptions } from '@react-navigation/native';
+import { NavigationContainer, type LinkingOptions } from '@react-navigation/native';
+import { PaperProvider } from 'react-native-paper';
 import * as ExpoLinking from 'expo-linking';
 import { RootStack } from './src/ui/navigation/RootStack';
 import type { RootStackParamList } from './src/ui/navigation/types';
@@ -14,16 +15,7 @@ import { usePrefs } from './src/state/prefs-store';
 import { startSync, syncAll } from './src/sync/sync';
 import { SENTRY_DSN, APP_VERSION } from './src/config';
 import { lightColors, darkColors, type Palette } from './src/ui/theme';
-
-/** React Navigation theme derived from our palette so headers/backgrounds match the app. */
-function navTheme(scheme: string | null | undefined): Theme {
-  const p = scheme === 'dark' ? darkColors : lightColors;
-  const base = scheme === 'dark' ? DarkTheme : DefaultTheme;
-  return {
-    ...base,
-    colors: { ...base.colors, primary: p.primary, background: p.bg, card: p.bg, text: p.text, border: p.divider, notification: p.danger },
-  };
-}
+import { navDark, navLight, paperDark, paperLight } from './src/ui/theme/paperTheme';
 
 // Crash analytics. SENTRY_DSN is a public client key in src/config.ts — Sentry no-ops when empty.
 // release/dist tie events to a version (and let source maps resolve); environment separates dev
@@ -84,13 +76,15 @@ function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <Sentry.ErrorBoundary fallback={<ErrorFallback palette={palette} />}>
-          <NavigationContainer theme={navTheme(scheme)} linking={linking}>
-            <RootStack />
-          </NavigationContainer>
-        </Sentry.ErrorBoundary>
-        <ToastHost />
-        <StatusBar style="auto" />
+        <PaperProvider theme={scheme === 'dark' ? paperDark : paperLight}>
+          <Sentry.ErrorBoundary fallback={<ErrorFallback palette={palette} />}>
+            <NavigationContainer theme={scheme === 'dark' ? navDark : navLight} linking={linking}>
+              <RootStack />
+            </NavigationContainer>
+          </Sentry.ErrorBoundary>
+          <ToastHost />
+          <StatusBar style="auto" />
+        </PaperProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

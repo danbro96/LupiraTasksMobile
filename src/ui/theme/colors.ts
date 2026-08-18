@@ -27,7 +27,7 @@ export interface Palette {
 export const lightColors: Palette = {
   bg: '#ffffff',
   surface: '#f5f6f8',
-  primary: '#1d3a5f',
+  primary: '#0d9488',
   onPrimary: '#ffffff',
   border: '#d4d8e0',
   divider: '#e3e6ec',
@@ -41,16 +41,16 @@ export const lightColors: Palette = {
   remoteChange: '#dce9f9',
   bannerOffline: '#5b4b18',
   bannerUnreachable: '#7a1f1f',
-  bannerSyncing: '#1d3a5f',
+  bannerSyncing: '#0f766e',
   toastBg: '#2b2f36',
-  toastAction: '#6ea8fe',
+  toastAction: '#2dd4bf',
 };
 
 export const darkColors: Palette = {
   bg: '#14171c',
   surface: '#1e232b',
-  primary: '#4f83c2',
-  onPrimary: '#0d1117',
+  primary: '#2dd4bf',
+  onPrimary: '#042f2e',
   border: '#2c333d',
   divider: '#252b33',
   text: '#e6e9ee',
@@ -63,9 +63,9 @@ export const darkColors: Palette = {
   remoteChange: '#25384f',
   bannerOffline: '#5b4b18',
   bannerUnreachable: '#7a1f1f',
-  bannerSyncing: '#244a73',
+  bannerSyncing: '#115e59',
   toastBg: '#2b2f36',
-  toastAction: '#6ea8fe',
+  toastAction: '#2dd4bf',
 };
 
 /** Default (light) palette — for any non-component context that can't use the hook. */
