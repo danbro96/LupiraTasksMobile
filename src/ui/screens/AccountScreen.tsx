@@ -1,12 +1,13 @@
 import { useMemo } from 'react';
-import { Alert, StyleSheet, Switch, Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { StyleSheet, Switch, Text, View } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
 import { Button } from '../components/Button';
 import { ChipRow } from '../components/ChipRow';
 import { SyncBanner } from '../components/SyncBanner';
+import { useConfirm } from '../components/ConfirmDialog';
 import { useAuth } from '../../state/auth-store';
 import { usePrefs, type RowSpacing, type TextSize } from '../../state/prefs-store';
 import { APP_VERSION } from '../../config';
@@ -23,14 +24,18 @@ export function AccountScreen() {
   const debugEnabled = usePrefs(s => s.debugEnabled);
   const textSize = usePrefs(s => s.textSize);
   const rowSpacing = usePrefs(s => s.rowSpacing);
+  const confirm = useConfirm();
   const c = useColors();
   const styles = useMemo(() => makeStyles(c), [c]);
 
-  function signOut() {
-    Alert.alert('Sign out?', 'You will need to sign in with Authentik again to get back in.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Sign out', style: 'destructive', onPress: () => void useAuth.getState().clearSession() },
-    ]);
+  async function signOut() {
+    const ok = await confirm({
+      title: 'Sign out?',
+      message: 'You will need to sign in with Authentik again to get back in.',
+      confirmLabel: 'Sign out',
+      destructive: true,
+    });
+    if (ok) await useAuth.getState().clearSession();
   }
 
   return (
@@ -38,7 +43,7 @@ export function AccountScreen() {
       <SyncBanner />
       <View style={styles.content}>
         <View style={styles.avatar}>
-          <Ionicons name="person" size={32} color={c.onPrimary} />
+          <MaterialCommunityIcons name="account" size={32} color={c.onPrimary} />
         </View>
         {user?.displayName ? <Text style={styles.name}>{user.displayName}</Text> : null}
         <Text style={styles.email}>{user?.sub ?? 'Not signed in'}</Text>
@@ -92,7 +97,7 @@ export function AccountScreen() {
           />
         ) : null}
 
-        <Button title="Sign out" variant="destructive" onPress={signOut} style={styles.signOut} />
+        <Button title="Sign out" variant="destructive" onPress={() => void signOut()} style={styles.signOut} />
 
         <Text style={styles.version}>Lupira Tasks v{APP_VERSION}</Text>
       </View>

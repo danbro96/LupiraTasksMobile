@@ -1,34 +1,26 @@
-import { useMemo } from 'react';
-import { StyleSheet, TextInput, type TextInputProps } from 'react-native';
-import { makeType, radii, spacing, useColors, type Palette } from '../theme';
+import type { ComponentProps } from 'react';
+import { StyleSheet } from 'react-native';
+import { TextInput } from 'react-native-paper';
+
+// Paper's TextInput narrows several RN props, so the surface is typed from Paper's own props;
+// `editable` stays for call-site compatibility and maps onto Paper's `disabled`.
+type Props = Omit<ComponentProps<typeof TextInput>, 'mode' | 'theme'> & { editable?: boolean };
 
 /** Shared single-line/multiline text input. Replaces the duplicated `input` StyleSheet blocks. */
-export function TextField({ style, multiline, ...props }: TextInputProps) {
-  const c = useColors();
-  const styles = useMemo(() => makeStyles(c), [c]);
+export function TextField({ style, multiline, editable, ...props }: Props) {
   return (
     <TextInput
       {...props}
+      mode="outlined"
+      dense
       multiline={multiline}
-      placeholderTextColor={c.textSubtle}
+      disabled={editable === false}
       style={[styles.input, multiline && styles.multiline, style]}
     />
   );
 }
 
-const makeStyles = (c: Palette) => {
-  const t = makeType(c);
-  return StyleSheet.create({
-    input: {
-      flex: 1,
-      borderWidth: 1,
-      borderColor: c.border,
-      borderRadius: radii.md,
-      paddingHorizontal: spacing.md,
-      paddingVertical: 10,
-      fontSize: t.body.fontSize,
-      color: c.text,
-    },
-    multiline: { minHeight: 96, textAlignVertical: 'top', paddingTop: 10 },
-  });
-};
+const styles = StyleSheet.create({
+  input: { flex: 1 },
+  multiline: { minHeight: 96 },
+});

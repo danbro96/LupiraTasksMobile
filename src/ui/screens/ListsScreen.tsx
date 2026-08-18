@@ -80,8 +80,8 @@ export function ListsScreen() {
     nav.setOptions({
       headerRight: () => (
         <View style={styles.headerBtns}>
-          <IconButton name="add" accessibilityLabel="New list" onPress={() => nav.navigate('CreateList')} />
-          <IconButton name="person-circle-outline" accessibilityLabel="Account" onPress={() => nav.navigate('Account')} />
+          <IconButton name="plus" accessibilityLabel="New list" onPress={() => nav.navigate('CreateList')} />
+          <IconButton name="account-circle-outline" accessibilityLabel="Account" onPress={() => nav.navigate('Account')} />
         </View>
       ),
     });

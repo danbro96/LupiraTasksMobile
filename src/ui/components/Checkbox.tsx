@@ -1,6 +1,5 @@
-import { Pressable, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { HIT_SLOP, useColors } from '../theme';
+import { Checkbox as PaperCheckbox } from 'react-native-paper';
+import { useColors } from '../theme';
 
 interface Props {
   checked: boolean;
@@ -13,24 +12,13 @@ interface Props {
 export function Checkbox({ checked, onPress, disabled, accessibilityLabel }: Props) {
   const c = useColors();
   return (
-    <Pressable
+    <PaperCheckbox.Android
+      status={checked ? 'checked' : 'unchecked'}
       onPress={onPress}
       disabled={disabled}
-      hitSlop={HIT_SLOP}
-      accessibilityRole="checkbox"
-      accessibilityState={{ checked, disabled: !!disabled }}
+      color={c.primary}
+      uncheckedColor={c.textSubtle}
       accessibilityLabel={accessibilityLabel ?? (checked ? 'Completed' : 'Not completed')}
-      style={styles.box}
-    >
-      <Ionicons
-        name={checked ? 'checkbox' : 'square-outline'}
-        size={24}
-        color={disabled ? c.textDisabled : checked ? c.primary : c.textSubtle}
-      />
-    </Pressable>
+    />
   );
 }
-
-const styles = StyleSheet.create({
-  box: { width: 28, alignItems: 'center', justifyContent: 'center' },
-});

@@ -138,7 +138,7 @@ const TaskRow = memo(function TaskRow({ row, canEdit, draggable, isShopping, ass
       <SyncDot status={status} />
       {hasChildren ? (
         <IconButton
-          name={expanded ? 'chevron-down' : 'chevron-forward'}
+          name={expanded ? 'chevron-down' : 'chevron-right'}
           accessibilityLabel={expanded ? 'Collapse subtasks' : 'Expand subtasks'}
           color={palette.textSubtle}
           size={20}
@@ -221,7 +221,7 @@ export function ListDetailScreen() {
     nav.setOptions({
       headerRight: () => (
         <IconButton
-          name="settings-outline"
+          name="cog-outline"
           accessibilityLabel="List settings"
           onPress={() => nav.navigate('ListSettings', { listId, name: params.name })}
         />

@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -19,6 +18,7 @@ import { ChipRow } from '../components/ChipRow';
 import { TextField } from '../components/TextField';
 import { ColorSwatches } from '../components/ColorSwatches';
 import { ShareLinks } from '../components/ShareLinks';
+import { useConfirm } from '../components/ConfirmDialog';
 import { toast, toastError } from '../../feedback/toast';
 import { SyncBanner } from '../components/SyncBanner';
 import { useItems, useLists } from '../hooks/useMirror';
@@ -56,6 +56,7 @@ export function ListSettingsScreen() {
   const [newEmail, setNewEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<ListRole>(ListRole.Editor);
   const completedMode = usePrefs(s => s.completedMode[listId] ?? 'inline');
+  const confirm = useConfirm();
   const c = useColors();
   const styles = useMemo(() => makeStyles(c), [c]);
 
@@ -124,28 +125,29 @@ export function ListSettingsScreen() {
   const changeRole = (principalId: string, role: ListRole) =>
     run(() => enqueue({ ...stamp(), kind: 'list.memberRoleChange', listId, principalId, role }), "Couldn't change role");
 
-  function confirmRoleChange(principalId: string, role: ListRole) {
+  async function confirmRoleChange(principalId: string, role: ListRole) {
     // Downgrading your own role is how an owner accidentally locks themselves out — confirm it.
     if (!(principalId === me && role !== ListRole.Owner)) {
       void changeRole(principalId, role);
       return;
     }
-    Alert.alert('Change your own role?', `You'll become ${role} and lose owner controls for this list.`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Change', style: 'destructive', onPress: () => void changeRole(principalId, role) },
-    ]);
+    const ok = await confirm({
+      title: 'Change your own role?',
+      message: `You'll become ${role} and lose owner controls for this list.`,
+      confirmLabel: 'Change',
+      destructive: true,
+    });
+    if (ok) await changeRole(principalId, role);
   }
 
-  function confirmRemove(principalId: string, label: string) {
-    Alert.alert('Remove member?', `${label} will lose access to this list.`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Remove',
-        style: 'destructive',
-        onPress: () =>
-          void run(() => enqueue({ ...stamp(), kind: 'list.memberRemove', listId, principalId }), "Couldn't remove member"),
-      },
-    ]);
+  async function confirmRemove(principalId: string, label: string) {
+    const ok = await confirm({
+      title: 'Remove member?',
+      message: `${label} will lose access to this list.`,
+      confirmLabel: 'Remove',
+      destructive: true,
+    });
+    if (ok) await run(() => enqueue({ ...stamp(), kind: 'list.memberRemove', listId, principalId }), "Couldn't remove member");
   }
 
   function exportJson() {
@@ -159,34 +161,32 @@ export function ListSettingsScreen() {
     }, "Couldn't archive list");
   }
 
-  function confirmDelete() {
-    Alert.alert('Delete list?', 'This permanently deletes the list for everyone.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: () =>
-          void run(async () => {
-            await enqueue({ ...stamp(), kind: 'list.delete', listId });
-            nav.popToTop();
-          }, "Couldn't delete list"),
-      },
-    ]);
+  async function confirmDelete() {
+    const ok = await confirm({
+      title: 'Delete list?',
+      message: 'This permanently deletes the list for everyone.',
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
+    if (!ok) return;
+    await run(async () => {
+      await enqueue({ ...stamp(), kind: 'list.delete', listId });
+      nav.popToTop();
+    }, "Couldn't delete list");
   }
 
-  function confirmLeave() {
-    Alert.alert('Leave list?', "You'll lose access to this shared list.", [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Leave',
-        style: 'destructive',
-        onPress: () =>
-          void run(async () => {
-            await enqueue({ ...stamp(), kind: 'list.leave', listId, principalId: me });
-            nav.popToTop();
-          }, "Couldn't leave list"),
-      },
-    ]);
+  async function confirmLeave() {
+    const ok = await confirm({
+      title: 'Leave list?',
+      message: "You'll lose access to this shared list.",
+      confirmLabel: 'Leave',
+      destructive: true,
+    });
+    if (!ok) return;
+    await run(async () => {
+      await enqueue({ ...stamp(), kind: 'list.leave', listId, principalId: me });
+      nav.popToTop();
+    }, "Couldn't leave list");
   }
 
   return (
@@ -230,7 +230,7 @@ export function ListSettingsScreen() {
               <View style={styles.memberHead}>
                 <Text style={styles.memberEmail}>{label}{isMe ? ' (you)' : ''}</Text>
                 {canManage && !isMe ? (
-                  <Pressable onPress={() => confirmRemove(m.principalId, label)} hitSlop={8} accessibilityRole="button" accessibilityLabel={`Remove ${label}`}>
+                  <Pressable onPress={() => void confirmRemove(m.principalId, label)} hitSlop={8} accessibilityRole="button" accessibilityLabel={`Remove ${label}`}>
                     <Text style={styles.remove}>Remove</Text>
                   </Pressable>
                 ) : null}
@@ -238,7 +238,7 @@ export function ListSettingsScreen() {
               {canManage ? (
                 <View style={styles.roleRow}>
                   {ROLES.map(r => (
-                    <RoleChip key={r} role={r} selected={m.role === r} onPress={() => m.role !== r && confirmRoleChange(m.principalId, r)} />
+                    <RoleChip key={r} role={r} selected={m.role === r} onPress={() => { if (m.role !== r) void confirmRoleChange(m.principalId, r); }} />
                   ))}
                 </View>
               ) : (
@@ -280,10 +280,10 @@ export function ListSettingsScreen() {
         {isOwner ? (
           <>
             <Button title="Archive list" variant="secondary" onPress={archive} style={styles.archiveBtn} />
-            <Button title="Delete list" variant="destructive" onPress={confirmDelete} style={styles.deleteBtn} />
+            <Button title="Delete list" variant="destructive" onPress={() => void confirmDelete()} style={styles.deleteBtn} />
           </>
         ) : (
-          <Button title="Leave list" variant="destructive" onPress={confirmLeave} style={styles.leaveBtn} />
+          <Button title="Leave list" variant="destructive" onPress={() => void confirmLeave()} style={styles.leaveBtn} />
         )}
       </ScrollView>
     </KeyboardAvoidingView>

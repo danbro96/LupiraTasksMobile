@@ -1,9 +1,9 @@
-import { Pressable } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { HIT_SLOP, useColors } from '../theme';
+import { StyleSheet } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { IconButton as PaperIconButton, useTheme } from 'react-native-paper';
 
 interface Props {
-  name: React.ComponentProps<typeof Ionicons>['name'];
+  name: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
   onPress: () => void;
   accessibilityLabel: string;
   color?: string;
@@ -12,10 +12,19 @@ interface Props {
 
 /** A tappable icon, primarily for navigation headers. Replaces emoji header glyphs. */
 export function IconButton({ name, onPress, accessibilityLabel, color, size = 24 }: Props) {
-  const c = useColors();
+  const { colors } = useTheme();
   return (
-    <Pressable onPress={onPress} hitSlop={HIT_SLOP} accessibilityRole="button" accessibilityLabel={accessibilityLabel}>
-      {({ pressed }) => <Ionicons name={name} size={size} color={color ?? c.primary} style={{ opacity: pressed ? 0.6 : 1 }} />}
-    </Pressable>
+    <PaperIconButton
+      icon={name}
+      size={size}
+      iconColor={color ?? colors.primary}
+      onPress={onPress}
+      accessibilityLabel={accessibilityLabel}
+      style={styles.button}
+    />
   );
 }
+
+const styles = StyleSheet.create({
+  button: { margin: 0 },
+});

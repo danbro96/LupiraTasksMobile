@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Ionicons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import RNDateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { ListKind } from '../../data/api/generated/models';
 import type { RootStackParamList } from '../navigation/types';
@@ -315,7 +315,7 @@ export function TaskDetailScreen() {
             onPress={canEdit ? () => setDueMenu(true) : undefined}
           />
           <DetailRow
-            icon="person-outline"
+            icon="account-outline"
             label="Assignee"
             value={item.assignedTo ? personName(item.assignedTo) : 'Unassigned'}
             onPress={canEdit ? () => setAssigneeMenu(true) : undefined}
@@ -392,7 +392,7 @@ export function TaskDetailScreen() {
           >
             <Checkbox checked={st.completed} disabled={!canEdit} onPress={() => void toggleSub(st)} />
             <Text style={[styles.subTitle, st.completed && styles.subDone]} numberOfLines={1}>{st.title}</Text>
-            <Ionicons name="chevron-forward" size={16} color={c.textDisabled} />
+            <MaterialCommunityIcons name="chevron-right" size={16} color={c.textDisabled} />
           </Pressable>
         ))}
         {canEdit ? (

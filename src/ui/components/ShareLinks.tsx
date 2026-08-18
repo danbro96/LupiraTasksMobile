@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { ShareAccess, type ShareResponse } from '../../data/api/generated/models';
 import { createShareLink, listShareLinks, revokeShareLink } from '../../data/shares';
@@ -7,12 +7,14 @@ import { toast, toastError } from '../../feedback/toast';
 import { makeType, radii, spacing, useColors, type Palette } from '../theme';
 import { Button } from './Button';
 import { ChipRow } from './ChipRow';
+import { useConfirm } from './ConfirmDialog';
 
 const ACCESS_OPTIONS: ShareAccess[] = [ShareAccess.Read, ShareAccess.ReadWrite];
 const ACCESS_LABELS: Record<ShareAccess, string> = { Read: 'Read', ReadWrite: 'Read & write' };
 
 /** Owner-only public share-link management for a list. Renders inside ListSettingsScreen. */
 export function ShareLinks({ listId }: { listId: string }) {
+  const confirm = useConfirm();
   const c = useColors();
   const styles = useMemo(() => makeStyles(c), [c]);
   const [shares, setShares] = useState<ShareResponse[] | null>(null);
@@ -53,22 +55,20 @@ export function ShareLinks({ listId }: { listId: string }) {
     toast('Link copied');
   }
 
-  function revoke(shareId: string) {
-    Alert.alert('Revoke link?', 'Anyone using this link will lose access.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Revoke',
-        style: 'destructive',
-        onPress: () => {
-          void revokeShareLink(listId, shareId)
-            .then(() => {
-              setShares(prev => (prev ?? []).filter(s => s.shareId !== shareId));
-              toast('Link revoked');
-            })
-            .catch(() => toastError("Couldn't revoke link"));
-        },
-      },
-    ]);
+  async function revoke(shareId: string) {
+    const ok = await confirm({
+      title: 'Revoke link?',
+      message: 'Anyone using this link will lose access.',
+      confirmLabel: 'Revoke',
+      destructive: true,
+    });
+    if (!ok) return;
+    await revokeShareLink(listId, shareId)
+      .then(() => {
+        setShares(prev => (prev ?? []).filter(s => s.shareId !== shareId));
+        toast('Link revoked');
+      })
+      .catch(() => toastError("Couldn't revoke link"));
   }
 
   const active = (shares ?? []).filter(s => !s.revoked);
@@ -101,7 +101,7 @@ export function ShareLinks({ listId }: { listId: string }) {
                 <Pressable onPress={() => void copy(s.url)} accessibilityRole="button" accessibilityLabel="Copy link">
                   <Text style={styles.copy}>Copy</Text>
                 </Pressable>
-                <Pressable onPress={() => revoke(s.shareId)} accessibilityRole="button" accessibilityLabel="Revoke link">
+                <Pressable onPress={() => void revoke(s.shareId)} accessibilityRole="button" accessibilityLabel="Revoke link">
                   <Text style={styles.revoke}>Revoke</Text>
                 </Pressable>
               </View>
