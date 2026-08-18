@@ -10,6 +10,7 @@ import * as ExpoLinking from 'expo-linking';
 import { RootStack } from './src/ui/navigation/RootStack';
 import type { RootStackParamList } from './src/ui/navigation/types';
 import { ToastHost } from './src/ui/components/ToastHost';
+import { ConfirmDialogHost } from './src/ui/components/ConfirmDialog';
 import { useAuth } from './src/state/auth-store';
 import { usePrefs } from './src/state/prefs-store';
 import { startSync, syncAll } from './src/sync/sync';
@@ -78,9 +79,11 @@ function App() {
       <SafeAreaProvider>
         <PaperProvider theme={scheme === 'dark' ? paperDark : paperLight}>
           <Sentry.ErrorBoundary fallback={<ErrorFallback palette={palette} />}>
-            <NavigationContainer theme={scheme === 'dark' ? navDark : navLight} linking={linking}>
-              <RootStack />
-            </NavigationContainer>
+            <ConfirmDialogHost>
+              <NavigationContainer theme={scheme === 'dark' ? navDark : navLight} linking={linking}>
+                <RootStack />
+              </NavigationContainer>
+            </ConfirmDialogHost>
           </Sentry.ErrorBoundary>
           <ToastHost />
           <StatusBar style="auto" />

@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -5,11 +6,13 @@ import { useSyncStatus } from '../../sync/syncStatus';
 import { usePrefs } from '../../state/prefs-store';
 import { bannerState } from '../../domain/bannerState';
 import type { RootStackParamList } from '../navigation/types';
-import { colors, spacing } from '../theme';
+import { spacing, useColors, type Palette } from '../theme';
 
 /** Always-visible sync/error state so offline edits, unreachable server, and failures are obvious. */
 export function SyncBanner() {
   const nav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const c = useColors();
+  const styles = useMemo(() => makeStyles(c), [c]);
   const online = useSyncStatus(s => s.online);
   const serverReachable = useSyncStatus(s => s.serverReachable);
   const pending = useSyncStatus(s => s.pending);
@@ -44,12 +47,14 @@ export function SyncBanner() {
   );
 }
 
-const styles = StyleSheet.create({
-  banner: { paddingVertical: 6, paddingHorizontal: spacing.md },
-  offline: { backgroundColor: colors.bannerOffline },
-  unreachable: { backgroundColor: colors.bannerUnreachable },
-  failed: { backgroundColor: colors.bannerUnreachable },
-  syncing: { backgroundColor: colors.bannerSyncing },
-  error: { backgroundColor: colors.bannerUnreachable },
-  text: { color: '#fff', fontSize: 13, textAlign: 'center' },
-});
+const makeStyles = (c: Palette) =>
+  StyleSheet.create({
+    banner: { paddingVertical: 6, paddingHorizontal: spacing.md },
+    offline: { backgroundColor: c.bannerOffline },
+    unreachable: { backgroundColor: c.bannerUnreachable },
+    failed: { backgroundColor: c.bannerUnreachable },
+    syncing: { backgroundColor: c.bannerSyncing },
+    error: { backgroundColor: c.bannerUnreachable },
+    // The banner tones are dark in both schemes, so the label stays light.
+    text: { color: '#fff', fontSize: 13, textAlign: 'center' },
+  });
