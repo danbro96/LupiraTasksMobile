@@ -5,7 +5,7 @@ server read model plus a durable mutation outbox, replayed on reconnect.
 
 ## Stack
 
-- Expo 56 / React Native 0.85 / React 19, TypeScript (strict)
+- Expo 57 / React Native 0.86 / React 19, TypeScript (strict)
 - React Navigation (native stack)
 - Zustand 5 (auth/session, prefs, sync status)
 - `expo-sqlite` — offline mirror + outbox
