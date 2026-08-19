@@ -113,7 +113,7 @@ export function ListsScreen() {
       <SyncBanner />
       <ReorderableList
         data={data}
-        keyExtractor={l => l.id}
+        keyExtractor={l => l?.id ?? ''}
         panGesture={dragGesture}
         shouldUpdateActiveItem
         itemLayoutAnimation={LinearTransition.duration(200)}
@@ -135,7 +135,8 @@ export function ListsScreen() {
             <ActivityIndicator style={styles.loading} color={c.textSubtle} />
           )
         }
-        renderItem={({ item }) => (
+        renderItem={({ item }) =>
+          !item ? null : (
           <ListRow
             list={item}
             status={opStatus.get(item.id)}
@@ -143,7 +144,8 @@ export function ListsScreen() {
             palette={c}
             onOpen={openList}
           />
-        )}
+          )
+        }
       />
       <DebugPanel />
     </View>

@@ -90,10 +90,12 @@ export function siblingReorder(
   rows: VisibleRow[],
   draggedId: string,
 ): { sortOrder: string; parentItemId: string | null } | null {
-  const dragged = rows.find(r => r.item.id === draggedId)?.item;
+  // Rows can carry holes when a sync pull shortens the list mid-drag; skip them rather than throw.
+  const present = rows.filter(r => r?.item);
+  const dragged = present.find(r => r.item.id === draggedId)?.item;
   if (!dragged) return null;
   const parentItemId = dragged.parentItemId ?? null;
-  const siblings = rows.filter(r => (r.item.parentItemId ?? null) === parentItemId).map(r => r.item);
+  const siblings = present.filter(r => (r.item.parentItemId ?? null) === parentItemId).map(r => r.item);
   const idx = siblings.findIndex(s => s.id === draggedId);
   if (idx < 0) return null;
   const prev = idx > 0 ? siblings[idx - 1].sortOrder : null;

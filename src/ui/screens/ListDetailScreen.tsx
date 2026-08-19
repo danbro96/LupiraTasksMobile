@@ -292,7 +292,7 @@ export function ListDetailScreen() {
   // Derived from the rendered array so it stays consistent while rows are frozen mid-drag. A held
   // row still sits in the open section, so it must not be taken for the section start.
   const firstCompletedIndex = useMemo(
-    () => (completedMode === 'below' ? listData.findIndex(r => r.item.completed && !heldCompleted.has(r.item.id)) : -1),
+    () => (completedMode === 'below' ? listData.findIndex(r => r?.item.completed && !heldCompleted.has(r.item.id)) : -1),
     [completedMode, listData, heldCompleted],
   );
 
@@ -360,7 +360,7 @@ export function ListDetailScreen() {
     if (from === to) return;
     // 'below' mode: reordering is confined to the open section. Recompute the boundary from the
     // frozen array and bail when the drag starts in or drops into the completed section.
-    const boundary = completedMode === 'below' ? dragRows.findIndex(r => r.item.completed && !heldCompleted.has(r.item.id)) : -1;
+    const boundary = completedMode === 'below' ? dragRows.findIndex(r => r?.item.completed && !heldCompleted.has(r.item.id)) : -1;
     if (boundary >= 0 && (from >= boundary || to >= boundary)) return;
     const draggedId = dragRows[from]?.item.id;
     if (!draggedId) return;
@@ -398,7 +398,7 @@ export function ListDetailScreen() {
       )}
       <ReorderableList
         data={listData}
-        keyExtractor={r => r.item.id}
+        keyExtractor={r => r?.item.id ?? ''}
         dragEnabled={canEdit}
         panGesture={dragGesture}
         shouldUpdateActiveItem
@@ -422,7 +422,8 @@ export function ListDetailScreen() {
             <ActivityIndicator style={styles.loading} color={c.textSubtle} />
           )
         }
-        renderItem={({ item: row, index }) => (
+        renderItem={({ item: row, index }) =>
+          !row?.item ? null : (
           <>
             {index === firstCompletedIndex ? <Text style={styles.completedHeader}>COMPLETED</Text> : null}
             <TaskRow
@@ -445,7 +446,8 @@ export function ListDetailScreen() {
               onDelete={onDelete}
             />
           </>
-        )}
+          )
+        }
       />
     </View>
   );

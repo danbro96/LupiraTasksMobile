@@ -101,6 +101,14 @@ describe('siblingReorder', () => {
   const roots = (): VisibleRow[] =>
     [item('A', K[0]), item('B', K[1]), item('C', K[2])].map(it => ({ item: it, depth: 0, hasChildren: false }));
 
+  it('skips holes left by a mid-drag reload rather than throwing', () => {
+    const withHole = [...roots()];
+    withHole.splice(1, 1, undefined as unknown as VisibleRow);
+    const t = siblingReorder(withHole, 'C')!;
+    expect(t).not.toBeNull();
+    expect(t.parentItemId).toBeNull();
+  });
+
   it('moves a key strictly between new neighbors', () => {
     const moved = applyDrag(roots(), 2, 1); // C between A and B
     const t = siblingReorder(moved, 'C')!;
