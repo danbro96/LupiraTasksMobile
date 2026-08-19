@@ -1,9 +1,9 @@
-import { memo, useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import ReorderableList, { useReorderableDrag, useIsActive } from 'react-native-reorderable-list';
+import ReorderableList, { useReorderableDrag, useIsActive, reorderItems } from 'react-native-reorderable-list';
 import { Gesture } from 'react-native-gesture-handler';
 import { LinearTransition, runOnJS } from 'react-native-reanimated';
 import type { ListResponse } from '../../data/api/generated/models';
@@ -66,9 +66,13 @@ export function ListsScreen() {
 
   // The background poll must not re-sort under the finger mid-drag (same freeze as ListDetailScreen).
   const [dragging, setDragging] = useState(false);
+  // The list moves the row on drop, but our order only changes once the enqueued op reaches the
+  // mirror. Keep rendering the reordered snapshot until it does, or the cells lose their slots.
+  const [settling, setSettling] = useState(false);
   const frozen = useRef(lists);
-  if (!dragging) frozen.current = lists;
-  const data = dragging ? frozen.current : lists;
+  if (!dragging && !settling) frozen.current = lists;
+  const data = dragging || settling ? frozen.current : lists;
+  useEffect(() => setSettling(false), [lists]);
 
   const dragGesture = useMemo(() => Gesture.Pan().activateAfterLongPress(520), []);
 
@@ -103,6 +107,8 @@ export function ListsScreen() {
     // Indices refer to the frozen array the list was rendered with during the drag.
     const targets = planListReorder(frozen.current, from, to);
     if (targets.length === 0) return;
+    frozen.current = reorderItems(frozen.current, from, to);
+    setSettling(true);
     // One transaction, one mirror bump — the first drag materializes every list's key at once.
     void enqueueMany(targets.map(t => ({ ...stamp(), kind: 'list.reorder' as const, ...t })))
       .catch(() => toastError("Couldn't reorder lists"));

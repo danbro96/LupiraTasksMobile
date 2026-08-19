@@ -5,7 +5,7 @@ import { useFocusEffect, useNavigation, useRoute, type RouteProp } from '@react-
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { generateKeyBetween } from 'fractional-indexing';
-import ReorderableList, { useReorderableDrag, useIsActive } from 'react-native-reorderable-list';
+import ReorderableList, { useReorderableDrag, useIsActive, reorderItems } from 'react-native-reorderable-list';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { LinearTransition, runOnJS, SlideOutLeft, useAnimatedStyle, useSharedValue, withDelay, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 import { hapticImpact, hapticSuccess } from '../../feedback/haptics';
@@ -285,9 +285,13 @@ export function ListDetailScreen() {
   // Freeze the rendered data while a drag is active: a mirror reload landing mid-gesture (a sync
   // pull or another device's edit) would otherwise swap the rows under the drag and snap it.
   const [dragging, setDragging] = useState(false);
+  // The list moves the row on drop, but our order only changes once the enqueued op reaches the
+  // mirror. Keep rendering the reordered snapshot until it does, or the cells lose their slots.
+  const [settling, setSettling] = useState(false);
   const frozenRows = useRef(rows);
-  if (!dragging) frozenRows.current = rows;
-  const listData = dragging ? frozenRows.current : rows;
+  if (!dragging && !settling) frozenRows.current = rows;
+  const listData = dragging || settling ? frozenRows.current : rows;
+  useEffect(() => setSettling(false), [rows]);
   // Index of the first completed row in 'below' mode — the COMPLETED header renders above it.
   // Derived from the rendered array so it stays consistent while rows are frozen mid-drag. A held
   // row still sits in the open section, so it must not be taken for the section start.
@@ -373,6 +377,8 @@ export function ListDetailScreen() {
     const scope = boundary >= 0 ? next.slice(0, boundary) : next;
     const target = siblingReorder(scope, draggedId);
     if (target) {
+      frozenRows.current = reorderItems(dragRows, from, to);
+      setSettling(true);
       void enqueue({ ...stamp(), kind: 'item.move', listId, itemId: draggedId, ...target }).catch(() => toastError("Couldn't move item"));
     }
   }
