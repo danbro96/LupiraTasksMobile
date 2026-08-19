@@ -5,7 +5,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { generateKeyBetween } from 'fractional-indexing';
 import { ListKind } from '../../data/api/generated/models';
 import type { RootStackParamList } from '../navigation/types';
-import { ChipRow } from '../components/ChipRow';
+import { SegmentedPicker } from '../components/SegmentedPicker';
 import { TextField } from '../components/TextField';
 import { SyncBanner } from '../components/SyncBanner';
 import { toastError } from '../../feedback/toast';
@@ -13,10 +13,10 @@ import { enqueueMany } from '../../sync/outbox';
 import { newId, stamp, type ClientOp } from '../../domain/ops';
 import { parseImport, type ImportedTask } from '../../domain/importTasks';
 import { logDebug } from '../../debug/log';
-import { makeType, radii, spacing, useColors, type Palette } from '../theme';
+import { makeType, spacing, useColors, type Palette } from '../theme';
 
 const KINDS = [ListKind.Todo, ListKind.Shopping] as const;
-// Keyed by the full ListKind union (ChipRow widens its label callback to ListKind). Agent lists
+// Keyed by the full ListKind union (SegmentedPicker widens its label callback to ListKind). Agent lists
 // aren't user-importable, so the label is inert — KINDS controls which chips actually render.
 const KIND_LABELS: Record<ListKind, string> = { [ListKind.Todo]: 'To-do', [ListKind.Shopping]: 'Shopping', [ListKind.Agent]: 'Agent' };
 
@@ -127,7 +127,7 @@ export function ImportListScreen() {
         />
 
         <Text style={styles.section}>TYPE</Text>
-        <ChipRow options={KINDS} selected={kind} onSelect={setKind} getLabel={k => KIND_LABELS[k]} />
+        <SegmentedPicker options={KINDS} selected={kind} onSelect={setKind} getLabel={k => KIND_LABELS[k]} />
 
         <Text style={styles.section}>TASKS (JSON OR ONE PER LINE)</Text>
         <TextField
@@ -153,7 +153,7 @@ const makeStyles = (c: Palette) => {
     headerImport: { ...t.button, color: c.primary },
     headerImportDisabled: { color: c.textDisabled },
     section: { ...t.sectionLabel, marginTop: spacing.xl, marginBottom: spacing.sm },
-    csvInput: { minHeight: 160, textAlignVertical: 'top', borderRadius: radii.md },
+    csvInput: { minHeight: 160 },
     preview: { ...t.small, marginTop: spacing.sm },
     previewError: { color: c.danger },
   });

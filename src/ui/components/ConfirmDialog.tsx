@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from 'react';
-import { Button, Dialog, Portal, Text, useTheme } from 'react-native-paper';
+import { Button, Dialog, Portal, Text } from 'react-native-paper';
+import { useColors } from '../theme';
 
 type ConfirmOptions = {
   title: string;
@@ -17,7 +18,7 @@ export function useConfirm() {
 }
 
 export function ConfirmDialogHost({ children }: { children: ReactNode }) {
-  const theme = useTheme();
+  const c = useColors();
   const [opts, setOpts] = useState<ConfirmOptions | null>(null);
   const resolver = useRef<((v: boolean) => void) | null>(null);
 
@@ -49,7 +50,7 @@ export function ConfirmDialogHost({ children }: { children: ReactNode }) {
               ) : null}
               <Dialog.Actions>
                 <Button onPress={() => settle(false)}>{opts.cancelLabel ?? 'Cancel'}</Button>
-                <Button textColor={opts.destructive ? theme.colors.error : undefined} onPress={() => settle(true)}>
+                <Button textColor={opts.destructive ? c.danger : undefined} onPress={() => settle(true)}>
                   {opts.confirmLabel ?? 'OK'}
                 </Button>
               </Dialog.Actions>

@@ -28,7 +28,7 @@ export function ArchivedListsScreen() {
           <View style={styles.row}>
             <View style={[styles.colorDot, item.color ? { backgroundColor: item.color } : styles.colorDotNone]} />
             <Text style={styles.rowTitle} numberOfLines={1}>{item.name}</Text>
-            <Button title="Restore" variant="secondary" onPress={() => restore(item.id)} style={styles.restore} />
+            <Button title="Restore" variant="secondary" onPress={() => restore(item.id)} contentStyle={styles.restore} />
           </View>
         )}
       />

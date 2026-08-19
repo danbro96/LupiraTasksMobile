@@ -17,5 +17,3 @@ export function makeType(c: Palette) {
     hint: { fontSize: 11, color: c.textSubtle } as TextStyle,
   };
 }
-
-export type TypePresets = ReturnType<typeof makeType>;

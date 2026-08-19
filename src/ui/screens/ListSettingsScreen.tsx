@@ -14,7 +14,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ListRole } from '../../data/api/generated/models';
 import type { RootStackParamList } from '../navigation/types';
 import { Button } from '../components/Button';
-import { ChipRow } from '../components/ChipRow';
+import { SegmentedPicker } from '../components/SegmentedPicker';
 import { TextField } from '../components/TextField';
 import { ColorSwatches } from '../components/ColorSwatches';
 import { ShareLinks } from '../components/ShareLinks';
@@ -29,7 +29,7 @@ import { enqueue } from '../../sync/outbox';
 import { stamp } from '../../domain/ops';
 import { tasksToJson } from '../../domain/exportTasks';
 import type { CompletedMode } from '../../domain/itemTree';
-import { makeType, radii, spacing, useColors, type Palette } from '../theme';
+import { makeType, spacing, useColors, type Palette } from '../theme';
 
 const ROLES: ListRole[] = [ListRole.Owner, ListRole.Editor, ListRole.Viewer];
 const COMPLETED_MODES = ['inline', 'below', 'hidden'] as const;
@@ -196,7 +196,7 @@ export function ListSettingsScreen() {
         <Text style={styles.section}>NAME</Text>
         <View style={styles.row}>
           <TextField value={name} onChangeText={setName} onSubmitEditing={saveName} returnKeyType="done" accessibilityLabel="List name" />
-          <Button title="Save" onPress={saveName} style={styles.inlineBtn} />
+          <Button title="Save" onPress={saveName} />
         </View>
 
         <Text style={styles.section}>COLOR</Text>
@@ -204,14 +204,14 @@ export function ListSettingsScreen() {
 
         <Text style={styles.section}>DISPLAY</Text>
         <Text style={styles.displayLabel}>Completed tasks</Text>
-        <ChipRow
+        <SegmentedPicker
           options={COMPLETED_MODES}
           selected={completedMode}
           onSelect={m => void usePrefs.getState().setCompletedMode(listId, m)}
           getLabel={m => COMPLETED_LABELS[m]}
         />
         <Text style={[styles.displayLabel, styles.displayLabelGap]}>Priority</Text>
-        <ChipRow
+        <SegmentedPicker
           options={PRIORITY_MODES}
           selected={list.simplePriority ? 'simple' : 'scale'}
           onSelect={m => void setSimplePriority(m === 'simple')}
@@ -236,11 +236,12 @@ export function ListSettingsScreen() {
                 ) : null}
               </View>
               {canManage ? (
-                <View style={styles.roleRow}>
-                  {ROLES.map(r => (
-                    <RoleChip key={r} role={r} selected={m.role === r} onPress={() => { if (m.role !== r) void confirmRoleChange(m.principalId, r); }} />
-                  ))}
-                </View>
+                <SegmentedPicker
+                  options={ROLES}
+                  selected={m.role}
+                  onSelect={r => void confirmRoleChange(m.principalId, r)}
+                  style={styles.roleRow}
+                />
               ) : (
                 <Text style={styles.roleLabel}>{m.role}</Text>
               )}
@@ -261,14 +262,10 @@ export function ListSettingsScreen() {
                 returnKeyType="done"
                 accessibilityLabel="New member email"
               />
-              <Button title="Add" onPress={addMember} disabled={!newEmail.trim()} style={styles.inlineBtn} />
+              <Button title="Add" onPress={addMember} disabled={!newEmail.trim()} />
             </View>
-            <View style={styles.roleRow}>
-              <Text style={styles.inviteAs}>Invite as</Text>
-              {ROLES.map(r => (
-                <RoleChip key={r} role={r} selected={inviteRole === r} onPress={() => setInviteRole(r)} />
-              ))}
-            </View>
+            <Text style={styles.inviteAs}>Invite as</Text>
+            <SegmentedPicker options={ROLES} selected={inviteRole} onSelect={setInviteRole} />
           </View>
         ) : null}
 
@@ -290,30 +287,6 @@ export function ListSettingsScreen() {
   );
 }
 
-function RoleChip({ role, selected, onPress }: { role: ListRole; selected: boolean; onPress: () => void }) {
-  const c = useColors();
-  const styles = useMemo(() => makeChipStyles(c), [c]);
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={role}
-      accessibilityState={{ selected }}
-      style={[styles.roleChip, selected && styles.roleChipOn]}
-    >
-      <Text style={[styles.roleText, selected && styles.roleTextOn]}>{role}</Text>
-    </Pressable>
-  );
-}
-
-const makeChipStyles = (c: Palette) =>
-  StyleSheet.create({
-    roleChip: { paddingHorizontal: spacing.md, paddingVertical: 5, borderRadius: radii.lg, borderWidth: 1, borderColor: c.border },
-    roleChipOn: { backgroundColor: c.primary, borderColor: c.primary },
-    roleText: { fontSize: 13, color: c.textMuted },
-    roleTextOn: { color: c.onPrimary, fontWeight: '600' },
-  });
-
 const makeStyles = (c: Palette) => {
   const t = makeType(c);
   return StyleSheet.create({
@@ -323,14 +296,13 @@ const makeStyles = (c: Palette) => {
     row: { flexDirection: 'row', gap: spacing.sm },
     displayLabel: { ...t.body, marginBottom: spacing.sm },
     displayLabelGap: { marginTop: spacing.lg },
-    inlineBtn: { paddingVertical: 0 },
     member: { paddingVertical: spacing.md, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: c.divider },
     memberHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     memberEmail: { fontSize: 15, color: c.text, flex: 1 },
     remove: { color: c.danger, fontSize: 13 },
     invite: { marginTop: spacing.lg },
-    inviteAs: { ...t.small, alignSelf: 'center' },
-    roleRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm, alignItems: 'center', flexWrap: 'wrap' },
+    inviteAs: { ...t.small, marginTop: spacing.md, marginBottom: spacing.sm },
+    roleRow: { marginTop: spacing.sm },
     roleLabel: { marginTop: spacing.xs, fontSize: 13, color: c.textSubtle },
     archiveBtn: { marginTop: spacing.xxl },
     deleteBtn: { marginTop: spacing.md },

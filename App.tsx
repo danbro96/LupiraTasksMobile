@@ -15,8 +15,7 @@ import { useAuth } from './src/state/auth-store';
 import { usePrefs } from './src/state/prefs-store';
 import { startSync, syncAll } from './src/sync/sync';
 import { SENTRY_DSN, APP_VERSION } from './src/config';
-import { lightColors, darkColors, type Palette } from './src/ui/theme';
-import { navDark, navLight, paperDark, paperLight } from './src/ui/theme/paperTheme';
+import { lightColors, darkColors, navDark, navLight, paperDark, paperLight, type Palette } from './src/ui/theme';
 
 // Crash analytics. SENTRY_DSN is a public client key in src/config.ts — Sentry no-ops when empty.
 // release/dist tie events to a version (and let source maps resolve); environment separates dev

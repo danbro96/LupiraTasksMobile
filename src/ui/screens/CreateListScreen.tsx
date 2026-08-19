@@ -1,9 +1,10 @@
 import { useLayoutEffect, useMemo, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ListKind } from '../../data/api/generated/models';
 import type { RootStackParamList } from '../navigation/types';
+import { SegmentedPicker } from '../components/SegmentedPicker';
 import { TextField } from '../components/TextField';
 import { ColorSwatches } from '../components/ColorSwatches';
 import { SyncBanner } from '../components/SyncBanner';
@@ -11,12 +12,15 @@ import { toastError } from '../../feedback/toast';
 import { enqueue } from '../../sync/outbox';
 import { newId, stamp } from '../../domain/ops';
 import { logDebug } from '../../debug/log';
-import { makeType, radii, spacing, useColors, type Palette } from '../theme';
+import { makeType, spacing, useColors, type Palette } from '../theme';
 
-const KINDS: { kind: ListKind; label: string; hint: string }[] = [
-  { kind: ListKind.Todo, label: 'To-do', hint: 'A simple checklist.' },
-  { kind: ListKind.Shopping, label: 'Shopping', hint: 'Shopping lists let you set quantities (e.g. 2 kg).' },
-];
+const KINDS = [ListKind.Todo, ListKind.Shopping] as const;
+const KIND_LABELS: Record<ListKind, string> = { [ListKind.Todo]: 'To-do', [ListKind.Shopping]: 'Shopping', [ListKind.Agent]: 'Agent' };
+const KIND_HINTS: Record<ListKind, string> = {
+  [ListKind.Todo]: 'A simple checklist.',
+  [ListKind.Shopping]: 'Shopping lists let you set quantities (e.g. 2 kg).',
+  [ListKind.Agent]: '',
+};
 
 export function CreateListScreen() {
   const nav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -67,7 +71,7 @@ export function CreateListScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nav, name, kind, color, styles]);
 
-  const kindHint = KINDS.find(k => k.kind === kind)?.hint ?? '';
+  const kindHint = KIND_HINTS[kind];
 
   return (
     <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -85,22 +89,7 @@ export function CreateListScreen() {
         />
 
         <Text style={styles.section}>TYPE</Text>
-        <View style={styles.chipRow}>
-          {KINDS.map(k => {
-            const on = kind === k.kind;
-            return (
-              <Pressable
-                key={k.kind}
-                onPress={() => setKind(k.kind)}
-                accessibilityRole="button"
-                accessibilityState={{ selected: on }}
-                style={[styles.chip, on && styles.chipOn]}
-              >
-                <Text style={[styles.chipText, on && styles.chipTextOn]}>{k.label}</Text>
-              </Pressable>
-            );
-          })}
-        </View>
+        <SegmentedPicker options={KINDS} selected={kind} onSelect={setKind} getLabel={k => KIND_LABELS[k]} />
         <Text style={styles.hint}>{kindHint}</Text>
 
         <Text style={styles.section}>COLOR</Text>
@@ -129,11 +118,6 @@ const makeStyles = (c: Palette) => {
     headerCreate: { ...t.button, color: c.primary },
     headerCreateDisabled: { color: c.textDisabled },
     section: { ...t.sectionLabel, marginTop: spacing.xl, marginBottom: spacing.sm },
-    chipRow: { flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' },
-    chip: { paddingHorizontal: spacing.lg, paddingVertical: 8, borderRadius: radii.lg, borderWidth: 1, borderColor: c.border },
-    chipOn: { backgroundColor: c.primary, borderColor: c.primary },
-    chipText: { fontSize: 14, color: c.textMuted },
-    chipTextOn: { color: c.onPrimary, fontWeight: '600' },
     hint: { ...t.small, color: c.textSubtle, marginTop: spacing.sm },
     importLink: { marginTop: spacing.xxl, alignSelf: 'flex-start' },
     importLinkText: { ...t.body, color: c.primary },

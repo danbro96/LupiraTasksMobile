@@ -15,7 +15,8 @@
 - **UI stack**: react-native-paper 5 (MD3), themed in `ui/theme/paperTheme.ts` from the app palette;
   React Navigation themes come from `adaptNavigationTheme`. Paper covers the MD3-expressible colors;
   the app's own semantics (`pending`, `failed`, `remoteChange`, `banner*`, `toast*`) stay on
-  `useColors()` — both hooks coexist. Components use `const c = useColors(); const styles = useMemo(() => makeStyles(c), [c])`.
+  `useColors()`, the app's only color hook (never Paper's `useTheme()`). Components use
+  `const c = useColors(); const styles = useMemo(() => makeStyles(c), [c])`.
   Icons are MaterialCommunityIcons (Paper's set). Confirms use `useConfirm()` (`ui/components/ConfirmDialog.tsx`).
   Tokens mirror the other repos' copies — see DevOps `Guides/design-tokens.md` and its drift check.
 - **Do not put Paper components inside `ui/screens/ListDetailScreen.tsx` rows.** That file interleaves

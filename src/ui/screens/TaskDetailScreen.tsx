@@ -405,7 +405,7 @@ export function TaskDetailScreen() {
               returnKeyType="done"
               accessibilityLabel="New subtask title"
             />
-            <Button title="Add" onPress={addSubtask} disabled={!subTitle.trim()} style={styles.inlineBtn} />
+            <Button title="Add" onPress={addSubtask} disabled={!subTitle.trim()} />
           </View>
         ) : null}
 
@@ -478,7 +478,6 @@ const makeStyles = (c: Palette) => {
     subTitle: { ...t.body, flex: 1 },
     subDone: { color: c.textDisabled, textDecorationLine: 'line-through' },
     subAddRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md },
-    inlineBtn: { paddingVertical: 0 },
     provenance: { marginTop: spacing.xl, gap: 2 },
     provText: { ...t.hint, color: c.textSubtle },
     delete: { marginTop: spacing.xl },

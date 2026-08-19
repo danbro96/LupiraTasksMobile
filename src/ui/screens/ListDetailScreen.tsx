@@ -391,7 +391,7 @@ export function ListDetailScreen() {
             returnKeyType="done"
             accessibilityLabel="New task title"
           />
-          <Button title="Add" onPress={addItem} disabled={!title.trim()} style={styles.addBtn} />
+          <Button title="Add" onPress={addItem} disabled={!title.trim()} />
         </View>
       ) : (
         <Text style={styles.readonly}>You have view-only access to this list.</Text>
@@ -457,7 +457,6 @@ const makeStyles = (c: Palette, fontScale = 1, rowPad = 14) => {
     fill: { flex: 1, backgroundColor: c.bg },
     colorStripe: { height: 5 },
     addRow: { flexDirection: 'row', padding: spacing.md, gap: spacing.sm },
-    addBtn: { paddingVertical: 0 },
     readonly: { ...t.small, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm },
     row: {
       flexDirection: 'row',

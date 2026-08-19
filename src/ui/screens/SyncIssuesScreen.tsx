@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Button } from '../components/Button';
 import { toast } from '../../feedback/toast';
 import { listParked, retryParked, discardParked, type ParkedOp } from '../../sync/outbox';
@@ -68,7 +68,7 @@ export function SyncIssuesScreen() {
   if (rows.length === 0) {
     return (
       <View style={styles.empty}>
-        <Ionicons name="checkmark-circle-outline" size={48} color={c.textDisabled} />
+        <MaterialCommunityIcons name="check-circle-outline" size={48} color={c.textDisabled} />
         <Text style={styles.emptyText}>All changes are synced.</Text>
       </View>
     );

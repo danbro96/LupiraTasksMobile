@@ -1,5 +1,6 @@
 import type { StyleProp, ViewStyle } from 'react-native';
-import { Button as PaperButton, useTheme } from 'react-native-paper';
+import { Button as PaperButton } from 'react-native-paper';
+import { useColors } from '../theme';
 
 type Variant = 'primary' | 'secondary' | 'destructive';
 
@@ -10,12 +11,13 @@ interface Props {
   disabled?: boolean;
   loading?: boolean;
   style?: StyleProp<ViewStyle>;
+  contentStyle?: StyleProp<ViewStyle>;
   accessibilityLabel?: string;
 }
 
 /** Shared button. Replaces the per-screen inline Pressable + Text blocks. */
-export function Button({ title, onPress, variant = 'primary', disabled, loading, style, accessibilityLabel }: Props) {
-  const { colors } = useTheme();
+export function Button({ title, onPress, variant = 'primary', disabled, loading, style, contentStyle, accessibilityLabel }: Props) {
+  const c = useColors();
   const destructive = variant === 'destructive';
   return (
     <PaperButton
@@ -23,9 +25,10 @@ export function Button({ title, onPress, variant = 'primary', disabled, loading,
       onPress={onPress}
       disabled={disabled || loading}
       loading={loading}
-      textColor={destructive ? colors.error : undefined}
+      textColor={destructive ? c.danger : undefined}
       accessibilityLabel={accessibilityLabel ?? title}
-      style={[destructive && { borderColor: colors.error }, style]}
+      style={[destructive && { borderColor: c.danger }, style]}
+      contentStyle={contentStyle}
     >
       {title}
     </PaperButton>

@@ -1,11 +1,12 @@
 import { useMemo } from 'react';
-import { StyleSheet, Switch, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Switch } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
 import { Button } from '../components/Button';
-import { ChipRow } from '../components/ChipRow';
+import { SegmentedPicker } from '../components/SegmentedPicker';
 import { SyncBanner } from '../components/SyncBanner';
 import { useConfirm } from '../components/ConfirmDialog';
 import { useAuth } from '../../state/auth-store';
@@ -58,7 +59,7 @@ export function AccountScreen() {
         <Text style={styles.sectionLabel}>DISPLAY</Text>
         <View style={styles.settingRow}>
           <Text style={styles.settingLabel}>Task text size</Text>
-          <ChipRow
+          <SegmentedPicker
             options={TEXT_SIZES}
             selected={textSize}
             onSelect={v => void usePrefs.getState().setTextSize(v)}
@@ -67,7 +68,7 @@ export function AccountScreen() {
         </View>
         <View style={styles.settingRow}>
           <Text style={styles.settingLabel}>Row spacing</Text>
-          <ChipRow
+          <SegmentedPicker
             options={ROW_SPACINGS}
             selected={rowSpacing}
             onSelect={v => void usePrefs.getState().setRowSpacing(v)}
@@ -83,7 +84,6 @@ export function AccountScreen() {
           <Switch
             value={debugEnabled}
             onValueChange={v => void usePrefs.getState().setDebugEnabled(v)}
-            trackColor={{ false: c.border, true: c.primary }}
             accessibilityLabel="Enable debug"
           />
         </View>

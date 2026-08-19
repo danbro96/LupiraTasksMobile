@@ -2,7 +2,7 @@ import { memo, useCallback, useLayoutEffect, useMemo, useRef, useState } from 'r
 import { ActivityIndicator, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Ionicons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import ReorderableList, { useReorderableDrag, useIsActive } from 'react-native-reorderable-list';
 import { Gesture } from 'react-native-gesture-handler';
 import { LinearTransition, runOnJS } from 'react-native-reanimated';
@@ -49,7 +49,7 @@ const ListRow = memo(function ListRow({ list, status, styles, palette, onOpen }:
       <Text style={styles.rowTitle} numberOfLines={1}>{list.name}</Text>
       <View style={styles.rowRight}>
         <SyncDot status={status} />
-        <Ionicons name="chevron-forward" size={18} color={palette.textDisabled} />
+        <MaterialCommunityIcons name="chevron-right" size={18} color={palette.textDisabled} />
       </View>
     </Pressable>
   );

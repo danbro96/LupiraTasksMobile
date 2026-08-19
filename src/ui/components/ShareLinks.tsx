@@ -6,7 +6,7 @@ import { createShareLink, listShareLinks, revokeShareLink } from '../../data/sha
 import { toast, toastError } from '../../feedback/toast';
 import { makeType, radii, spacing, useColors, type Palette } from '../theme';
 import { Button } from './Button';
-import { ChipRow } from './ChipRow';
+import { SegmentedPicker } from './SegmentedPicker';
 import { useConfirm } from './ConfirmDialog';
 
 const ACCESS_OPTIONS: ShareAccess[] = [ShareAccess.Read, ShareAccess.ReadWrite];
@@ -76,7 +76,7 @@ export function ShareLinks({ listId }: { listId: string }) {
   return (
     <View>
       <Text style={styles.section}>SHARE LINK</Text>
-      <ChipRow
+      <SegmentedPicker
         options={ACCESS_OPTIONS}
         selected={access}
         onSelect={setAccess}

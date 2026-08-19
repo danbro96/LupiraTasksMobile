@@ -68,9 +68,6 @@ export const darkColors: Palette = {
   toastAction: '#2dd4bf',
 };
 
-/** Default (light) palette — for any non-component context that can't use the hook. */
-export const colors = lightColors;
-
 /** The selectable list colors offered in List settings. `null` = no color. */
 export const listColorOptions: (string | null)[] = [
   null,

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
-import { Ionicons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { OIDC_CLIENT_ID, OIDC_ISSUER, OIDC_REDIRECT_PATH, OIDC_SCHEME, OIDC_SCOPES } from '../../data/auth/oidcConfig';
 import { decodeJwt, exchangeAuthCode } from '../../data/auth/oidc';
 import { logAuth, clearAuthLog } from '../../data/auth/authDebug';
@@ -134,7 +134,7 @@ export function LoginScreen() {
       {/* Code-drawn brand mark (no asset pipeline); swap for the real Lupira SVG logo once
           react-native-svg lands (deferred — needs a dev-client rebuild). */}
       <View style={styles.logo}>
-        <Ionicons name="checkmark-sharp" size={52} color={c.onPrimary} />
+        <MaterialCommunityIcons name="check-bold" size={52} color={c.onPrimary} />
       </View>
       <Text style={styles.title}>Lupira Tasks</Text>
       <Text style={styles.subtitle}>Sign in with your family account.</Text>

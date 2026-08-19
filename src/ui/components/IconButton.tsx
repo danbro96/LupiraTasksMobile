@@ -1,6 +1,7 @@
 import { StyleSheet } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { IconButton as PaperIconButton, useTheme } from 'react-native-paper';
+import { IconButton as PaperIconButton } from 'react-native-paper';
+import { useColors } from '../theme';
 
 interface Props {
   name: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
@@ -12,12 +13,12 @@ interface Props {
 
 /** A tappable icon, primarily for navigation headers. Replaces emoji header glyphs. */
 export function IconButton({ name, onPress, accessibilityLabel, color, size = 24 }: Props) {
-  const { colors } = useTheme();
+  const c = useColors();
   return (
     <PaperIconButton
       icon={name}
       size={size}
-      iconColor={color ?? colors.primary}
+      iconColor={color ?? c.primary}
       onPress={onPress}
       accessibilityLabel={accessibilityLabel}
       style={styles.button}

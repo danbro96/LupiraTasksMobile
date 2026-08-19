@@ -16,6 +16,9 @@ function md3Colors(p: Palette) {
     outline: p.border,
     outlineVariant: p.divider,
     error: p.danger,
+    // SegmentedButtons paints its selected segment from these.
+    secondaryContainer: p.primary,
+    onSecondaryContainer: p.onPrimary,
   };
 }
 
