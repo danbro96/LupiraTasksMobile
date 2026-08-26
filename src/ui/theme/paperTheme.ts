@@ -3,9 +3,12 @@ import { DarkTheme as NavDarkBase, DefaultTheme as NavLightBase } from '@react-n
 import { darkColors, lightColors, type Palette } from './colors';
 import { radii } from './spacing';
 
-// Only the keys MD3 has a slot for; sync/banner/toast semantics stay on useColors().
+// The whole palette rides on the theme: MD3 gets its own slot names, and the app's vocabulary
+// (bg/text/pending/banner*/toast*) comes along so useColors() can read it back off the theme
+// rather than deriving the scheme a second time.
 function md3Colors(p: Palette) {
   return {
+    ...p,
     primary: p.primary,
     onPrimary: p.onPrimary,
     background: p.bg,
@@ -24,6 +27,8 @@ function md3Colors(p: Palette) {
 
 export const paperLight = { ...MD3LightTheme, roundness: radii.sm, colors: { ...MD3LightTheme.colors, ...md3Colors(lightColors) } };
 export const paperDark = { ...MD3DarkTheme, roundness: radii.sm, colors: { ...MD3DarkTheme.colors, ...md3Colors(darkColors) } };
+
+export type AppTheme = typeof paperLight;
 
 const adapted = adaptNavigationTheme({
   reactNavigationLight: NavLightBase,
