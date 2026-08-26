@@ -3,7 +3,7 @@ import { ActivityIndicator, Pressable, RefreshControl, StyleSheet, Text, View } 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Ionicons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { generateKeyBetween } from 'fractional-indexing';
 import ReorderableList, { useReorderableDrag, useIsActive, reorderItems } from 'react-native-reorderable-list';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -174,7 +174,7 @@ const TaskRow = memo(function TaskRow({ row, canEdit, draggable, isShopping, ass
   return (
     <View style={styles.swipeContainer}>
       <Animated.View style={[styles.swipeDelete, deleteBgStyle]} pointerEvents="none">
-        <Ionicons name="trash" size={22} color="#fff" />
+        <MaterialCommunityIcons name="trash-can" size={22} color="#fff" />
       </Animated.View>
       <GestureDetector gesture={swipe}>
         <Animated.View style={rowStyle} exiting={SlideOutLeft.duration(180)}>{inner}</Animated.View>

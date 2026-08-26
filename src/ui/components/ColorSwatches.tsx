@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { listColorOptions, radii, spacing, useColors, type Palette } from '../theme';
 
 /** Row of selectable list colors (incl. "no color"). Shared by CreateList and ListSettings. */
@@ -20,8 +20,8 @@ export function ColorSwatches({ value, onChange }: { value: string | null; onCha
             accessibilityState={{ selected }}
             style={[styles.swatch, { backgroundColor: col ?? c.bg }, selected && styles.selected]}
           >
-            {col === null && !selected ? <Ionicons name="ban-outline" size={16} color={c.textSubtle} /> : null}
-            {selected ? <Ionicons name="checkmark" size={18} color={col ? c.onPrimary : c.primary} /> : null}
+            {col === null && !selected ? <MaterialCommunityIcons name="cancel" size={16} color={c.textSubtle} /> : null}
+            {selected ? <MaterialCommunityIcons name="check" size={18} color={col ? c.onPrimary : c.primary} /> : null}
           </Pressable>
         );
       })}
