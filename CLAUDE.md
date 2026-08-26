@@ -24,8 +24,8 @@
   replaced: it was a second source that could disagree with the theme `PaperProvider` holds.
   Icons are MaterialCommunityIcons (Paper's set). Confirms use `useConfirm()` (`ui/components/ConfirmDialog.tsx`).
   Tokens mirror the other repos' copies — see DevOps `Guides/design-tokens.md` and its drift check.
-- **`Button`, `ConfirmDialog`, `TextField` and `ToastHost` are byte-identical to
-  assistant-mobile's copies** — change both, or neither.
+- **Stay in step with the sibling Lupira frontends.** Same components, theme wiring and layout;
+  match what they already do rather than inventing a local shape. Shared files stay byte-identical.
 - **Do not put Paper components inside `ui/screens/ListDetailScreen.tsx` rows.** That file interleaves
   long-press drag (`react-native-reorderable-list`), a hand-built swipe-to-delete (`Gesture.Pan` —
   `Swipeable`'s open callback doesn't fire reliably here), the remote-change flash, and a drag-freeze
