@@ -26,11 +26,12 @@
   Tokens mirror the other repos' copies — see DevOps `Guides/design-tokens.md` and its drift check.
 - **Stay in step with the sibling Lupira frontends.** Same components, theme wiring and layout;
   match what they already do rather than inventing a local shape. Shared files stay byte-identical.
-- **Do not put Paper components inside `ui/screens/ListDetailScreen.tsx` rows.** That file interleaves
-  long-press drag (`react-native-reorderable-list`), a hand-built swipe-to-delete (`Gesture.Pan` —
-  `Swipeable`'s open callback doesn't fire reliably here), the remote-change flash, and a drag-freeze
-  that pins rendered rows mid-gesture. Rows are memoized by threading `styles`/`palette` **as props**;
-  anything calling `useTheme()` per row erodes that.
+- **Row components take `styles`/`palette` as props and are `memo`'d — no Paper components inside
+  them** (`ListDetailScreen`, `ListsScreen`, and `PriorityControl`, which renders in those rows).
+  Paper's own `Text` calls `useTheme()`, and a per-row theme read is what this keeps out.
+  `ListDetailScreen` additionally interleaves long-press drag (`react-native-reorderable-list`), a
+  hand-built swipe-to-delete (`Gesture.Pan` — `Swipeable`'s open callback doesn't fire reliably here),
+  the remote-change flash, and a drag-freeze that pins rendered rows mid-gesture.
 - Native headers are set imperatively via `useLayoutEffect` + `nav.setOptions` in 5 screens — keep that
   pattern rather than moving to Paper `Appbar`.
 - `react-native-worklets/plugin` must stay last in `babel.config.js`.

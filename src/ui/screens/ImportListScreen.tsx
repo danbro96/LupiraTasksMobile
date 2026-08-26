@@ -1,11 +1,12 @@
 import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native';
 import { Text } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { generateKeyBetween } from 'fractional-indexing';
 import { ListKind } from '../../data/api/generated/models';
 import type { RootStackParamList } from '../navigation/types';
+import { Button } from '../components/Button';
 import { SegmentedPicker } from '../components/SegmentedPicker';
 import { TextField } from '../components/TextField';
 import { SyncBanner } from '../components/SyncBanner';
@@ -86,21 +87,10 @@ export function ImportListScreen() {
   useLayoutEffect(() => {
     nav.setOptions({
       headerLeft: () => (
-        <Pressable onPress={() => nav.goBack()} hitSlop={8} accessibilityRole="button" accessibilityLabel="Cancel">
-          <Text variant="labelLarge" style={styles.headerCancel}>Cancel</Text>
-        </Pressable>
+        <Button variant="text" title="Cancel" onPress={() => nav.goBack()} />
       ),
       headerRight: () => (
-        <Pressable
-          onPress={() => void importList()}
-          disabled={!canImport}
-          hitSlop={8}
-          accessibilityRole="button"
-          accessibilityLabel="Import list"
-          accessibilityState={{ disabled: !canImport }}
-        >
-          <Text variant="labelLarge" style={[styles.headerImport, !canImport && styles.headerImportDisabled]}>Import</Text>
-        </Pressable>
+        <Button variant="text" title="Import" onPress={() => void importList()} disabled={!canImport} accessibilityLabel="Import list" />
       ),
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -149,9 +139,6 @@ const makeStyles = (c: Palette) =>
   StyleSheet.create({
     fill: { flex: 1, backgroundColor: c.bg },
     content: { padding: spacing.lg, paddingBottom: 48 },
-    headerCancel: { color: c.primary },
-    headerImport: { color: c.primary },
-    headerImportDisabled: { color: c.textDisabled },
     section: { color: c.textSubtle, marginTop: spacing.xl, marginBottom: spacing.sm },
     csvInput: { minHeight: 160 },
     preview: { color: c.textMuted, marginTop: spacing.sm },

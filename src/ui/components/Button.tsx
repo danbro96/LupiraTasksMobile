@@ -2,7 +2,9 @@ import type { StyleProp, ViewStyle } from 'react-native';
 import { Button as PaperButton } from 'react-native-paper';
 import { useColors } from '../theme';
 
-type Variant = 'primary' | 'secondary' | 'destructive';
+type Variant = 'primary' | 'secondary' | 'text' | 'destructive';
+
+const MODE = { primary: 'contained', secondary: 'outlined', text: 'text', destructive: 'outlined' } as const;
 
 interface Props {
   title: string;
@@ -21,7 +23,7 @@ export function Button({ title, onPress, variant = 'primary', disabled, loading,
   const destructive = variant === 'destructive';
   return (
     <PaperButton
-      mode={variant === 'primary' ? 'contained' : 'outlined'}
+      mode={MODE[variant]}
       onPress={onPress}
       disabled={disabled || loading}
       loading={loading}

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Linking, Pressable, StyleSheet, View } from 'react-native';
+import { Linking, StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
@@ -7,6 +7,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { OIDC_CLIENT_ID, OIDC_ISSUER, OIDC_REDIRECT_PATH, OIDC_SCHEME, OIDC_SCOPES } from '../../data/auth/oidcConfig';
 import { decodeJwt, exchangeAuthCode } from '../../data/auth/oidc';
 import { logAuth, clearAuthLog } from '../../data/auth/authDebug';
+import { Button } from '../components/Button';
 import { DebugPanel } from '../components/DebugPanel';
 import { useAuth } from '../../state/auth-store';
 import { usePrefs } from '../../state/prefs-store';
@@ -140,15 +141,14 @@ export function LoginScreen() {
       <Text variant="headlineSmall">Lupira Tasks</Text>
       <Text style={styles.subtitle}>Sign in with your family account.</Text>
 
-      <Pressable
-        style={[styles.button, (!request || busy) && styles.buttonDisabled]}
-        disabled={!request || busy}
+      <Button
+        title="Sign in with Authentik"
         onPress={() => void handleSignIn()}
-        accessibilityRole="button"
-        accessibilityLabel="Sign in with Authentik"
-      >
-        {busy ? <ActivityIndicator color={c.onPrimary} /> : <Text style={styles.buttonText}>Sign in with Authentik</Text>}
-      </Pressable>
+        disabled={!request}
+        loading={busy}
+        style={styles.button}
+        contentStyle={styles.buttonContent}
+      />
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {debugEnabled ? <Text style={styles.hint}>redirect: {redirectUri}</Text> : null}
@@ -171,17 +171,8 @@ const makeStyles = (c: Palette) =>
       marginBottom: spacing.xl,
     },
     subtitle: { marginTop: spacing.sm, marginBottom: 28, fontSize: 15, color: c.textMuted },
-    button: {
-      backgroundColor: c.primary,
-      borderRadius: radii.round,
-      paddingVertical: 16,
-      paddingHorizontal: 28,
-      width: '100%',
-      maxWidth: 360,
-      alignItems: 'center',
-    },
-    buttonDisabled: { opacity: 0.5 },
-    buttonText: { color: c.onPrimary, fontSize: 16, fontWeight: '600' },
+    button: { width: '100%', maxWidth: 360, borderRadius: radii.round },
+    buttonContent: { paddingVertical: 8 },
     error: { marginTop: spacing.lg, color: c.danger, textAlign: 'center' },
     hint: { marginTop: spacing.md, fontSize: 11, color: c.textDisabled },
   });

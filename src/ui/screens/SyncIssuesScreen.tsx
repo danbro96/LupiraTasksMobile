@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, View } from 'react-native';
+import { FlatList, StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Button } from '../components/Button';
@@ -7,7 +7,7 @@ import { toast } from '../../feedback/toast';
 import { listParked, retryParked, discardParked, type ParkedOp } from '../../sync/outbox';
 import { useSyncStatus } from '../../sync/syncStatus';
 import type { ClientOp } from '../../domain/ops';
-import { HIT_SLOP, radii, spacing, useColors, type Palette } from '../theme';
+import { spacing, useColors, type Palette } from '../theme';
 
 // Human label per op kind. A Record over the union forces every new op kind to get a label.
 const OP_LABELS: Record<ClientOp['kind'], string> = {
@@ -96,15 +96,12 @@ export function SyncIssuesScreen() {
               <Text variant="bodyLarge">{OP_LABELS[item.op.kind]}</Text>
               {item.lastError ? <Text variant="labelSmall" style={styles.error} numberOfLines={2}>{item.lastError}</Text> : null}
             </View>
-            <Pressable
+            <Button
+              variant="destructive"
+              title="Discard"
               onPress={() => onDiscard(item)}
-              hitSlop={HIT_SLOP}
-              accessibilityRole="button"
               accessibilityLabel={`Discard ${OP_LABELS[item.op.kind]}`}
-              style={({ pressed }) => [styles.discard, pressed && styles.pressed]}
-            >
-              <Text variant="labelLarge" style={styles.discardText}>Discard</Text>
-            </Pressable>
+            />
           </View>
         )}
       />
@@ -123,9 +120,6 @@ const makeStyles = (c: Palette) =>
     row: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.md, gap: spacing.md },
     rowText: { flex: 1, gap: spacing.xs },
     error: { color: c.danger },
-    discard: { borderWidth: 1, borderColor: c.danger, borderRadius: radii.md, paddingVertical: spacing.sm, paddingHorizontal: spacing.md },
-    discardText: { color: c.danger },
-    pressed: { opacity: 0.6 },
     empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md, backgroundColor: c.bg },
     emptyText: { color: c.textMuted },
   });

@@ -1,14 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Text } from 'react-native-paper';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  Share,
-  StyleSheet,
-  View,
-} from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, Share, StyleSheet, View } from 'react-native';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ListRole } from '../../data/api/generated/models';
@@ -230,9 +222,12 @@ export function ListSettingsScreen() {
               <View style={styles.memberHead}>
                 <Text style={styles.memberEmail}>{label}{isMe ? ' (you)' : ''}</Text>
                 {canManage && !isMe ? (
-                  <Pressable onPress={() => void confirmRemove(m.principalId, label)} hitSlop={8} accessibilityRole="button" accessibilityLabel={`Remove ${label}`}>
-                    <Text style={styles.remove}>Remove</Text>
-                  </Pressable>
+                  <Button
+                    variant="destructive"
+                    title="Remove"
+                    onPress={() => void confirmRemove(m.principalId, label)}
+                    accessibilityLabel={`Remove ${label}`}
+                  />
                 ) : null}
               </View>
               {canManage ? (
@@ -298,7 +293,6 @@ const makeStyles = (c: Palette) =>
     member: { paddingVertical: spacing.md, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: c.divider },
     memberHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     memberEmail: { fontSize: 15, color: c.text, flex: 1 },
-    remove: { color: c.danger, fontSize: 13 },
     invite: { marginTop: spacing.lg },
     inviteAs: { color: c.textMuted, marginTop: spacing.md, marginBottom: spacing.sm },
     roleRow: { marginTop: spacing.sm },

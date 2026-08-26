@@ -1,16 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Text } from 'react-native-paper';
-import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  View,
-} from 'react-native';
+import { ActivityIndicator, List, Text } from 'react-native-paper';
+import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -294,17 +284,15 @@ export function TaskDetailScreen() {
           accessibilityLabel="Task title"
         />
 
-        <Pressable
+        <List.Item
           style={styles.completeRow}
+          title={item.completed ? 'Completed' : 'Mark complete'}
           onPress={canEdit ? () => void toggleComplete() : undefined}
           disabled={!canEdit}
           accessibilityRole="checkbox"
           accessibilityState={{ checked: item.completed, disabled: !canEdit }}
-          accessibilityLabel={item.completed ? 'Completed' : 'Mark complete'}
-        >
-          <Checkbox checked={item.completed} disabled={!canEdit} onPress={() => void toggleComplete()} />
-          <Text variant="bodyLarge">{item.completed ? 'Completed' : 'Mark complete'}</Text>
-        </Pressable>
+          left={() => <Checkbox checked={item.completed} disabled={!canEdit} onPress={() => void toggleComplete()} />}
+        />
 
         <View style={styles.card}>
           <DetailRow
@@ -382,18 +370,17 @@ export function TaskDetailScreen() {
         </Text>
         {subtasks.length === 0 ? <Text variant="bodySmall" style={styles.noneText}>No subtasks</Text> : null}
         {subtasks.map(st => (
-          <Pressable
+          <List.Item
             key={st.id}
             style={styles.subRow}
+            title={st.title}
+            titleNumberOfLines={1}
+            titleStyle={st.completed ? styles.subDone : undefined}
             onPress={() => nav.push('TaskDetail', { listId, itemId: st.id })}
-            accessibilityRole="button"
-            accessibilityLabel={st.title}
             accessibilityHint="Opens subtask"
-          >
-            <Checkbox checked={st.completed} disabled={!canEdit} onPress={() => void toggleSub(st)} />
-            <Text variant="bodyLarge" style={[styles.subTitle, st.completed && styles.subDone]} numberOfLines={1}>{st.title}</Text>
-            <MaterialCommunityIcons name="chevron-right" size={16} color={c.textDisabled} />
-          </Pressable>
+            left={() => <Checkbox checked={st.completed} disabled={!canEdit} onPress={() => void toggleSub(st)} />}
+            right={() => <MaterialCommunityIcons name="chevron-right" size={16} color={c.textDisabled} />}
+          />
         ))}
         {canEdit ? (
           <View style={styles.subAddRow}>
@@ -457,7 +444,7 @@ const makeStyles = (c: Palette) =>
     // A TextInput takes no Paper variant, so the title type is spelled out here.
     titleInput: { fontSize: 26, fontWeight: '700', color: c.text, paddingVertical: spacing.sm },
     titleDone: { color: c.textDisabled, textDecorationLine: 'line-through' },
-    completeRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.sm, marginBottom: spacing.md },
+    completeRow: { paddingHorizontal: 0, marginBottom: spacing.md },
     card: { backgroundColor: c.surface, borderRadius: radii.lg, overflow: 'hidden' },
     section: { color: c.textSubtle, marginTop: spacing.xl, marginBottom: spacing.sm },
     noneText: { color: c.textMuted, marginBottom: spacing.sm },
@@ -466,15 +453,7 @@ const makeStyles = (c: Palette) =>
     qtyRow: { flexDirection: 'row', gap: spacing.sm },
     qtyInput: { flex: 1 },
     unitInput: { flex: 2 },
-    subRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.md,
-      paddingVertical: spacing.md,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: c.divider,
-    },
-    subTitle: { flex: 1 },
+    subRow: { paddingHorizontal: 0, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: c.divider },
     subDone: { color: c.textDisabled, textDecorationLine: 'line-through' },
     subAddRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md },
     provenance: { marginTop: spacing.xl, gap: 2 },

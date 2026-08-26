@@ -1,10 +1,11 @@
 import { useLayoutEffect, useMemo, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native';
 import { Text } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ListKind } from '../../data/api/generated/models';
 import type { RootStackParamList } from '../navigation/types';
+import { Button } from '../components/Button';
 import { SegmentedPicker } from '../components/SegmentedPicker';
 import { TextField } from '../components/TextField';
 import { ColorSwatches } from '../components/ColorSwatches';
@@ -52,21 +53,10 @@ export function CreateListScreen() {
     const canCreate = !!name.trim();
     nav.setOptions({
       headerLeft: () => (
-        <Pressable onPress={() => nav.goBack()} hitSlop={8} accessibilityRole="button" accessibilityLabel="Cancel">
-          <Text variant="labelLarge" style={styles.headerCancel}>Cancel</Text>
-        </Pressable>
+        <Button variant="text" title="Cancel" onPress={() => nav.goBack()} />
       ),
       headerRight: () => (
-        <Pressable
-          onPress={() => void create()}
-          disabled={!canCreate}
-          hitSlop={8}
-          accessibilityRole="button"
-          accessibilityLabel="Create list"
-          accessibilityState={{ disabled: !canCreate }}
-        >
-          <Text variant="labelLarge" style={[styles.headerCreate, !canCreate && styles.headerCreateDisabled]}>Create</Text>
-        </Pressable>
+        <Button variant="text" title="Create" onPress={() => void create()} disabled={!canCreate} accessibilityLabel="Create list" />
       ),
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -96,15 +86,13 @@ export function CreateListScreen() {
         <Text variant="labelMedium" style={styles.section}>COLOR</Text>
         <ColorSwatches value={color} onChange={setColor} />
 
-        <Pressable
+        <Button
+          variant="text"
+          title="Import tasks…"
           onPress={() => nav.navigate('ImportList')}
           style={styles.importLink}
-          hitSlop={8}
-          accessibilityRole="button"
           accessibilityLabel="Import tasks"
-        >
-          <Text variant="bodyLarge" style={styles.importLinkText}>Import tasks…</Text>
-        </Pressable>
+        />
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -114,11 +102,7 @@ const makeStyles = (c: Palette) =>
   StyleSheet.create({
     fill: { flex: 1, backgroundColor: c.bg },
     content: { padding: spacing.lg, paddingBottom: 48 },
-    headerCancel: { color: c.primary },
-    headerCreate: { color: c.primary },
-    headerCreateDisabled: { color: c.textDisabled },
     section: { color: c.textSubtle, marginTop: spacing.xl, marginBottom: spacing.sm },
     hint: { color: c.textSubtle, marginTop: spacing.sm },
     importLink: { marginTop: spacing.xxl, alignSelf: 'flex-start' },
-    importLinkText: { color: c.primary },
   });
