@@ -61,5 +61,9 @@
     "typescript-eslint": "^8.65.0",
     "vitest": "4.1.10"
   },
-  "private": true
+  "private": true,
+  "engines": {
+    "node": ">=24.19.0",
+    "npm": ">=11.10.0"
+  }
 }
