@@ -1,13 +1,9 @@
 import { create } from 'zustand';
 import { hapticError } from './haptics';
 
-// Minimal transient message surface for action-level failures (e.g. "couldn't save change")
-// and confirmable actions with an optional inline button (e.g. "Undo"). A single message at a
-// time is plenty for this app; a new toast replaces the current one.
-//
-// This is the cross-cutting *imperative* half of the toast feature — a leaf with no app-layer
-// dependencies (zustand only), so any layer (auth, sync, screens) may call `toast()` without
-// reaching "upward" into the UI. The visual host lives in ui/components/ToastHost.tsx.
+// The imperative half of the toast feature: a leaf with no app-layer dependencies, so any layer
+// may call `toast()` without reaching upward into the UI. The host is ui/components/ToastHost.tsx.
+// One message at a time; a new toast replaces the current one.
 
 export interface ToastAction {
   label: string;
@@ -23,7 +19,7 @@ export interface ToastState {
   message: string | null;
   action: ToastAction | null;
   durationMs: number;
-  nonce: number; // bumps on every show so the auto-dismiss timer re-arms even for identical text
+  nonce: number; // re-arms the auto-dismiss timer even for identical text
   show: (message: string, opts?: ToastOptions) => void;
   hide: () => void;
 }
@@ -45,15 +41,12 @@ export const useToast = create<ToastState>(set => ({
   hide: () => set({ message: null, action: null }),
 }));
 
-/**
- * Show a transient toast. Safe to call from anywhere (not just React components).
- * Pass `action` to render an inline button (e.g. Undo); `durationMs` overrides the dismiss delay.
- */
+/** Safe to call outside React components. `action` renders an inline button (e.g. Undo). */
 export function toast(message: string, opts?: ToastOptions): void {
   useToast.getState().show(message, opts);
 }
 
-/** Toast for a failed or blocked action — same as toast(), plus an error haptic. */
+/** toast() plus an error haptic. */
 export function toastError(message: string): void {
   hapticError();
   toast(message);
