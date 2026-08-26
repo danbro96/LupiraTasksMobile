@@ -1,12 +1,13 @@
 import { useMemo } from 'react';
-import { FlatList, StyleSheet, Text, View } from 'react-native';
+import { FlatList, StyleSheet, View } from 'react-native';
+import { Text } from 'react-native-paper';
 import { Button } from '../components/Button';
 import { SyncBanner } from '../components/SyncBanner';
 import { toastError } from '../../feedback/toast';
 import { useArchivedLists } from '../hooks/useMirror';
 import { enqueue } from '../../sync/outbox';
 import { stamp } from '../../domain/ops';
-import { makeType, radii, spacing, useColors, type Palette } from '../theme';
+import { radii, spacing, useColors, type Palette } from '../theme';
 
 export function ArchivedListsScreen() {
   const { lists } = useArchivedLists();
@@ -27,7 +28,7 @@ export function ArchivedListsScreen() {
         renderItem={({ item }) => (
           <View style={styles.row}>
             <View style={[styles.colorDot, item.color ? { backgroundColor: item.color } : styles.colorDotNone]} />
-            <Text style={styles.rowTitle} numberOfLines={1}>{item.name}</Text>
+            <Text variant="bodyLarge" style={styles.rowTitle} numberOfLines={1}>{item.name}</Text>
             <Button title="Restore" variant="secondary" onPress={() => restore(item.id)} contentStyle={styles.restore} />
           </View>
         )}
@@ -36,9 +37,8 @@ export function ArchivedListsScreen() {
   );
 }
 
-const makeStyles = (c: Palette) => {
-  const t = makeType(c);
-  return StyleSheet.create({
+const makeStyles = (c: Palette) =>
+  StyleSheet.create({
     fill: { flex: 1, backgroundColor: c.bg },
     row: {
       flexDirection: 'row',
@@ -50,8 +50,7 @@ const makeStyles = (c: Palette) => {
     },
     colorDot: { width: 12, height: 12, borderRadius: radii.sm, marginRight: spacing.md },
     colorDotNone: { backgroundColor: 'transparent', borderWidth: 1, borderColor: c.border },
-    rowTitle: { ...t.bodyLg, flex: 1 },
+    rowTitle: { flex: 1 },
     restore: { paddingVertical: 6, paddingHorizontal: spacing.md },
     empty: { textAlign: 'center', color: c.textSubtle, marginTop: 40 },
   });
-};

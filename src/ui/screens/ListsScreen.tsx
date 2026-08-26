@@ -1,5 +1,6 @@
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
+import { Text } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -21,7 +22,7 @@ import { syncAll } from '../../sync/sync';
 import { enqueueMany } from '../../sync/outbox';
 import { planListReorder } from '../../domain/listOrder';
 import { stamp } from '../../domain/ops';
-import { makeType, radii, spacing, useColors, type Palette } from '../theme';
+import { radii, spacing, useColors, type Palette } from '../theme';
 
 interface RowProps {
   list: ListResponse;
@@ -46,7 +47,7 @@ const ListRow = memo(function ListRow({ list, status, styles, palette, onOpen }:
       accessibilityHint="Opens the list. Long-press to reorder."
     >
       <View style={[styles.colorDot, list.color ? { backgroundColor: list.color } : styles.colorDotNone]} />
-      <Text style={styles.rowTitle} numberOfLines={1}>{list.name}</Text>
+      <Text variant="bodyLarge" style={styles.rowTitle} numberOfLines={1}>{list.name}</Text>
       <View style={styles.rowRight}>
         <SyncDot status={status} />
         <MaterialCommunityIcons name="chevron-right" size={18} color={palette.textDisabled} />
@@ -158,9 +159,8 @@ export function ListsScreen() {
   );
 }
 
-const makeStyles = (c: Palette) => {
-  const t = makeType(c);
-  return StyleSheet.create({
+const makeStyles = (c: Palette) =>
+  StyleSheet.create({
     fill: { flex: 1, backgroundColor: c.bg },
     headerBtns: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg },
     row: {
@@ -175,9 +175,8 @@ const makeStyles = (c: Palette) => {
     rowActive: { backgroundColor: c.surface, borderBottomColor: 'transparent' },
     colorDot: { width: 12, height: 12, borderRadius: radii.sm, marginRight: spacing.md },
     colorDotNone: { backgroundColor: 'transparent', borderWidth: 1, borderColor: c.border },
-    rowTitle: { ...t.bodyLg, flex: 1 },
+    rowTitle: { flex: 1 },
     rowRight: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
     empty: { textAlign: 'center', color: c.textSubtle, marginTop: 40 },
     loading: { marginTop: 40 },
   });
-};

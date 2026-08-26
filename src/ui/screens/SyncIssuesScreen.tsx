@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, View } from 'react-native';
+import { Text } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Button } from '../components/Button';
 import { toast } from '../../feedback/toast';
 import { listParked, retryParked, discardParked, type ParkedOp } from '../../sync/outbox';
 import { useSyncStatus } from '../../sync/syncStatus';
 import type { ClientOp } from '../../domain/ops';
-import { HIT_SLOP, makeType, radii, spacing, useColors, type Palette } from '../theme';
+import { HIT_SLOP, radii, spacing, useColors, type Palette } from '../theme';
 
 // Human label per op kind. A Record over the union forces every new op kind to get a label.
 const OP_LABELS: Record<ClientOp['kind'], string> = {
@@ -69,7 +70,7 @@ export function SyncIssuesScreen() {
     return (
       <View style={styles.empty}>
         <MaterialCommunityIcons name="check-circle-outline" size={48} color={c.textDisabled} />
-        <Text style={styles.emptyText}>All changes are synced.</Text>
+        <Text variant="bodyLarge" style={styles.emptyText}>All changes are synced.</Text>
       </View>
     );
   }
@@ -82,7 +83,7 @@ export function SyncIssuesScreen() {
         contentContainerStyle={styles.list}
         ListHeaderComponent={
           <View style={styles.header}>
-            <Text style={styles.headerText}>
+            <Text variant="bodySmall" style={styles.headerText}>
               These changes couldn&apos;t be saved to the server. Retry them, or discard ones you no longer want.
             </Text>
             <Button title="Retry all" onPress={onRetryAll} style={styles.retry} />
@@ -92,8 +93,8 @@ export function SyncIssuesScreen() {
         renderItem={({ item }) => (
           <View style={styles.row}>
             <View style={styles.rowText}>
-              <Text style={styles.opLabel}>{OP_LABELS[item.op.kind]}</Text>
-              {item.lastError ? <Text style={styles.error} numberOfLines={2}>{item.lastError}</Text> : null}
+              <Text variant="bodyLarge">{OP_LABELS[item.op.kind]}</Text>
+              {item.lastError ? <Text variant="labelSmall" style={styles.error} numberOfLines={2}>{item.lastError}</Text> : null}
             </View>
             <Pressable
               onPress={() => onDiscard(item)}
@@ -102,7 +103,7 @@ export function SyncIssuesScreen() {
               accessibilityLabel={`Discard ${OP_LABELS[item.op.kind]}`}
               style={({ pressed }) => [styles.discard, pressed && styles.pressed]}
             >
-              <Text style={styles.discardText}>Discard</Text>
+              <Text variant="labelLarge" style={styles.discardText}>Discard</Text>
             </Pressable>
           </View>
         )}
@@ -111,23 +112,20 @@ export function SyncIssuesScreen() {
   );
 }
 
-const makeStyles = (c: Palette) => {
-  const t = makeType(c);
-  return StyleSheet.create({
+const makeStyles = (c: Palette) =>
+  StyleSheet.create({
     fill: { flex: 1, backgroundColor: c.bg },
     list: { padding: spacing.lg },
     header: { gap: spacing.md, marginBottom: spacing.lg },
-    headerText: { ...t.small },
-    opLabel: { ...t.body },
+    headerText: { color: c.textMuted },
     retry: { alignSelf: 'stretch' },
     sep: { height: 1, backgroundColor: c.divider },
     row: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.md, gap: spacing.md },
     rowText: { flex: 1, gap: spacing.xs },
-    error: { ...t.hint, color: c.danger },
+    error: { color: c.danger },
     discard: { borderWidth: 1, borderColor: c.danger, borderRadius: radii.md, paddingVertical: spacing.sm, paddingHorizontal: spacing.md },
-    discardText: { ...t.button, color: c.danger },
+    discardText: { color: c.danger },
     pressed: { opacity: 0.6 },
     empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md, backgroundColor: c.bg },
-    emptyText: { ...t.body, color: c.textMuted },
+    emptyText: { color: c.textMuted },
   });
-};

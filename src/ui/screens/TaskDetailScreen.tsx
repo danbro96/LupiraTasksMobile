@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Text } from 'react-native-paper';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -7,7 +8,6 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   TextInput,
   View,
 } from 'react-native';
@@ -37,7 +37,7 @@ import { enqueue } from '../../sync/outbox';
 import { newId, stamp } from '../../domain/ops';
 import { oneLine } from '../../domain/text';
 import { dueInDays, dueNextWeekend, dueOnDate, formatDue } from '../../domain/dueDate';
-import { makeType, radii, spacing, useColors, type Palette } from '../theme';
+import { radii, spacing, useColors, type Palette } from '../theme';
 
 const DUE_QUICK: { label: string; iso: () => string }[] = [
   { label: 'Today', iso: () => dueInDays(0) },
@@ -303,7 +303,7 @@ export function TaskDetailScreen() {
           accessibilityLabel={item.completed ? 'Completed' : 'Mark complete'}
         >
           <Checkbox checked={item.completed} disabled={!canEdit} onPress={() => void toggleComplete()} />
-          <Text style={styles.completeLabel}>{item.completed ? 'Completed' : 'Mark complete'}</Text>
+          <Text variant="bodyLarge">{item.completed ? 'Completed' : 'Mark complete'}</Text>
         </Pressable>
 
         <View style={styles.card}>
@@ -323,7 +323,7 @@ export function TaskDetailScreen() {
           />
         </View>
 
-        <Text style={styles.section}>PRIORITY</Text>
+        <Text variant="labelMedium" style={styles.section}>PRIORITY</Text>
         <View style={styles.priorityRow}>
           <PriorityControl
             simple={list?.simplePriority ?? true}
@@ -331,7 +331,7 @@ export function TaskDetailScreen() {
             editable={canEdit}
             onChange={p => void setPriority(p)}
           />
-          <Text style={styles.priorityHint}>
+          <Text variant="bodyLarge" style={styles.priorityHint}>
             {(list?.simplePriority ?? true)
               ? item.priority > 0 ? 'Starred' : 'Not starred'
               : `Level ${item.priority}`}
@@ -340,7 +340,7 @@ export function TaskDetailScreen() {
 
         {isShopping ? (
           <>
-            <Text style={styles.section}>QUANTITY</Text>
+            <Text variant="labelMedium" style={styles.section}>QUANTITY</Text>
             <View style={styles.qtyRow}>
               <TextField
                 value={qty}
@@ -366,7 +366,7 @@ export function TaskDetailScreen() {
           </>
         ) : null}
 
-        <Text style={styles.section}>NOTES</Text>
+        <Text variant="labelMedium" style={styles.section}>NOTES</Text>
         <TextField
           value={notes}
           onChangeText={setNotes}
@@ -377,10 +377,10 @@ export function TaskDetailScreen() {
           accessibilityLabel="Task notes"
         />
 
-        <Text style={styles.section}>
+        <Text variant="labelMedium" style={styles.section}>
           SUBTASKS{subtasks.length > 0 ? ` · ${subtasksDone}/${subtasks.length} done` : ''}
         </Text>
-        {subtasks.length === 0 ? <Text style={styles.noneText}>No subtasks</Text> : null}
+        {subtasks.length === 0 ? <Text variant="bodySmall" style={styles.noneText}>No subtasks</Text> : null}
         {subtasks.map(st => (
           <Pressable
             key={st.id}
@@ -391,7 +391,7 @@ export function TaskDetailScreen() {
             accessibilityHint="Opens subtask"
           >
             <Checkbox checked={st.completed} disabled={!canEdit} onPress={() => void toggleSub(st)} />
-            <Text style={[styles.subTitle, st.completed && styles.subDone]} numberOfLines={1}>{st.title}</Text>
+            <Text variant="bodyLarge" style={[styles.subTitle, st.completed && styles.subDone]} numberOfLines={1}>{st.title}</Text>
             <MaterialCommunityIcons name="chevron-right" size={16} color={c.textDisabled} />
           </Pressable>
         ))}
@@ -411,9 +411,9 @@ export function TaskDetailScreen() {
 
         {item.createdBy || item.completedBy ? (
           <View style={styles.provenance}>
-            {item.createdBy ? <Text style={styles.provText}>Added by {personName(item.createdBy)}</Text> : null}
+            {item.createdBy ? <Text variant="labelSmall" style={styles.provText}>Added by {personName(item.createdBy)}</Text> : null}
             {item.completed && item.completedBy ? (
-              <Text style={styles.provText}>
+              <Text variant="labelSmall" style={styles.provText}>
                 Completed by {personName(item.completedBy)}
                 {item.completedAt ? ` · ${fmtDate(item.completedAt)}` : ''}
               </Text>
@@ -449,21 +449,20 @@ export function TaskDetailScreen() {
   );
 }
 
-const makeStyles = (c: Palette) => {
-  const t = makeType(c);
-  return StyleSheet.create({
+const makeStyles = (c: Palette) =>
+  StyleSheet.create({
     fill: { flex: 1, backgroundColor: c.bg },
     content: { padding: spacing.lg, paddingBottom: 48 },
     headerDot: { paddingRight: spacing.xs },
-    titleInput: { ...t.title, paddingVertical: spacing.sm },
+    // A TextInput takes no Paper variant, so the title type is spelled out here.
+    titleInput: { fontSize: 26, fontWeight: '700', color: c.text, paddingVertical: spacing.sm },
     titleDone: { color: c.textDisabled, textDecorationLine: 'line-through' },
     completeRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.sm, marginBottom: spacing.md },
-    completeLabel: { ...t.bodyLg },
     card: { backgroundColor: c.surface, borderRadius: radii.lg, overflow: 'hidden' },
-    section: { ...t.sectionLabel, marginTop: spacing.xl, marginBottom: spacing.sm },
-    noneText: { ...t.small, marginBottom: spacing.sm },
+    section: { color: c.textSubtle, marginTop: spacing.xl, marginBottom: spacing.sm },
+    noneText: { color: c.textMuted, marginBottom: spacing.sm },
     priorityRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-    priorityHint: { ...t.body, color: c.textMuted },
+    priorityHint: { color: c.textMuted },
     qtyRow: { flexDirection: 'row', gap: spacing.sm },
     qtyInput: { flex: 1 },
     unitInput: { flex: 2 },
@@ -475,11 +474,11 @@ const makeStyles = (c: Palette) => {
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: c.divider,
     },
-    subTitle: { ...t.body, flex: 1 },
+    subTitle: { flex: 1 },
     subDone: { color: c.textDisabled, textDecorationLine: 'line-through' },
     subAddRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md },
     provenance: { marginTop: spacing.xl, gap: 2 },
-    provText: { ...t.hint, color: c.textSubtle },
+    provText: { color: c.textSubtle },
     delete: { marginTop: spacing.xl },
     iosBackdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
     iosSheet: { backgroundColor: c.bg, borderTopLeftRadius: radii.lg, borderTopRightRadius: radii.lg, padding: spacing.lg },
@@ -487,4 +486,3 @@ const makeStyles = (c: Palette) => {
     empty: { textAlign: 'center', color: c.textSubtle, marginTop: 40 },
     loading: { marginTop: 40 },
   });
-};

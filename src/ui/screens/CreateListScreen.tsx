@@ -1,5 +1,6 @@
 import { useLayoutEffect, useMemo, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet } from 'react-native';
+import { Text } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ListKind } from '../../data/api/generated/models';
@@ -12,7 +13,7 @@ import { toastError } from '../../feedback/toast';
 import { enqueue } from '../../sync/outbox';
 import { newId, stamp } from '../../domain/ops';
 import { logDebug } from '../../debug/log';
-import { makeType, spacing, useColors, type Palette } from '../theme';
+import { spacing, useColors, type Palette } from '../theme';
 
 const KINDS = [ListKind.Todo, ListKind.Shopping] as const;
 const KIND_LABELS: Record<ListKind, string> = { [ListKind.Todo]: 'To-do', [ListKind.Shopping]: 'Shopping', [ListKind.Agent]: 'Agent' };
@@ -52,7 +53,7 @@ export function CreateListScreen() {
     nav.setOptions({
       headerLeft: () => (
         <Pressable onPress={() => nav.goBack()} hitSlop={8} accessibilityRole="button" accessibilityLabel="Cancel">
-          <Text style={styles.headerCancel}>Cancel</Text>
+          <Text variant="labelLarge" style={styles.headerCancel}>Cancel</Text>
         </Pressable>
       ),
       headerRight: () => (
@@ -64,7 +65,7 @@ export function CreateListScreen() {
           accessibilityLabel="Create list"
           accessibilityState={{ disabled: !canCreate }}
         >
-          <Text style={[styles.headerCreate, !canCreate && styles.headerCreateDisabled]}>Create</Text>
+          <Text variant="labelLarge" style={[styles.headerCreate, !canCreate && styles.headerCreateDisabled]}>Create</Text>
         </Pressable>
       ),
     });
@@ -77,7 +78,7 @@ export function CreateListScreen() {
     <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <SyncBanner />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Text style={styles.section}>NAME</Text>
+        <Text variant="labelMedium" style={styles.section}>NAME</Text>
         <TextField
           placeholder="List name…"
           value={name}
@@ -88,11 +89,11 @@ export function CreateListScreen() {
           accessibilityLabel="List name"
         />
 
-        <Text style={styles.section}>TYPE</Text>
+        <Text variant="labelMedium" style={styles.section}>TYPE</Text>
         <SegmentedPicker options={KINDS} selected={kind} onSelect={setKind} getLabel={k => KIND_LABELS[k]} />
-        <Text style={styles.hint}>{kindHint}</Text>
+        <Text variant="bodySmall" style={styles.hint}>{kindHint}</Text>
 
-        <Text style={styles.section}>COLOR</Text>
+        <Text variant="labelMedium" style={styles.section}>COLOR</Text>
         <ColorSwatches value={color} onChange={setColor} />
 
         <Pressable
@@ -102,24 +103,22 @@ export function CreateListScreen() {
           accessibilityRole="button"
           accessibilityLabel="Import tasks"
         >
-          <Text style={styles.importLinkText}>Import tasks…</Text>
+          <Text variant="bodyLarge" style={styles.importLinkText}>Import tasks…</Text>
         </Pressable>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
-const makeStyles = (c: Palette) => {
-  const t = makeType(c);
-  return StyleSheet.create({
+const makeStyles = (c: Palette) =>
+  StyleSheet.create({
     fill: { flex: 1, backgroundColor: c.bg },
     content: { padding: spacing.lg, paddingBottom: 48 },
-    headerCancel: { ...t.button, color: c.primary },
-    headerCreate: { ...t.button, color: c.primary },
+    headerCancel: { color: c.primary },
+    headerCreate: { color: c.primary },
     headerCreateDisabled: { color: c.textDisabled },
-    section: { ...t.sectionLabel, marginTop: spacing.xl, marginBottom: spacing.sm },
-    hint: { ...t.small, color: c.textSubtle, marginTop: spacing.sm },
+    section: { color: c.textSubtle, marginTop: spacing.xl, marginBottom: spacing.sm },
+    hint: { color: c.textSubtle, marginTop: spacing.sm },
     importLink: { marginTop: spacing.xxl, alignSelf: 'flex-start' },
-    importLinkText: { ...t.body, color: c.primary },
+    importLinkText: { color: c.primary },
   });
-};

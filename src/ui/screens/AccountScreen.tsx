@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { Switch } from 'react-native-paper';
+import { Switch, Text } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
@@ -12,7 +12,7 @@ import { useConfirm } from '../components/ConfirmDialog';
 import { useAuth } from '../../state/auth-store';
 import { usePrefs, type RowSpacing, type TextSize } from '../../state/prefs-store';
 import { APP_VERSION } from '../../config';
-import { makeType, radii, spacing, useColors, type Palette } from '../theme';
+import { radii, spacing, useColors, type Palette } from '../theme';
 
 const TEXT_SIZES = ['small', 'default', 'large'] as const;
 const TEXT_SIZE_LABELS: Record<TextSize, string> = { small: 'Small', default: 'Default', large: 'Large' };
@@ -46,8 +46,8 @@ export function AccountScreen() {
         <View style={styles.avatar}>
           <MaterialCommunityIcons name="account" size={32} color={c.onPrimary} />
         </View>
-        {user?.displayName ? <Text style={styles.name}>{user.displayName}</Text> : null}
-        <Text style={styles.email}>{user?.sub ?? 'Not signed in'}</Text>
+        {user?.displayName ? <Text variant="titleLarge" style={styles.name}>{user.displayName}</Text> : null}
+        <Text variant="bodySmall" style={styles.email}>{user?.sub ?? 'Not signed in'}</Text>
 
         <Button
           title="Archived lists"
@@ -56,9 +56,9 @@ export function AccountScreen() {
           style={styles.archived}
         />
 
-        <Text style={styles.sectionLabel}>DISPLAY</Text>
+        <Text variant="labelMedium" style={styles.sectionLabel}>DISPLAY</Text>
         <View style={styles.settingRow}>
-          <Text style={styles.settingLabel}>Task text size</Text>
+          <Text variant="bodyLarge" style={styles.settingLabel}>Task text size</Text>
           <SegmentedPicker
             options={TEXT_SIZES}
             selected={textSize}
@@ -67,7 +67,7 @@ export function AccountScreen() {
           />
         </View>
         <View style={styles.settingRow}>
-          <Text style={styles.settingLabel}>Row spacing</Text>
+          <Text variant="bodyLarge" style={styles.settingLabel}>Row spacing</Text>
           <SegmentedPicker
             options={ROW_SPACINGS}
             selected={rowSpacing}
@@ -78,8 +78,8 @@ export function AccountScreen() {
 
         <View style={styles.debugRow}>
           <View style={styles.debugLabelCol}>
-            <Text style={styles.debugLabel}>Enable debug</Text>
-            <Text style={styles.debugHint}>Show extra information</Text>
+            <Text variant="bodyLarge">Enable debug</Text>
+            <Text variant="bodySmall" style={styles.debugHint}>Show extra information</Text>
           </View>
           <Switch
             value={debugEnabled}
@@ -99,15 +99,14 @@ export function AccountScreen() {
 
         <Button title="Sign out" variant="destructive" onPress={() => void signOut()} style={styles.signOut} />
 
-        <Text style={styles.version}>Lupira Tasks v{APP_VERSION}</Text>
+        <Text variant="labelSmall" style={styles.version}>Lupira Tasks v{APP_VERSION}</Text>
       </View>
     </View>
   );
 }
 
-const makeStyles = (c: Palette) => {
-  const t = makeType(c);
-  return StyleSheet.create({
+const makeStyles = (c: Palette) =>
+  StyleSheet.create({
     fill: { flex: 1, backgroundColor: c.bg },
     content: { padding: spacing.xl, alignItems: 'center' },
     avatar: {
@@ -120,12 +119,12 @@ const makeStyles = (c: Palette) => {
       marginTop: spacing.xl,
       marginBottom: spacing.lg,
     },
-    name: { ...t.heading, marginBottom: spacing.xs },
-    email: { ...t.small, marginBottom: spacing.xxl },
+    name: { marginBottom: spacing.xs },
+    email: { color: c.textMuted, marginBottom: spacing.xxl },
     archived: { alignSelf: 'stretch', marginBottom: spacing.md },
-    sectionLabel: { ...t.sectionLabel, alignSelf: 'stretch', marginTop: spacing.lg, marginBottom: spacing.sm },
+    sectionLabel: { color: c.textSubtle, alignSelf: 'stretch', marginTop: spacing.lg, marginBottom: spacing.sm },
     settingRow: { alignSelf: 'stretch', marginBottom: spacing.md },
-    settingLabel: { ...t.body, marginBottom: spacing.sm },
+    settingLabel: { marginBottom: spacing.sm },
     debugLogBtn: { alignSelf: 'stretch', marginBottom: spacing.md },
     debugRow: {
       alignSelf: 'stretch',
@@ -136,9 +135,7 @@ const makeStyles = (c: Palette) => {
       marginBottom: spacing.md,
     },
     debugLabelCol: { flex: 1, paddingRight: spacing.md },
-    debugLabel: { ...t.body },
-    debugHint: { ...t.small },
+    debugHint: { color: c.textMuted },
     signOut: { alignSelf: 'stretch' },
-    version: { ...t.hint, marginTop: spacing.xxl },
+    version: { color: c.textSubtle, marginTop: spacing.xxl },
   });
-};

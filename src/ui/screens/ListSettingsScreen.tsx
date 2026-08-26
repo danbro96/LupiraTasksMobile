@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Text } from 'react-native-paper';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -6,7 +7,6 @@ import {
   ScrollView,
   Share,
   StyleSheet,
-  Text,
   View,
 } from 'react-native';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
@@ -29,7 +29,7 @@ import { enqueue } from '../../sync/outbox';
 import { stamp } from '../../domain/ops';
 import { tasksToJson } from '../../domain/exportTasks';
 import type { CompletedMode } from '../../domain/itemTree';
-import { makeType, spacing, useColors, type Palette } from '../theme';
+import { spacing, useColors, type Palette } from '../theme';
 
 const ROLES: ListRole[] = [ListRole.Owner, ListRole.Editor, ListRole.Viewer];
 const COMPLETED_MODES = ['inline', 'below', 'hidden'] as const;
@@ -193,24 +193,24 @@ export function ListSettingsScreen() {
     <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <SyncBanner />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Text style={styles.section}>NAME</Text>
+        <Text variant="labelMedium" style={styles.section}>NAME</Text>
         <View style={styles.row}>
           <TextField value={name} onChangeText={setName} onSubmitEditing={saveName} returnKeyType="done" accessibilityLabel="List name" />
           <Button title="Save" onPress={saveName} />
         </View>
 
-        <Text style={styles.section}>COLOR</Text>
+        <Text variant="labelMedium" style={styles.section}>COLOR</Text>
         <ColorSwatches value={list.color ?? null} onChange={c => void setColor(c)} />
 
-        <Text style={styles.section}>DISPLAY</Text>
-        <Text style={styles.displayLabel}>Completed tasks</Text>
+        <Text variant="labelMedium" style={styles.section}>DISPLAY</Text>
+        <Text variant="bodyLarge" style={styles.displayLabel}>Completed tasks</Text>
         <SegmentedPicker
           options={COMPLETED_MODES}
           selected={completedMode}
           onSelect={m => void usePrefs.getState().setCompletedMode(listId, m)}
           getLabel={m => COMPLETED_LABELS[m]}
         />
-        <Text style={[styles.displayLabel, styles.displayLabelGap]}>Priority</Text>
+        <Text variant="bodyLarge" style={[styles.displayLabel, styles.displayLabelGap]}>Priority</Text>
         <SegmentedPicker
           options={PRIORITY_MODES}
           selected={list.simplePriority ? 'simple' : 'scale'}
@@ -218,7 +218,7 @@ export function ListSettingsScreen() {
           getLabel={m => PRIORITY_LABELS[m]}
         />
 
-        <Text style={styles.section}>MEMBERS</Text>
+        <Text variant="labelMedium" style={styles.section}>MEMBERS</Text>
         {list.members.map(m => {
           const isMe = m.principalId === me;
           const label = m.displayName ?? m.email;
@@ -264,12 +264,12 @@ export function ListSettingsScreen() {
               />
               <Button title="Add" onPress={addMember} disabled={!newEmail.trim()} />
             </View>
-            <Text style={styles.inviteAs}>Invite as</Text>
+            <Text variant="bodySmall" style={styles.inviteAs}>Invite as</Text>
             <SegmentedPicker options={ROLES} selected={inviteRole} onSelect={setInviteRole} />
           </View>
         ) : null}
 
-        <Text style={styles.section}>EXPORT</Text>
+        <Text variant="labelMedium" style={styles.section}>EXPORT</Text>
         <Button title="Export as JSON" variant="secondary" onPress={exportJson} />
 
         {isOwner ? <ShareLinks listId={listId} /> : null}
@@ -287,21 +287,20 @@ export function ListSettingsScreen() {
   );
 }
 
-const makeStyles = (c: Palette) => {
-  const t = makeType(c);
-  return StyleSheet.create({
+const makeStyles = (c: Palette) =>
+  StyleSheet.create({
     fill: { flex: 1, backgroundColor: c.bg },
     content: { padding: spacing.lg, paddingBottom: 48 },
-    section: { ...t.sectionLabel, marginTop: spacing.xl, marginBottom: spacing.sm },
+    section: { color: c.textSubtle, marginTop: spacing.xl, marginBottom: spacing.sm },
     row: { flexDirection: 'row', gap: spacing.sm },
-    displayLabel: { ...t.body, marginBottom: spacing.sm },
+    displayLabel: { marginBottom: spacing.sm },
     displayLabelGap: { marginTop: spacing.lg },
     member: { paddingVertical: spacing.md, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: c.divider },
     memberHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     memberEmail: { fontSize: 15, color: c.text, flex: 1 },
     remove: { color: c.danger, fontSize: 13 },
     invite: { marginTop: spacing.lg },
-    inviteAs: { ...t.small, marginTop: spacing.md, marginBottom: spacing.sm },
+    inviteAs: { color: c.textMuted, marginTop: spacing.md, marginBottom: spacing.sm },
     roleRow: { marginTop: spacing.sm },
     roleLabel: { marginTop: spacing.xs, fontSize: 13, color: c.textSubtle },
     archiveBtn: { marginTop: spacing.xxl },
@@ -309,4 +308,3 @@ const makeStyles = (c: Palette) => {
     leaveBtn: { marginTop: spacing.xxl },
     empty: { textAlign: 'center', color: c.textSubtle, marginTop: 40 },
   });
-};

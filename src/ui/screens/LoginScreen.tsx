@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Linking, Pressable, StyleSheet, View } from 'react-native';
+import { Text } from 'react-native-paper';
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -9,7 +10,7 @@ import { logAuth, clearAuthLog } from '../../data/auth/authDebug';
 import { DebugPanel } from '../components/DebugPanel';
 import { useAuth } from '../../state/auth-store';
 import { usePrefs } from '../../state/prefs-store';
-import { makeType, radii, spacing, useColors, type Palette } from '../theme';
+import { radii, spacing, useColors, type Palette } from '../theme';
 
 // Required so the auth redirect back into the app dismisses the in-app browser.
 WebBrowser.maybeCompleteAuthSession();
@@ -136,7 +137,7 @@ export function LoginScreen() {
       <View style={styles.logo}>
         <MaterialCommunityIcons name="check-bold" size={52} color={c.onPrimary} />
       </View>
-      <Text style={styles.title}>Lupira Tasks</Text>
+      <Text variant="headlineSmall">Lupira Tasks</Text>
       <Text style={styles.subtitle}>Sign in with your family account.</Text>
 
       <Pressable
@@ -157,9 +158,8 @@ export function LoginScreen() {
   );
 }
 
-const makeStyles = (c: Palette) => {
-  const t = makeType(c);
-  return StyleSheet.create({
+const makeStyles = (c: Palette) =>
+  StyleSheet.create({
     container: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl, backgroundColor: c.bg },
     logo: {
       width: 96,
@@ -170,7 +170,6 @@ const makeStyles = (c: Palette) => {
       justifyContent: 'center',
       marginBottom: spacing.xl,
     },
-    title: { ...t.title },
     subtitle: { marginTop: spacing.sm, marginBottom: 28, fontSize: 15, color: c.textMuted },
     button: {
       backgroundColor: c.primary,
@@ -186,4 +185,3 @@ const makeStyles = (c: Palette) => {
     error: { marginTop: spacing.lg, color: c.danger, textAlign: 'center' },
     hint: { marginTop: spacing.md, fontSize: 11, color: c.textDisabled },
   });
-};

@@ -1,8 +1,9 @@
 import { useMemo } from 'react';
-import { FlatList, Share, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Share, StyleSheet, View } from 'react-native';
+import { Text } from 'react-native-paper';
 import { Button } from '../components/Button';
 import { useDebugLog, clearDebugLog } from '../../debug/log';
-import { makeType, spacing, useColors, type Palette } from '../theme';
+import { spacing, useColors, type Palette } from '../theme';
 
 /**
  * On-device view of the shared debug buffer (the same trace the dev-only floating DebugPanel
@@ -24,7 +25,7 @@ export function DebugLogScreen() {
   return (
     <View style={styles.fill}>
       <View style={styles.header}>
-        <Text style={styles.count}>{entries.length} events</Text>
+        <Text variant="bodySmall" style={styles.count}>{entries.length} events</Text>
         <View style={styles.actions}>
           <Button title="Share" variant="secondary" onPress={onShare} />
           <Button title="Clear" variant="secondary" onPress={() => clearDebugLog()} />
@@ -34,7 +35,7 @@ export function DebugLogScreen() {
         data={rows}
         keyExtractor={(e, i) => `${e.t}-${i}`}
         contentContainerStyle={styles.list}
-        ListEmptyComponent={<Text style={styles.empty}>No events yet.</Text>}
+        ListEmptyComponent={<Text variant="bodyLarge" style={styles.empty}>No events yet.</Text>}
         renderItem={({ item }) => (
           <View style={styles.row}>
             <Text style={styles.stage} selectable>
@@ -48,9 +49,8 @@ export function DebugLogScreen() {
   );
 }
 
-const makeStyles = (c: Palette) => {
-  const t = makeType(c);
-  return StyleSheet.create({
+const makeStyles = (c: Palette) =>
+  StyleSheet.create({
     fill: { flex: 1, backgroundColor: c.bg },
     header: {
       flexDirection: 'row',
@@ -61,12 +61,11 @@ const makeStyles = (c: Palette) => {
       borderBottomWidth: 1,
       borderBottomColor: c.divider,
     },
-    count: { ...t.small },
+    count: { color: c.textMuted },
     actions: { flexDirection: 'row', gap: spacing.sm },
     list: { padding: spacing.lg },
     row: { paddingVertical: spacing.xs, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: c.divider },
     stage: { fontFamily: 'monospace', fontSize: 11, color: c.text },
     ts: { fontFamily: 'monospace', fontSize: 10, color: c.textMuted, marginTop: 1 },
-    empty: { ...t.body, color: c.textMuted, textAlign: 'center', marginTop: spacing.xxl },
+    empty: { color: c.textMuted, textAlign: 'center', marginTop: spacing.xxl },
   });
-};

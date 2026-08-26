@@ -34,7 +34,7 @@ import { enqueue } from '../../sync/outbox';
 import { pullList } from '../../sync/sync';
 import { newId, stamp } from '../../domain/ops';
 import { formatDue } from '../../domain/dueDate';
-import { makeType, spacing, useColors, type Palette } from '../theme';
+import { spacing, useColors, type Palette } from '../theme';
 
 const INDENT = spacing.lg; // left inset per nesting level
 const SWIPE_DELETE_THRESHOLD = -80; // swipe left past this (px) and release to delete
@@ -460,12 +460,11 @@ export function ListDetailScreen() {
 }
 
 const makeStyles = (c: Palette, fontScale = 1, rowPad = 14) => {
-  const t = makeType(c);
   return StyleSheet.create({
     fill: { flex: 1, backgroundColor: c.bg },
     colorStripe: { height: 5 },
     addRow: { flexDirection: 'row', padding: spacing.md, gap: spacing.sm },
-    readonly: { ...t.small, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm },
+    readonly: { fontSize: 13, color: c.textMuted, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm },
     row: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -479,14 +478,14 @@ const makeStyles = (c: Palette, fontScale = 1, rowPad = 14) => {
     rowActive: { backgroundColor: c.surface, borderBottomColor: 'transparent' },
     rowBody: { flex: 1 },
     titleLine: { flexDirection: 'row', alignItems: 'baseline', gap: spacing.sm },
-    itemTitle: { ...t.bodyLg, fontSize: Math.round(17 * fontScale), flex: 1 },
+    itemTitle: { fontSize: Math.round(17 * fontScale), color: c.text, flex: 1 },
     itemDone: { color: c.textDisabled, textDecorationLine: 'line-through' },
     qty: { color: c.textMuted, fontWeight: '700' },
     metaRow: { flexDirection: 'row', gap: spacing.sm, marginTop: 2 },
-    meta: { ...t.hint, fontSize: Math.round(11 * fontScale), color: c.textMuted, flexShrink: 1 },
+    meta: { fontSize: Math.round(11 * fontScale), color: c.textMuted, flexShrink: 1 },
     overdue: { color: c.danger, fontWeight: '600' },
     // The title yields width, not this — capped so a long name can't ellipsise it away.
-    changeMeta: { ...t.hint, fontSize: Math.round(11 * fontScale), color: c.primary, fontWeight: '600', flexShrink: 0, maxWidth: '45%' },
+    changeMeta: { fontSize: Math.round(11 * fontScale), color: c.primary, fontWeight: '600', flexShrink: 0, maxWidth: '45%' },
     remoteHighlight: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, backgroundColor: c.remoteChange },
     swipeContainer: { justifyContent: 'center' },
     swipeDelete: {
@@ -501,7 +500,7 @@ const makeStyles = (c: Palette, fontScale = 1, rowPad = 14) => {
       justifyContent: 'flex-end',
       paddingRight: 24,
     },
-    completedHeader: { ...t.sectionLabel, paddingHorizontal: spacing.lg, paddingTop: spacing.lg, paddingBottom: spacing.sm },
+    completedHeader: { fontSize: 12, fontWeight: '700', color: c.textSubtle, paddingHorizontal: spacing.lg, paddingTop: spacing.lg, paddingBottom: spacing.sm },
     empty: { textAlign: 'center', color: c.textSubtle, marginTop: 40 },
     loading: { marginTop: 40 },
   });

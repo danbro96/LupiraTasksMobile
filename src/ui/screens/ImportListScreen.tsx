@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet } from 'react-native';
+import { Text } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { generateKeyBetween } from 'fractional-indexing';
@@ -13,7 +14,7 @@ import { enqueueMany } from '../../sync/outbox';
 import { newId, stamp, type ClientOp } from '../../domain/ops';
 import { parseImport, type ImportedTask } from '../../domain/importTasks';
 import { logDebug } from '../../debug/log';
-import { makeType, spacing, useColors, type Palette } from '../theme';
+import { spacing, useColors, type Palette } from '../theme';
 
 const KINDS = [ListKind.Todo, ListKind.Shopping] as const;
 // Keyed by the full ListKind union (SegmentedPicker widens its label callback to ListKind). Agent lists
@@ -86,7 +87,7 @@ export function ImportListScreen() {
     nav.setOptions({
       headerLeft: () => (
         <Pressable onPress={() => nav.goBack()} hitSlop={8} accessibilityRole="button" accessibilityLabel="Cancel">
-          <Text style={styles.headerCancel}>Cancel</Text>
+          <Text variant="labelLarge" style={styles.headerCancel}>Cancel</Text>
         </Pressable>
       ),
       headerRight: () => (
@@ -98,7 +99,7 @@ export function ImportListScreen() {
           accessibilityLabel="Import list"
           accessibilityState={{ disabled: !canImport }}
         >
-          <Text style={[styles.headerImport, !canImport && styles.headerImportDisabled]}>Import</Text>
+          <Text variant="labelLarge" style={[styles.headerImport, !canImport && styles.headerImportDisabled]}>Import</Text>
         </Pressable>
       ),
     });
@@ -116,7 +117,7 @@ export function ImportListScreen() {
     <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <SyncBanner />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Text style={styles.section}>NAME</Text>
+        <Text variant="labelMedium" style={styles.section}>NAME</Text>
         <TextField
           placeholder="List name…"
           value={name}
@@ -126,10 +127,10 @@ export function ImportListScreen() {
           accessibilityLabel="List name"
         />
 
-        <Text style={styles.section}>TYPE</Text>
+        <Text variant="labelMedium" style={styles.section}>TYPE</Text>
         <SegmentedPicker options={KINDS} selected={kind} onSelect={setKind} getLabel={k => KIND_LABELS[k]} />
 
-        <Text style={styles.section}>TASKS (JSON OR ONE PER LINE)</Text>
+        <Text variant="labelMedium" style={styles.section}>TASKS (JSON OR ONE PER LINE)</Text>
         <TextField
           placeholder={'Paste a JSON export…\nor just:\nMilk\nBread'}
           value={csvText}
@@ -138,23 +139,21 @@ export function ImportListScreen() {
           style={styles.csvInput}
           accessibilityLabel="Tasks to import"
         />
-        <Text style={[styles.preview, parsed && !parsed.ok && styles.previewError]}>{preview}</Text>
+        <Text variant="bodySmall" style={[styles.preview, parsed && !parsed.ok && styles.previewError]}>{preview}</Text>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
-const makeStyles = (c: Palette) => {
-  const t = makeType(c);
-  return StyleSheet.create({
+const makeStyles = (c: Palette) =>
+  StyleSheet.create({
     fill: { flex: 1, backgroundColor: c.bg },
     content: { padding: spacing.lg, paddingBottom: 48 },
-    headerCancel: { ...t.button, color: c.primary },
-    headerImport: { ...t.button, color: c.primary },
+    headerCancel: { color: c.primary },
+    headerImport: { color: c.primary },
     headerImportDisabled: { color: c.textDisabled },
-    section: { ...t.sectionLabel, marginTop: spacing.xl, marginBottom: spacing.sm },
+    section: { color: c.textSubtle, marginTop: spacing.xl, marginBottom: spacing.sm },
     csvInput: { minHeight: 160 },
-    preview: { ...t.small, marginTop: spacing.sm },
+    preview: { color: c.textMuted, marginTop: spacing.sm },
     previewError: { color: c.danger },
   });
-};
