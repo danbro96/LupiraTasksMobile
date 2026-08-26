@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Button as PaperButton, Card, List, Text } from 'react-native-paper';
 import * as Clipboard from 'expo-clipboard';
 import { ShareAccess, type ShareResponse } from '../../data/api/generated/models';
 import { createShareLink, listShareLinks, revokeShareLink } from '../../data/shares';
 import { toast, toastError } from '../../feedback/toast';
-import { makeType, radii, spacing, useColors, type Palette } from '../theme';
+import { spacing, useColors, type Palette } from '../theme';
 import { Button } from './Button';
 import { SegmentedPicker } from './SegmentedPicker';
 import { useConfirm } from './ConfirmDialog';
@@ -75,7 +76,7 @@ export function ShareLinks({ listId }: { listId: string }) {
 
   return (
     <View>
-      <Text style={styles.section}>SHARE LINK</Text>
+      <List.Subheader>SHARE LINK</List.Subheader>
       <SegmentedPicker
         options={ACCESS_OPTIONS}
         selected={access}
@@ -86,53 +87,39 @@ export function ShareLinks({ listId }: { listId: string }) {
       <Button title="Create share link" onPress={() => void create()} loading={busy} style={styles.create} />
 
       {shares === null ? (
-        <Text style={styles.muted}>Loading…</Text>
+        <Text variant="bodySmall" style={styles.muted}>Loading…</Text>
       ) : active.length === 0 ? (
-        <Text style={styles.muted}>No active links.</Text>
+        <Text variant="bodySmall" style={styles.muted}>No active links.</Text>
       ) : (
         active.map(s => (
-          <View key={s.shareId} style={styles.link}>
-            <Text style={styles.url} numberOfLines={1} ellipsizeMode="middle">
-              {s.url}
-            </Text>
-            <View style={styles.linkFoot}>
-              <Text style={styles.accessLabel}>{ACCESS_LABELS[s.access]}</Text>
-              <View style={styles.actions}>
-                <Pressable onPress={() => void copy(s.url)} accessibilityRole="button" accessibilityLabel="Copy link">
-                  <Text style={styles.copy}>Copy</Text>
-                </Pressable>
-                <Pressable onPress={() => void revoke(s.shareId)} accessibilityRole="button" accessibilityLabel="Revoke link">
-                  <Text style={styles.revoke}>Revoke</Text>
-                </Pressable>
-              </View>
-            </View>
-          </View>
+          <Card key={s.shareId} mode="outlined" style={styles.link}>
+            <Card.Content style={styles.linkBody}>
+              <Text variant="bodySmall" numberOfLines={1} ellipsizeMode="middle">
+                {s.url}
+              </Text>
+              <Text variant="bodySmall" style={styles.accessLabel}>{ACCESS_LABELS[s.access]}</Text>
+            </Card.Content>
+            <Card.Actions>
+              <PaperButton onPress={() => void copy(s.url)} accessibilityLabel="Copy link">
+                Copy
+              </PaperButton>
+              <PaperButton textColor={c.danger} onPress={() => void revoke(s.shareId)} accessibilityLabel="Revoke link">
+                Revoke
+              </PaperButton>
+            </Card.Actions>
+          </Card>
         ))
       )}
     </View>
   );
 }
 
-const makeStyles = (c: Palette) => {
-  const t = makeType(c);
-  return StyleSheet.create({
-    section: { ...t.sectionLabel, marginTop: spacing.xl, marginBottom: spacing.sm },
+const makeStyles = (c: Palette) =>
+  StyleSheet.create({
     access: { marginBottom: spacing.md },
     create: {},
-    muted: { ...t.small, marginTop: spacing.md, color: c.textSubtle },
-    link: {
-      marginTop: spacing.md,
-      padding: spacing.md,
-      borderWidth: 1,
-      borderColor: c.border,
-      borderRadius: radii.md,
-      gap: spacing.sm,
-    },
-    url: { fontSize: 13, color: c.text },
-    linkFoot: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    accessLabel: { ...t.small },
-    actions: { flexDirection: 'row', gap: spacing.lg },
-    copy: { color: c.primary, fontSize: 13, fontWeight: '600' },
-    revoke: { color: c.danger, fontSize: 13, fontWeight: '600' },
+    muted: { marginTop: spacing.md, color: c.textSubtle },
+    link: { marginTop: spacing.md },
+    linkBody: { gap: spacing.sm },
+    accessLabel: { color: c.textMuted },
   });
-};

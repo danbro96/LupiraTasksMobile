@@ -1,7 +1,5 @@
-import { useEffect, useMemo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { radii, spacing, useColors, type Palette } from '../theme';
+import { Snackbar } from 'react-native-paper';
 import { useToast } from '../../feedback/toast';
 
 // The imperative toast API + store live in feedback/toast (a cross-cutting leaf, so non-UI layers
@@ -15,56 +13,18 @@ export function ToastHost() {
   const nonce = useToast(s => s.nonce);
   const hide = useToast(s => s.hide);
   const insets = useSafeAreaInsets();
-  const c = useColors();
-  const styles = useMemo(() => makeStyles(c), [c]);
-
-  useEffect(() => {
-    if (!message) return;
-    const t = setTimeout(hide, durationMs);
-    return () => clearTimeout(t);
-  }, [message, nonce, durationMs, hide]);
-
-  if (!message) return null;
 
   return (
-    // Without an action the toast is purely informational and lets touches pass through;
-    // with an action we allow the button to receive touches (box-none keeps the rest pass-through).
-    <View pointerEvents={action ? 'box-none' : 'none'} style={[styles.wrap, { bottom: insets.bottom + 24 }]}>
-      <View style={styles.toast}>
-        <Text style={[styles.text, !action && styles.textCentered]}>{message}</Text>
-        {action ? (
-          <Pressable
-            onPress={() => {
-              action.onPress();
-              hide();
-            }}
-            hitSlop={8}
-            accessibilityRole="button"
-            accessibilityLabel={action.label}
-          >
-            <Text style={styles.action}>{action.label}</Text>
-          </Pressable>
-        ) : null}
-      </View>
-    </View>
+    // Keyed by nonce so an identical repeat message remounts and re-arms Snackbar's own timer.
+    <Snackbar
+      key={nonce}
+      visible={!!message}
+      onDismiss={hide}
+      duration={durationMs}
+      action={action ? { label: action.label, onPress: action.onPress } : undefined}
+      wrapperStyle={{ bottom: insets.bottom + 24 }}
+    >
+      {message}
+    </Snackbar>
   );
 }
-
-const makeStyles = (c: Palette) =>
-  StyleSheet.create({
-    wrap: { position: 'absolute', left: 0, right: 0, alignItems: 'center', paddingHorizontal: spacing.xl },
-    toast: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.lg,
-      backgroundColor: c.toastBg,
-      borderRadius: radii.lg,
-      paddingVertical: 10,
-      paddingHorizontal: spacing.lg,
-      maxWidth: '100%',
-    },
-    // The toast surface is dark in both schemes, so its label stays light.
-    text: { color: '#fff', fontSize: 14, flexShrink: 1 },
-    textCentered: { textAlign: 'center' },
-    action: { color: c.toastAction, fontSize: 14, fontWeight: '700' },
-  });
