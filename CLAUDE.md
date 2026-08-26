@@ -14,9 +14,14 @@
   second, mirror-unaware one.
 - **UI stack**: react-native-paper 5 (MD3), themed in `ui/theme/paperTheme.ts` from the app palette;
   React Navigation themes come from `adaptNavigationTheme`. Paper covers the MD3-expressible colors;
-  the app's own semantics (`pending`, `failed`, `remoteChange`, `banner*`, `toast*`) stay on
-  `useColors()`, the app's only color hook (never Paper's `useTheme()`). Components use
-  `const c = useColors(); const styles = useMemo(() => makeStyles(c), [c])`.
+  the whole palette — including the app's own semantics (`pending`, `failed`, `remoteChange`,
+  `banner*`, `toast*`) — rides on the Paper theme, and `useColors()` is a typed accessor over
+  `useTheme()`. It stays the app's only color hook: **call `useColors()`, never Paper's `useTheme()`
+  directly**, so there is one name for the palette. It must keep returning a module-level object
+  (`paperLight.colors`) — components do
+  `const c = useColors(); const styles = useMemo(() => makeStyles(c), [c])`, and a fresh object per
+  render would defeat that. Deriving the palette from `useColorScheme()` instead is what this
+  replaced: it was a second source that could disagree with the theme `PaperProvider` holds.
   Icons are MaterialCommunityIcons (Paper's set). Confirms use `useConfirm()` (`ui/components/ConfirmDialog.tsx`).
   Tokens mirror the other repos' copies — see DevOps `Guides/design-tokens.md` and its drift check.
 - **Do not put Paper components inside `ui/screens/ListDetailScreen.tsx` rows.** That file interleaves
