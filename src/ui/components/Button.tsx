@@ -15,7 +15,7 @@ interface Props {
   accessibilityLabel?: string;
 }
 
-/** Shared button. Replaces the per-screen inline Pressable + Text blocks. */
+/** Shared button. MD3 has no destructive mode, so that variant is an outlined button retinted. */
 export function Button({ title, onPress, variant = 'primary', disabled, loading, style, contentStyle, accessibilityLabel }: Props) {
   const c = useColors();
   const destructive = variant === 'destructive';
