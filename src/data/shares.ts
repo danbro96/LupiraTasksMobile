@@ -1,7 +1,7 @@
 import {
-  postListsListIdShares,
-  getListsListIdShares,
-  deleteListsListIdSharesShareId,
+  createShare,
+  listShares,
+  deleteShare,
 } from './api/generated/shares/shares';
 import type { ShareAccess, ShareResponse } from './api/generated/models';
 import { ApiError } from '../domain/apiError';
@@ -12,19 +12,19 @@ import { ApiError } from '../domain/apiError';
 // only narrow the generated response union to the success member.
 
 export async function listShareLinks(listId: string): Promise<ShareResponse[]> {
-  const r = await getListsListIdShares(listId);
+  const r = await listShares(listId);
   if (r.status === 200) return r.data.shares;
   throw new ApiError(r.status, `List shares failed (${r.status})`);
 }
 
 export async function createShareLink(listId: string, access: ShareAccess): Promise<ShareResponse> {
-  const r = await postListsListIdShares(listId, { access });
+  const r = await createShare(listId, { access });
   if (r.status === 200) return r.data;
   throw new ApiError(r.status, `Create share failed (${r.status})`);
 }
 
 export async function revokeShareLink(listId: string, shareId: string): Promise<void> {
-  const r = await deleteListsListIdSharesShareId(listId, shareId);
+  const r = await deleteShare(listId, shareId);
   if (r.status === 204) return;
   throw new ApiError(r.status, `Revoke share failed (${r.status})`);
 }

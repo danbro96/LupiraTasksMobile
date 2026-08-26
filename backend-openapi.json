@@ -6,6 +6,52 @@
     "version": "v1"
   },
   "paths": {
+    "/pingz": {
+      "get": {
+        "tags": [
+          "Ping"
+        ],
+        "summary": "Authenticated claims echo for dependency probes; resolves nothing, writes nothing.",
+        "operationId": "Ping",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PingDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
     "/lists/{listId}/sync": {
       "get": {
         "tags": [
@@ -13,6 +59,7 @@
         ],
         "summary": "Offline delta-pull for a list (Viewer+).",
         "description": "Returns the current list plus all its live items (v1 full re-derive,\nregardless of `?since=`) and a `nextCursor` to pass on the next pull. The\nclient rebases its local mirror onto this base, then re-applies non-acked\noutbox rows.",
+        "operationId": "SyncList",
         "parameters": [
           {
             "name": "listId",
@@ -44,10 +91,34 @@
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -64,6 +135,7 @@
         ],
         "summary": "Redeem a share link as the authenticated caller (join the list).",
         "description": "Body `{ token }`. Adds the caller to the linked list — `ReadWrite` → Editor, `Read` → Viewer — and returns `{ listId, role }`. Idempotent: an existing member keeps their current role. Used by the web client to cash in a share link after SSO.",
+        "operationId": "RedeemShare",
         "parameters": [
           {
             "name": "Idempotency-Key",
@@ -107,10 +179,34 @@
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -127,6 +223,7 @@
         ],
         "summary": "Provision and return the caller's profile.",
         "description": "Upserts the caller's `UserProfile` from the bearer token (create on first\nlogin, else bump `LastSeenAt` and refresh display name / admin flag) and\nreturns `{ email, displayName, isAdmin }`. Call on app cold start.",
+        "operationId": "GetMe",
         "responses": {
           "200": {
             "description": "OK",
@@ -139,7 +236,24 @@
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -156,6 +270,7 @@
         ],
         "summary": "People seen across the caller's shared lists (for adding members).",
         "description": "`?q=` filters the distinct member emails (case-insensitive substring).",
+        "operationId": "GetUserDirectory",
         "parameters": [
           {
             "name": "q",
@@ -177,7 +292,24 @@
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -194,6 +326,7 @@
         ],
         "summary": "List the lists the caller is a member of.",
         "description": "`?archived=true` returns the caller's archived lists instead of the active ones.",
+        "operationId": "ListLists",
         "parameters": [
           {
             "name": "archived",
@@ -215,7 +348,24 @@
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -230,6 +380,7 @@
         ],
         "summary": "Create a list; the caller becomes Owner.",
         "description": "Body `{ id (GUIDv7), name, kind, color? }`. `kind` is `Todo`, `Shopping`, or `Agent` (agent/system-owned lists). Re-sending an existing id is an idempotent success.",
+        "operationId": "CreateList",
         "parameters": [
           {
             "name": "Idempotency-Key",
@@ -273,7 +424,24 @@
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -289,6 +457,7 @@
           "Lists"
         ],
         "summary": "Get a list with its members and tags (Viewer+).",
+        "operationId": "GetList",
         "parameters": [
           {
             "name": "listId",
@@ -312,10 +481,34 @@
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -330,6 +523,7 @@
         ],
         "summary": "Rename / recolor a list, or set its priority mode (Editor+).",
         "description": "Each provided field emits its own event. Set `colorProvided` to apply `color` (incl. clearing it). Send `simplePriority` (bool) to switch between simple on/off and the full 0..9 scale.",
+        "operationId": "UpdateList",
         "parameters": [
           {
             "name": "listId",
@@ -382,10 +576,34 @@
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -399,6 +617,7 @@
           "Lists"
         ],
         "summary": "Delete a list (Owner). Tombstone — stream retained.",
+        "operationId": "DeleteList",
         "parameters": [
           {
             "name": "listId",
@@ -424,10 +643,34 @@
             "description": "No Content"
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -443,6 +686,7 @@
           "Lists"
         ],
         "summary": "Archive a list (Owner). Soft — items retained.",
+        "operationId": "ArchiveList",
         "parameters": [
           {
             "name": "listId",
@@ -475,10 +719,34 @@
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -494,6 +762,7 @@
           "Lists"
         ],
         "summary": "Restore an archived list (Owner).",
+        "operationId": "RestoreList",
         "parameters": [
           {
             "name": "listId",
@@ -526,10 +795,34 @@
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -546,6 +839,7 @@
         ],
         "summary": "Set the caller's own position for this list (Viewer+).",
         "description": "Body `{ sortOrder }` — a fractional-index key generated between the neighbours the list was dropped between. Per-user: other members' ordering is untouched, and this does not count as a change to the list. Returned as `sortOrder` on the caller's `ListResponse`; lists the caller has never ordered come back null and sort by name after the ordered ones.",
+        "operationId": "ReorderListItems",
         "parameters": [
           {
             "name": "listId",
@@ -598,10 +892,34 @@
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -618,6 +936,7 @@
         ],
         "summary": "Add a member by email (any member; defaults to Editor).",
         "description": "Body `{ email, role? }`. Direct-add, no invite/accept. An unseen email provisions a placeholder principal (its `sub` is upgraded when the person first logs in). Members are returned with their `principalId`; use that for role change / removal.",
+        "operationId": "AddListMember",
         "parameters": [
           {
             "name": "listId",
@@ -670,10 +989,34 @@
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -689,6 +1032,7 @@
           "Lists"
         ],
         "summary": "Change a member's role by principal id (Owner only).",
+        "operationId": "UpdateListMember",
         "parameters": [
           {
             "name": "listId",
@@ -750,7 +1094,14 @@
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           },
           "403": {
             "description": "Forbidden",
@@ -763,7 +1114,24 @@
             }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -777,6 +1145,7 @@
           "Lists"
         ],
         "summary": "Remove a member by principal id, or leave (self). Last owner leaving deletes the list for everyone.",
+        "operationId": "RemoveListMember",
         "parameters": [
           {
             "name": "listId",
@@ -821,7 +1190,14 @@
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           },
           "403": {
             "description": "Forbidden",
@@ -834,7 +1210,24 @@
             }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -850,7 +1243,8 @@
           "Items"
         ],
         "summary": "Search items across the caller's lists (Viewer+).",
-        "description": "Case-insensitive `query` title substring, optional `completed`/`status`. Spans every list the caller is a member of (archived included).",
+        "description": "Case-insensitive `query` title substring, optional `completed`/`status`. `dueFrom`/`dueTo` bound `dueAt` half-open `[from, to)`; either bound implies `dueAt` is set. Spans every list the caller is a member of (archived included).",
+        "operationId": "ListItems",
         "parameters": [
           {
             "name": "query",
@@ -872,6 +1266,22 @@
             "schema": {
               "$ref": "#/components/schemas/ItemStatus"
             }
+          },
+          {
+            "name": "dueFrom",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "dueTo",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
           }
         ],
         "responses": {
@@ -886,7 +1296,24 @@
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -903,6 +1330,7 @@
         ],
         "summary": "Edit item fields addressed by id (Editor+); the list is resolved server-side.",
         "description": "Same body as the list-scoped PATCH (`*Provided` flags). 404 if no such item or the caller can't edit its list.",
+        "operationId": "UpdateItem",
         "parameters": [
           {
             "name": "itemId",
@@ -955,10 +1383,34 @@
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -975,6 +1427,7 @@
         ],
         "summary": "Set an item's metadata addressed by id (Editor+); the list is resolved server-side.",
         "description": "Body `{ metadata (JSON object or null), occurredAt? }`. Whole-field LWW. 404 if no such item or the caller can't edit its list.",
+        "operationId": "SetItemMetadata",
         "parameters": [
           {
             "name": "itemId",
@@ -1027,10 +1480,34 @@
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1047,6 +1524,7 @@
         ],
         "summary": "List a list's items (Viewer+).",
         "description": "Excludes deleted items; ordered by `sortOrder`. Filters: `completed`, `tagId`, `parentItemId`, `assignedTo`, `status`.",
+        "operationId": "ListListItems",
         "parameters": [
           {
             "name": "listId",
@@ -1107,10 +1585,34 @@
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1125,6 +1627,7 @@
         ],
         "summary": "Add an item (Editor+).",
         "description": "Body `{ id (GUIDv7), title, parentItemId?, dueAt?, assigneeEmail?, quantity?, unit?, priority? (0..9), tagIds?, sortOrder, occurredAt? }`. Re-sending an existing id is idempotent.",
+        "operationId": "CreateListItem",
         "parameters": [
           {
             "name": "listId",
@@ -1177,10 +1680,34 @@
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1196,6 +1723,7 @@
           "Items"
         ],
         "summary": "Get a single item (Viewer+).",
+        "operationId": "GetItem",
         "parameters": [
           {
             "name": "listId",
@@ -1228,10 +1756,34 @@
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1246,6 +1798,7 @@
         ],
         "summary": "Edit item fields (Editor+).",
         "description": "One event per changed field. Use the `*Provided` flags so a null can mean 'clear' rather than 'unchanged' (e.g. `priority` 0..9 with `priorityProvided`). Tags via `addTagIds`/`removeTagIds`.",
+        "operationId": "UpdateListItem",
         "parameters": [
           {
             "name": "listId",
@@ -1307,10 +1860,34 @@
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1325,6 +1902,7 @@
         ],
         "summary": "Delete an item (Editor+). Tombstone.",
         "description": "Optional `?occurredAt=` (ISO-8601) carries the client timestamp for LWW.",
+        "operationId": "DeleteListItem",
         "parameters": [
           {
             "name": "listId",
@@ -1367,10 +1945,34 @@
             "description": "No Content"
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1386,6 +1988,7 @@
           "Items"
         ],
         "summary": "Mark an item complete (Editor+).",
+        "operationId": "CompleteItem",
         "parameters": [
           {
             "name": "listId",
@@ -1443,10 +2046,34 @@
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1462,6 +2089,7 @@
           "Items"
         ],
         "summary": "Reopen a completed item (Editor+).",
+        "operationId": "ReopenItem",
         "parameters": [
           {
             "name": "listId",
@@ -1519,10 +2147,34 @@
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1539,6 +2191,7 @@
         ],
         "summary": "Set an item's lifecycle status (Editor+).",
         "description": "Body `{ status (Open|InProgress|Blocked|Waiting|Done|Cancelled), reason?, occurredAt? }`. `Done` is equivalent to completing the item; `completed` is the derived `status == Done`.",
+        "operationId": "SetItemStatus",
         "parameters": [
           {
             "name": "listId",
@@ -1600,10 +2253,34 @@
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1620,6 +2297,7 @@
         ],
         "summary": "Set an item's free-form JSON metadata (Editor+).",
         "description": "Body `{ metadata (JSON object or null), occurredAt? }`. Server-side bookkeeping; never in VTODO or share links. Whole-field LWW.",
+        "operationId": "SetListItemMetadata",
         "parameters": [
           {
             "name": "listId",
@@ -1681,10 +2359,34 @@
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1701,6 +2403,7 @@
         ],
         "summary": "Reparent / reorder an item (Editor+).",
         "description": "Carries the fractional-index `sortOrder` string and optional `parentItemId`.",
+        "operationId": "MoveItem",
         "parameters": [
           {
             "name": "listId",
@@ -1762,10 +2465,34 @@
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1782,6 +2509,7 @@
         ],
         "summary": "Link a task to a cal-api Prompt heartbeat or an external ref (Editor+).",
         "description": "Body `{ toKind, toRef, relationType, metadata? }`. `toKind` e.g. `cal-item` (the checking heartbeat Prompt) or `url` (issue/PR/incident/release). `relationType` e.g. `monitors`, `spawned-by`, `produced`, `blocked-by`, `relates-to`. Idempotent: re-linking the same edge is a no-op.",
+        "operationId": "CreateRelation",
         "parameters": [
           {
             "name": "listId",
@@ -1834,10 +2562,34 @@
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1851,6 +2603,7 @@
           "Relations"
         ],
         "summary": "List a task's relations (Viewer+).",
+        "operationId": "ListRelations",
         "parameters": [
           {
             "name": "listId",
@@ -1886,10 +2639,34 @@
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1904,6 +2681,7 @@
         ],
         "summary": "Remove a task relation by its edge tuple (Editor+).",
         "description": "Identify the edge with `?toKind=&toRef=&relationType=`. Idempotent: removing a link that isn't there is a no-op (204).",
+        "operationId": "DeleteRelation",
         "parameters": [
           {
             "name": "listId",
@@ -1963,10 +2741,34 @@
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1983,6 +2785,7 @@
         ],
         "summary": "Mint a public share link for a list (Owner).",
         "description": "Body `{ access: 'Read' | 'ReadWrite', label?, expiresAt? }`. Returns the opaque token + a ready-to-copy URL. The link grants account-less access at `/shared/{token}` until revoked or expired.",
+        "operationId": "CreateShare",
         "parameters": [
           {
             "name": "listId",
@@ -2035,10 +2838,34 @@
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2052,6 +2879,7 @@
           "Shares"
         ],
         "summary": "List a list's active share links (Owner).",
+        "operationId": "ListShares",
         "parameters": [
           {
             "name": "listId",
@@ -2075,10 +2903,34 @@
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2094,6 +2946,7 @@
           "Shares"
         ],
         "summary": "Revoke a share link (Owner). The token is rejected on its next use.",
+        "operationId": "DeleteShare",
         "parameters": [
           {
             "name": "listId",
@@ -2128,10 +2981,34 @@
             "description": "No Content"
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2148,6 +3025,7 @@
         ],
         "summary": "View a shared list by token (no account needed).",
         "description": "Returns the list + items, trimmed of all emails. `access` indicates read vs read/write.",
+        "operationId": "GetSharedList",
         "parameters": [
           {
             "name": "token",
@@ -2171,10 +3049,34 @@
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2190,6 +3092,7 @@
           "Shared"
         ],
         "summary": "Add an item via a read/write share link.",
+        "operationId": "CreateSharedItem",
         "parameters": [
           {
             "name": "token",
@@ -2242,7 +3145,14 @@
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           },
           "403": {
             "description": "Forbidden",
@@ -2255,7 +3165,24 @@
             }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2271,6 +3198,7 @@
           "Shared"
         ],
         "summary": "Edit an item via a read/write share link.",
+        "operationId": "UpdateSharedItem",
         "parameters": [
           {
             "name": "itemId",
@@ -2332,7 +3260,14 @@
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           },
           "403": {
             "description": "Forbidden",
@@ -2345,7 +3280,24 @@
             }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2359,6 +3311,7 @@
           "Shared"
         ],
         "summary": "Delete an item via a read/write share link.",
+        "operationId": "DeleteSharedItem",
         "parameters": [
           {
             "name": "itemId",
@@ -2401,7 +3354,14 @@
             "description": "No Content"
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           },
           "403": {
             "description": "Forbidden",
@@ -2414,7 +3374,24 @@
             }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2430,6 +3407,7 @@
           "Shared"
         ],
         "summary": "Mark an item complete via a read/write share link.",
+        "operationId": "CompleteSharedItem",
         "parameters": [
           {
             "name": "itemId",
@@ -2487,7 +3465,14 @@
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           },
           "403": {
             "description": "Forbidden",
@@ -2500,7 +3485,24 @@
             }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2516,6 +3518,7 @@
           "Shared"
         ],
         "summary": "Reopen a completed item via a read/write share link.",
+        "operationId": "ReopenSharedItem",
         "parameters": [
           {
             "name": "itemId",
@@ -2573,7 +3576,14 @@
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           },
           "403": {
             "description": "Forbidden",
@@ -2586,7 +3596,24 @@
             }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2602,6 +3629,7 @@
           "Shared"
         ],
         "summary": "Reparent / reorder an item via a read/write share link.",
+        "operationId": "MoveSharedItem",
         "parameters": [
           {
             "name": "itemId",
@@ -2663,7 +3691,14 @@
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           },
           "403": {
             "description": "Forbidden",
@@ -2676,7 +3711,24 @@
             }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2704,11 +3756,13 @@
                 "type": "null"
               },
               {
+                "description": "Role to grant. Defaults to Editor when null.",
                 "$ref": "#/components/schemas/ListRole"
               }
             ]
           }
-        }
+        },
+        "description": "Add a member to a list by email. Any member may add someone; the role defaults to\nListRole.Editor when omitted. Only a real Authentik user can ever use the\nmembership (provisioned on first login), so a wrong email is simply inert."
       },
       "CreateItemRequest": {
         "required": [
@@ -2760,6 +3814,7 @@
           },
           "priority": {
             "type": "integer",
+            "description": "Standard iCalendar priority, 0..9 (0 = none). Defaults to 0.",
             "format": "int32"
           },
           "tagIds": {
@@ -2780,9 +3835,11 @@
               "null",
               "string"
             ],
+            "description": "Client wall-clock at the moment of the change (LWW key). Defaults to server now.",
             "format": "date-time"
           }
-        }
+        },
+        "description": "Add an item. The client supplies a GUIDv7 Guid CreateItemRequest.Id (idempotent create) and a\nfractional-index string CreateItemRequest.SortOrder string. DateTimeOffset? CreateItemRequest.OccurredAt is the\nclient wall-clock used for last-writer-wins; when omitted the server stamps now."
       },
       "CreateListRequest": {
         "required": [
@@ -2808,7 +3865,8 @@
               "string"
             ]
           }
-        }
+        },
+        "description": "Create a list. The client supplies a GUIDv7 Guid CreateListRequest.Id so the create is\nidempotent on replay (an existing stream is treated as success). The caller\nbecomes the Owner."
       },
       "CreateRelationRequest": {
         "required": [
@@ -2861,7 +3919,8 @@
             ],
             "format": "date-time"
           }
-        }
+        },
+        "description": "Mint a share link for a list. ShareAccess CreateShareRequest.Access picks read vs read/write; an optional\nDateTimeOffset? CreateShareRequest.ExpiresAt auto-expires the link; string? CreateShareRequest.Label is a human name used for\nattribution of writes (`share:{label}`) and shown in the owner's list of links."
       },
       "DirectoryPerson": {
         "required": [
@@ -2883,7 +3942,8 @@
               "string"
             ]
           }
-        }
+        },
+        "description": "A person the caller has seen across their shared lists (for adding members)."
       },
       "DirectoryResponse": {
         "required": [
@@ -2897,7 +3957,8 @@
               "$ref": "#/components/schemas/DirectoryPerson"
             }
           }
-        }
+        },
+        "description": "The distinct people across the caller's lists, for member-add autocomplete."
       },
       "ItemCollectionResponse": {
         "required": [
@@ -2911,7 +3972,8 @@
               "$ref": "#/components/schemas/ItemResponse"
             }
           }
-        }
+        },
+        "description": "Envelope for a list's items."
       },
       "ItemResponse": {
         "required": [
@@ -2953,6 +4015,7 @@
             ]
           },
           "status": {
+            "description": "The lifecycle status; bool ItemResponse.Completed is the derived `Status == Done` convenience.",
             "$ref": "#/components/schemas/ItemStatus"
           },
           "statusReason": {
@@ -2977,6 +4040,7 @@
                 "type": "null"
               },
               {
+                "description": "Who completed it; `null` if open, or a share-link/unresolved actor.",
                 "$ref": "#/components/schemas/PersonRef"
               }
             ]
@@ -2987,6 +4051,7 @@
                 "type": "null"
               },
               {
+                "description": "The assignee; `null` if unassigned.",
                 "$ref": "#/components/schemas/PersonRef"
               }
             ]
@@ -3031,6 +4096,7 @@
                 "type": "null"
               },
               {
+                "description": "Who created it; `null` for a share-link/unresolved actor.",
                 "$ref": "#/components/schemas/PersonRef"
               }
             ]
@@ -3049,11 +4115,13 @@
                 "type": "null"
               },
               {
+                "description": "Free-form JSON for agent/server bookkeeping. Server-side only — never in VTODO or the public share DTO.",
                 "$ref": "#/components/schemas/JsonNode"
               }
             ]
           }
-        }
+        },
+        "description": "An item's current snapshot. Clients nest by Guid? ItemResponse.ParentItemId."
       },
       "ItemStatus": {
         "enum": [
@@ -3063,7 +4131,8 @@
           "Waiting",
           "Done",
           "Cancelled"
-        ]
+        ],
+        "description": "An item's lifecycle position — one state machine, not two flags. ItemStatus.Open, ItemStatus.InProgress,\nItemStatus.Blocked, and ItemStatus.Waiting are open; ItemStatus.Done and ItemStatus.Cancelled are\nclosed. `Completed` is derived (`Status == Done`). The value is LWW-guarded by one\n(OccurredAt, CommandId) guard shared by every lifecycle event, so done-ness and the open sub-state can never\ndisagree. Lets the assistant answer \"what's blocked / waiting on me?\"."
       },
       "ItemTimestampRequest": {
         "type": "object",
@@ -3073,9 +4142,11 @@
               "null",
               "string"
             ],
+            "description": "Client wall-clock at the moment of the change (LWW key). Defaults to server now.",
             "format": "date-time"
           }
-        }
+        },
+        "description": "Body for complete/reopen/delete. Carries only the LWW timestamp; the item id is in\nthe route. DateTimeOffset? ItemTimestampRequest.OccurredAt defaults to server now when omitted."
       },
       "JsonNode": {},
       "ListCollectionResponse": {
@@ -3090,14 +4161,16 @@
               "$ref": "#/components/schemas/ListResponse"
             }
           }
-        }
+        },
+        "description": "Envelope for the caller's lists."
       },
       "ListKind": {
         "enum": [
           "Todo",
           "Shopping",
           "Agent"
-        ]
+        ],
+        "description": "Drives client UI affordances (e.g. shopping lists surface quantity/unit), and distinguishes\n            agent/system-owned lists from a user's own (ListKind.Agent) in queries and UI. A pure label set at\n            creation (carried by `ListCreated`); ownership/membership still govern access."
       },
       "ListResponse": {
         "required": [
@@ -3138,13 +4211,15 @@
             "$ref": "#/components/schemas/PersonRef"
           },
           "access": {
+            "description": "The caller's own role on this list — server-authoritative, so clients gate owner/editor\n            UI on this instead of matching themselves against IReadOnlyList&lt;MemberResponse&gt; ListResponse.Members.",
             "$ref": "#/components/schemas/ListRole"
           },
           "sortOrder": {
             "type": [
               "null",
               "string"
-            ]
+            ],
+            "description": "The caller's own position for this list (fractional-index key), or null if they have\n            never reordered it — clients sort those by name, after the keyed ones. Nobody else's ordering\n            is exposed."
           },
           "isArchived": {
             "type": "boolean"
@@ -3154,6 +4229,7 @@
               "null",
               "string"
             ],
+            "description": "When the list was archived; null while active. Archived views sort on this rather than\n            DateTimeOffset ListResponse.UpdatedAt, which later edits bump.",
             "format": "date-time"
           },
           "createdAt": {
@@ -3176,14 +4252,16 @@
               "$ref": "#/components/schemas/MemberResponse"
             }
           }
-        }
+        },
+        "description": "Full list metadata including members and tag definitions."
       },
       "ListRole": {
         "enum": [
           "Owner",
           "Editor",
           "Viewer"
-        ]
+        ],
+        "description": "A member's authority on a list. Ordered: Owner &gt; Editor &gt; Viewer."
       },
       "MemberResponse": {
         "required": [
@@ -3220,11 +4298,13 @@
                 "type": "null"
               },
               {
+                "description": "Who added them; `null` for a share-link add or an unresolved actor.",
                 "$ref": "#/components/schemas/PersonRef"
               }
             ]
           }
-        }
+        },
+        "description": "A member of a list: the stable `PrincipalId` plus resolved `Email`/`DisplayName`."
       },
       "MeResponse": {
         "required": [
@@ -3250,7 +4330,8 @@
           "isAdmin": {
             "type": "boolean"
           }
-        }
+        },
+        "description": "The caller's provisioned identity, returned by `GET /me`. Guid MeResponse.PrincipalId is\n            the stable internal id a client stores and matches against list members (and uses as its offline\n            actor); email/displayName are for display."
       },
       "MoveItemRequest": {
         "required": [
@@ -3273,9 +4354,11 @@
               "null",
               "string"
             ],
+            "description": "Client wall-clock at the moment of the change (LWW key). Defaults to server now.",
             "format": "date-time"
           }
-        }
+        },
+        "description": "Reparent and/or reorder an item. string MoveItemRequest.SortOrder is a fractional-index\nstring so concurrent inserts get distinct keys without renumbering siblings."
       },
       "PersonRef": {
         "required": [
@@ -3297,7 +4380,33 @@
               "string"
             ]
           }
-        }
+        },
+        "description": "The canonical identity projection on the read boundary: the stable Guid PersonRef.PrincipalId (the\nkey a client should store/compare) plus the current string PersonRef.Email and string? PersonRef.DisplayName\nfor display. Every identity slot the API returns (owner, member, assignee, creator, completer,\ndirectory person) is a `PersonRef`; identity <em>inputs</em> stay email (invite/assign). Built\nfrom a resolved Principal."
+      },
+      "PingDto": {
+        "required": [
+          "subject",
+          "audiences"
+        ],
+        "type": "object",
+        "properties": {
+          "subject": {
+            "type": "string"
+          },
+          "audiences": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "The claims a caller's token resolved to, echoed for cross-service auth-seam probes.\n            Returning the audiences (not a bare 200) lets a failing consumer see which half of the seam\n            is misconfigured."
       },
       "ProblemDetails": {
         "type": "object",
@@ -3332,8 +4441,15 @@
               "null",
               "string"
             ]
+          },
+          "traceId": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
-        }
+        },
+        "description": "RFC 9457 problem details."
       },
       "RedeemShareRequest": {
         "required": [
@@ -3344,7 +4460,8 @@
           "token": {
             "type": "string"
           }
-        }
+        },
+        "description": "Redeem a share link as the authenticated caller (the token, not in the URL path here)."
       },
       "RedeemShareResponse": {
         "required": [
@@ -3360,7 +4477,8 @@
           "role": {
             "$ref": "#/components/schemas/ListRole"
           }
-        }
+        },
+        "description": "The list the caller joined and the role they now hold on it."
       },
       "RelationDto": {
         "required": [
@@ -3414,7 +4532,8 @@
           "sortOrder": {
             "type": "string"
           }
-        }
+        },
+        "description": "Set the caller's own position for a list in their lists screen. string SetListOrderRequest.SortOrder is a\nfractional-index string (same scheme as item ordering) generated client-side between the\nneighbours it was dropped between. Per-user: other members are unaffected."
       },
       "SetMetadataRequest": {
         "type": "object",
@@ -3434,9 +4553,11 @@
               "null",
               "string"
             ],
+            "description": "Client wall-clock for LWW; defaults to server now when omitted.",
             "format": "date-time"
           }
-        }
+        },
+        "description": "Sets an item's free-form JSON metadata (whole-field). Send `null` to clear it."
       },
       "SetStatusRequest": {
         "required": [
@@ -3458,15 +4579,18 @@
               "null",
               "string"
             ],
+            "description": "Client wall-clock for LWW; defaults to server now when omitted.",
             "format": "date-time"
           }
-        }
+        },
+        "description": "Sets an item's lifecycle status, with an optional reason (e.g. why it's Blocked/Waiting)."
       },
       "ShareAccess": {
         "enum": [
           "Read",
           "ReadWrite"
-        ]
+        ],
+        "description": "What a public share link permits."
       },
       "ShareCollectionResponse": {
         "required": [
@@ -3480,7 +4604,8 @@
               "$ref": "#/components/schemas/ShareResponse"
             }
           }
-        }
+        },
+        "description": "Envelope for a list's active share links."
       },
       "SharedItemResponse": {
         "required": [
@@ -3557,7 +4682,8 @@
           "sortOrder": {
             "type": "string"
           }
-        }
+        },
+        "description": "An item as shown to a share-link recipient. Mirrors the fields a viewer/editor needs but\nOMITS every email field (`assignedTo`, `completedBy`, `createdBy`) so a public\nlink never leaks family emails."
       },
       "SharedListResponse": {
         "required": [
@@ -3600,7 +4726,8 @@
               "$ref": "#/components/schemas/SharedItemResponse"
             }
           }
-        }
+        },
+        "description": "The public, account-less view of a shared list. Deliberately TRIMMED: it carries no member\nlist, no owner email, and items carry no assignee/creator/completer emails — a public link must\nnot leak family emails. ShareAccess SharedListResponse.Access tells the client whether to show edit controls."
       },
       "SharedTagResponse": {
         "required": [
@@ -3620,7 +4747,8 @@
           "color": {
             "type": "string"
           }
-        }
+        },
+        "description": "A tag definition as shown on a shared list (no sensitive data)."
       },
       "ShareResponse": {
         "required": [
@@ -3664,7 +4792,8 @@
           "revoked": {
             "type": "boolean"
           }
-        }
+        },
+        "description": "A share link as the owner sees it, including the opaque string ShareResponse.Token and ready-to-copy string ShareResponse.Url."
       },
       "SyncResponse": {
         "required": [
@@ -3685,9 +4814,11 @@
           },
           "nextCursor": {
             "type": "integer",
+            "description": "Opaque cursor to pass as `?since=` on the next pull.",
             "format": "int64"
           }
-        }
+        },
+        "description": "A full re-derive of a list and its live items, for the offline delta-pull. v1 is\n\"simplest-correct\": the whole list + all non-deleted items are returned regardless of\nthe `since` cursor, and long SyncResponse.NextCursor is the high-water mark of the items'\nupdate timestamps (the client plumbs the cursor through but the server ignores it for now)."
       },
       "TagResponse": {
         "required": [
@@ -3707,7 +4838,8 @@
           "color": {
             "type": "string"
           }
-        }
+        },
+        "description": "A tag definition on a list."
       },
       "UpdateItemRequest": {
         "type": "object",
@@ -3767,6 +4899,7 @@
           },
           "priority": {
             "type": "integer",
+            "description": "Standard iCalendar priority, 0..9 (0 = none). Only applied when bool UpdateItemRequest.PriorityProvided is true.",
             "format": "int32"
           },
           "priorityProvided": {
@@ -3780,7 +4913,8 @@
             "items": {
               "type": "string",
               "format": "uuid"
-            }
+            },
+            "description": "Tag ids to add (commutative delta)."
           },
           "removeTagIds": {
             "type": [
@@ -3790,16 +4924,19 @@
             "items": {
               "type": "string",
               "format": "uuid"
-            }
+            },
+            "description": "Tag ids to remove (commutative delta)."
           },
           "occurredAt": {
             "type": [
               "null",
               "string"
             ],
+            "description": "Client wall-clock at the moment of the change (LWW key). Defaults to server now.",
             "format": "date-time"
           }
-        }
+        },
+        "description": "Patch an item. Emits exactly one event per changed field. A field changes only when\nits `*Provided` flag is true, so a `null` value can be sent intentionally\n(e.g. unassign, clear due date) without being confused with \"leave unchanged\".\nDateTimeOffset? UpdateItemRequest.OccurredAt is the client wall-clock used for per-field LWW."
       },
       "UpdateListRequest": {
         "type": "object",
@@ -3814,18 +4951,22 @@
             "type": [
               "null",
               "string"
-            ]
+            ],
+            "description": "The new color. Honored only when bool UpdateListRequest.ColorProvided is true."
           },
           "colorProvided": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Set true to apply string? UpdateListRequest.Color (including clearing it to null)."
           },
           "simplePriority": {
             "type": [
               "null",
               "boolean"
-            ]
+            ],
+            "description": "Whether priority is a simple on/off (true) or the full 0..9 scale (false). Null leaves it unchanged."
           }
-        }
+        },
+        "description": "Patch a list's metadata. Each non-null field emits its own event; omit a field\n(leave it `null`) to leave it unchanged. To clear the color, send\nbool UpdateListRequest.ColorProvided = `true` with string? UpdateListRequest.Color = `null`."
       },
       "UpdateMemberRoleRequest": {
         "required": [
@@ -3836,7 +4977,8 @@
           "role": {
             "$ref": "#/components/schemas/ListRole"
           }
-        }
+        },
+        "description": "Change a member's role on a list (Owner only)."
       }
     },
     "securitySchemes": {
@@ -3849,6 +4991,9 @@
     }
   },
   "tags": [
+    {
+      "name": "Ping"
+    },
     {
       "name": "Sync"
     },

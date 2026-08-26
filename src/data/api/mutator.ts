@@ -31,7 +31,7 @@ async function fetchWithTimeout(fullUrl: string, init: RequestInit, headers: Hea
 /**
  * Custom fetch invoked by every Orval-generated request. Returns the envelope `{ status, data, headers }`
  * directly — Orval's `client: 'fetch'` mode passes the mutator's value through, so callers read `result.status`
- * and `result.data` (e.g. `getLists()` → `r.data.lists`).
+ * and `result.data` (e.g. `listLists()` → `r.data.lists`).
  *
  * Owns the base URL and bearer (read live through the auth port), content-type handling, bounded retry of
  * transient failures for idempotent requests, 204 → undefined data, and non-2xx → `ApiError`.

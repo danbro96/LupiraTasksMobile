@@ -1,22 +1,22 @@
 import type { ClientOp } from '../domain/ops';
 import {
-  postListsListIdItems,
-  patchListsListIdItemsItemId,
-  postListsListIdItemsItemIdComplete,
-  postListsListIdItemsItemIdReopen,
-  postListsListIdItemsItemIdMove,
-  deleteListsListIdItemsItemId,
+  createListItem,
+  updateListItem,
+  completeItem,
+  reopenItem,
+  moveItem,
+  deleteListItem,
 } from '../data/api/generated/items/items';
 import {
-  postLists,
-  patchListsListId,
-  deleteListsListId,
-  postListsListIdArchive,
-  postListsListIdRestore,
-  postListsListIdOrder,
-  postListsListIdMembers,
-  patchListsListIdMembersPrincipalId,
-  deleteListsListIdMembersPrincipalId,
+  createList,
+  updateList,
+  deleteList,
+  archiveList,
+  restoreList,
+  reorderListItems,
+  addListMember,
+  updateListMember,
+  removeListMember,
 } from '../data/api/generated/lists/lists';
 
 /** Replay an op against the API. The generated fns inject the bearer + throw ApiError on non-2xx. */
@@ -25,77 +25,77 @@ export async function replayOp(op: ClientOp): Promise<void> {
   const { occurredAt } = op;
   switch (op.kind) {
     case 'item.create':
-      await postListsListIdItems(op.listId, { id: op.itemId, title: op.title, sortOrder: op.sortOrder, parentItemId: op.parentItemId, occurredAt }, idem);
+      await createListItem(op.listId, { id: op.itemId, title: op.title, sortOrder: op.sortOrder, parentItemId: op.parentItemId, occurredAt }, idem);
       return;
     case 'item.rename':
-      await patchListsListIdItemsItemId(op.listId, op.itemId, { title: op.title, titleProvided: true, occurredAt }, idem);
+      await updateListItem(op.listId, op.itemId, { title: op.title, titleProvided: true, occurredAt }, idem);
       return;
     case 'item.notes':
-      await patchListsListIdItemsItemId(op.listId, op.itemId, { notes: op.notes, notesProvided: true, occurredAt }, idem);
+      await updateListItem(op.listId, op.itemId, { notes: op.notes, notesProvided: true, occurredAt }, idem);
       return;
     case 'item.assign':
-      await patchListsListIdItemsItemId(op.listId, op.itemId, { assigneeEmail: op.assigneeEmail, assigneeEmailProvided: true, occurredAt }, idem);
+      await updateListItem(op.listId, op.itemId, { assigneeEmail: op.assigneeEmail, assigneeEmailProvided: true, occurredAt }, idem);
       return;
     case 'item.due':
-      await patchListsListIdItemsItemId(op.listId, op.itemId, { dueAt: op.dueAt, dueAtProvided: true, occurredAt }, idem);
+      await updateListItem(op.listId, op.itemId, { dueAt: op.dueAt, dueAtProvided: true, occurredAt }, idem);
       return;
     case 'item.quantity':
-      await patchListsListIdItemsItemId(op.listId, op.itemId, { quantity: op.quantity, unit: op.unit, quantityProvided: true, occurredAt }, idem);
+      await updateListItem(op.listId, op.itemId, { quantity: op.quantity, unit: op.unit, quantityProvided: true, occurredAt }, idem);
       return;
     case 'item.priority':
-      await patchListsListIdItemsItemId(op.listId, op.itemId, { priority: op.priority, priorityProvided: true, occurredAt }, idem);
+      await updateListItem(op.listId, op.itemId, { priority: op.priority, priorityProvided: true, occurredAt }, idem);
       return;
     case 'item.tagAdd':
-      await patchListsListIdItemsItemId(op.listId, op.itemId, { addTagIds: [op.tagId], occurredAt }, idem);
+      await updateListItem(op.listId, op.itemId, { addTagIds: [op.tagId], occurredAt }, idem);
       return;
     case 'item.tagRemove':
-      await patchListsListIdItemsItemId(op.listId, op.itemId, { removeTagIds: [op.tagId], occurredAt }, idem);
+      await updateListItem(op.listId, op.itemId, { removeTagIds: [op.tagId], occurredAt }, idem);
       return;
     case 'item.complete':
-      await postListsListIdItemsItemIdComplete(op.listId, op.itemId, { occurredAt }, idem);
+      await completeItem(op.listId, op.itemId, { occurredAt }, idem);
       return;
     case 'item.reopen':
-      await postListsListIdItemsItemIdReopen(op.listId, op.itemId, { occurredAt }, idem);
+      await reopenItem(op.listId, op.itemId, { occurredAt }, idem);
       return;
     case 'item.move':
-      await postListsListIdItemsItemIdMove(op.listId, op.itemId, { sortOrder: op.sortOrder, parentItemId: op.parentItemId, occurredAt }, idem);
+      await moveItem(op.listId, op.itemId, { sortOrder: op.sortOrder, parentItemId: op.parentItemId, occurredAt }, idem);
       return;
     case 'item.delete':
-      await deleteListsListIdItemsItemId(op.listId, op.itemId, { occurredAt }, idem);
+      await deleteListItem(op.listId, op.itemId, { occurredAt }, idem);
       return;
     case 'list.create':
-      await postLists({ id: op.listId, name: op.name, kind: op.listKind, color: op.color }, idem);
+      await createList({ id: op.listId, name: op.name, kind: op.listKind, color: op.color }, idem);
       return;
     case 'list.rename':
-      await patchListsListId(op.listId, { name: op.name }, idem);
+      await updateList(op.listId, { name: op.name }, idem);
       return;
     case 'list.recolor':
-      await patchListsListId(op.listId, { color: op.color, colorProvided: true }, idem);
+      await updateList(op.listId, { color: op.color, colorProvided: true }, idem);
       return;
     case 'list.setSimplePriority':
-      await patchListsListId(op.listId, { simplePriority: op.simplePriority }, idem);
+      await updateList(op.listId, { simplePriority: op.simplePriority }, idem);
       return;
     case 'list.reorder':
-      await postListsListIdOrder(op.listId, { sortOrder: op.sortOrder }, idem);
+      await reorderListItems(op.listId, { sortOrder: op.sortOrder }, idem);
       return;
     case 'list.memberAdd':
-      await postListsListIdMembers(op.listId, { email: op.email, role: op.role }, idem);
+      await addListMember(op.listId, { email: op.email, role: op.role }, idem);
       return;
     case 'list.memberRoleChange':
-      await patchListsListIdMembersPrincipalId(op.listId, op.principalId, { role: op.role }, idem);
+      await updateListMember(op.listId, op.principalId, { role: op.role }, idem);
       return;
     case 'list.memberRemove':
     case 'list.leave':
-      await deleteListsListIdMembersPrincipalId(op.listId, op.principalId, idem);
+      await removeListMember(op.listId, op.principalId, idem);
       return;
     case 'list.delete':
-      await deleteListsListId(op.listId, idem);
+      await deleteList(op.listId, idem);
       return;
     case 'list.archive':
-      await postListsListIdArchive(op.listId, idem);
+      await archiveList(op.listId, idem);
       return;
     case 'list.restore':
-      await postListsListIdRestore(op.listId, idem);
+      await restoreList(op.listId, idem);
       return;
   }
 }

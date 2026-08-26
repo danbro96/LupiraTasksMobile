@@ -17,8 +17,8 @@ vi.mock('@react-native-community/netinfo', () => ({ default: { addEventListener:
 vi.mock('@sentry/react-native', () => ({ captureException: vi.fn(), captureMessage: vi.fn(), setUser: vi.fn(), addBreadcrumb: vi.fn() }));
 vi.mock('../debug/log', () => ({ logDebug: vi.fn() }));
 vi.mock('./replayOp', () => ({ replayOp: vi.fn() }));
-vi.mock('../data/api/generated/sync/sync', () => ({ getListsListIdSync: vi.fn() }));
-vi.mock('../data/api/generated/lists/lists', () => ({ getLists: vi.fn() }));
+vi.mock('../data/api/generated/sync/sync', () => ({ syncList: vi.fn() }));
+vi.mock('../data/api/generated/lists/lists', () => ({ listLists: vi.fn() }));
 vi.mock('../data/api/generated/me/me', () => ({ getMe: vi.fn() }));
 
 const ME: PersonRef = { principalId: 'me-p', email: 'me@x', displayName: 'Me' };
@@ -63,14 +63,14 @@ async function load() {
   const { useSyncStatus } = await import('./syncStatus');
   // instanceof checks (isNetworkError) must see the same class the fresh module graph uses.
   const { ApiError } = await import('../domain/apiError');
-  const { getLists } = await import('../data/api/generated/lists/lists');
-  const { getListsListIdSync } = await import('../data/api/generated/sync/sync');
+  const { listLists } = await import('../data/api/generated/lists/lists');
+  const { syncList } = await import('../data/api/generated/sync/sync');
   const { getMe } = await import('../data/api/generated/me/me');
   const db = await dbm.getDb();
   return {
     sync, dbm, db, useSyncStatus, ApiError,
-    getLists: vi.mocked(getLists),
-    getSync: vi.mocked(getListsListIdSync),
+    listLists: vi.mocked(listLists),
+    getSync: vi.mocked(syncList),
     getMe: vi.mocked(getMe),
   };
 }
@@ -181,7 +181,7 @@ describe('pullLists', () => {
     const c = await load();
     await seedList(c, 'B'); // was active locally, archived server-side since
     await seedList(c, 'C'); // no longer on the server at all
-    c.getLists.mockImplementation(async params =>
+    c.listLists.mockImplementation(async params =>
       ok({ lists: params?.archived ? [list('B', { isArchived: true })] : [list('A')] }));
 
     const ids = await c.sync.pullLists();
@@ -199,7 +199,7 @@ describe('pullLists', () => {
     await seedOp(c, { commandId: 'c1', occurredAt: T1, kind: 'list.create', listId: 'P', name: 'P', listKind: 'Todo', color: null });
     await seedOp(c, { commandId: 'c2', occurredAt: T1, kind: 'list.create', listId: 'Q', name: 'Q', listKind: 'Todo', color: null });
     await c.dbm.bumpOutboxFailure(c.db, 2, 'parked', '403 forbidden');
-    c.getLists.mockResolvedValue(ok({ lists: [] }));
+    c.listLists.mockResolvedValue(ok({ lists: [] }));
 
     await c.sync.pullLists();
 
@@ -211,7 +211,7 @@ describe('pullLists', () => {
     const c = await load();
     await seedList(c, 'P');
     await seedOp(c, { commandId: 'c1', occurredAt: T1, kind: 'list.create', listId: 'P', name: 'P', listKind: 'Todo', color: null });
-    c.getLists.mockImplementation(async () => {
+    c.listLists.mockImplementation(async () => {
       await c.dbm.deleteOutbox(c.db, 1); // acked while the response is in flight
       return ok({ lists: [] });
     });
@@ -224,7 +224,7 @@ describe('pullLists', () => {
   it('rebases pending list.* ops onto pulled docs', async () => {
     const c = await load();
     await seedOp(c, { commandId: 'c1', occurredAt: T1, kind: 'list.archive', listId: 'A' });
-    c.getLists.mockImplementation(async params => ok({ lists: params?.archived ? [] : [list('A')] }));
+    c.listLists.mockImplementation(async params => ok({ lists: params?.archived ? [] : [list('A')] }));
 
     await c.sync.pullLists();
 
@@ -235,7 +235,7 @@ describe('pullLists', () => {
 describe('runSync', () => {
   function arm(c: Ctx) {
     c.getMe.mockResolvedValue(ok({ principalId: 'me-p', email: 'me@x', displayName: 'Me', isAdmin: false }));
-    c.getLists.mockImplementation(async params => ok({ lists: params?.archived ? [] : [list('A'), list('B')] }));
+    c.listLists.mockImplementation(async params => ok({ lists: params?.archived ? [] : [list('A'), list('B')] }));
   }
 
   it('continues past a per-list failure (deleted-between-GETs 404)', async () => {

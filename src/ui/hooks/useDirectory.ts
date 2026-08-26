@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { create } from 'zustand';
 import type { DirectoryPerson } from '../../data/api/generated/models';
-import { getUsersDirectory } from '../../data/api/generated/users/users';
+import { getUserDirectory } from '../../data/api/generated/users/users';
 
 // Best-effort cache of the org directory (principal id → person), fetched once. Used to render
 // provenance (created/completed-by) names instead of raw principal ids. Offline or on failure,
@@ -20,7 +20,7 @@ async function fetchOnce(): Promise<void> {
   if (s.loaded || s.loading) return;
   useStore.setState({ loading: true });
   try {
-    const r = await getUsersDirectory();
+    const r = await getUserDirectory();
     if (r.status === 200) {
       const byPrincipalId: Record<string, DirectoryPerson> = {};
       for (const p of r.data.people) byPrincipalId[p.principalId] = p;

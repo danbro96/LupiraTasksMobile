@@ -1,8 +1,8 @@
 import { AppState } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
 import { authPort } from '../data/api/authProvider';
-import { getListsListIdSync } from '../data/api/generated/sync/sync';
-import { getLists } from '../data/api/generated/lists/lists';
+import { syncList } from '../data/api/generated/sync/sync';
+import { listLists } from '../data/api/generated/lists/lists';
 import { getMe } from '../data/api/generated/me/me';
 import {
   getDb, getItemState, putItemState, putListDoc, pendingOutbox, pendingOutboxForList,
@@ -49,7 +49,7 @@ export async function pullLists(): Promise<string[]> {
   // Snapshot BEFORE the GETs: an op acked while a response is already in flight (its outbox row
   // deleted by the drain) must still protect its list — the response predates the server apply.
   const preProtected = listIdsOf(await pendingOutbox(db));
-  const [active, archived] = await Promise.all([getLists(), getLists({ archived: true })]);
+  const [active, archived] = await Promise.all([listLists(), listLists({ archived: true })]);
   if (active.status !== 200 || archived.status !== 200) return getListIds(db); // narrowing only — apiFetch throws on non-2xx
 
   const serverLists = [...active.data.lists, ...archived.data.lists];
@@ -99,7 +99,7 @@ export async function pullList(listId: string): Promise<void> {
   // the drain) must still rebase — the server base predates its apply. Re-applying an acked op
   // is a no-op under the LWW guards.
   const preRows = await pendingOutboxForList(db, listId);
-  const r = await getListsListIdSync(listId, {});
+  const r = await syncList(listId, {});
   if (r.status !== 200) return; // narrowing only — apiFetch throws on non-2xx
   const sync = r.data;
   const who = authPort().getActor();
