@@ -52,7 +52,7 @@ export async function pullLists(): Promise<string[]> {
   const [active, archived] = await Promise.all([listLists(), listLists({ archived: true })]);
   if (active.status !== 200 || archived.status !== 200) return getListIds(db); // narrowing only — apiFetch throws on non-2xx
 
-  const serverLists = [...active.data.lists, ...archived.data.lists];
+  const serverLists = [...active.data, ...archived.data];
   const serverIds = serverLists.map(l => l.id);
   const mirrorIds = await getListIds(db);
 
@@ -83,7 +83,7 @@ export async function pullLists(): Promise<string[]> {
   });
 
   bumpMirror('pull');
-  return active.data.lists.map(l => l.id);
+  return active.data.map(l => l.id);
 }
 
 /**

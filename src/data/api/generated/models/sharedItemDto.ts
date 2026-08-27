@@ -11,7 +11,7 @@
  * OMITS every email field (`assignedTo`, `completedBy`, `createdBy`) so a public
  * link never leaks family emails.
  */
-export interface SharedItemResponse {
+export interface SharedItemDto {
   id: string;
   /** @nullable */
   parentItemId?: string | null;

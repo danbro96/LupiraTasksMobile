@@ -8,8 +8,7 @@
 import type {
   CreateItemRequest,
   DeleteListItemParams,
-  ItemCollectionResponse,
-  ItemResponse,
+  ItemDto,
   ItemTimestampRequest,
   ListItemsParams,
   ListListItemsParams,
@@ -23,7 +22,7 @@ import type {
 import { apiFetch } from '../../mutator';
 
 export type listItemsResponse200 = {
-  data: ItemCollectionResponse
+  data: ItemDto[]
   status: 200
 }
 
@@ -78,7 +77,7 @@ export const listItems = async (params?: ListItemsParams, options?: Parameters<t
 
 
 export type updateItemResponse200 = {
-  data: ItemResponse
+  data: ItemDto
   status: 200
 }
 
@@ -137,7 +136,7 @@ export const updateItem = async (itemId: string,
 
 
 export type setItemMetadataResponse200 = {
-  data: ItemResponse
+  data: ItemDto
   status: 200
 }
 
@@ -196,7 +195,7 @@ export const setItemMetadata = async (itemId: string,
 
 
 export type listListItemsResponse200 = {
-  data: ItemCollectionResponse
+  data: ItemDto[]
   status: 200
 }
 
@@ -258,7 +257,7 @@ export const listListItems = async (listId: string,
 
 
 export type createListItemResponse200 = {
-  data: ItemResponse
+  data: ItemDto
   status: 200
 }
 
@@ -317,7 +316,7 @@ export const createListItem = async (listId: string,
 
 
 export type getItemResponse200 = {
-  data: ItemResponse
+  data: ItemDto
   status: 200
 }
 
@@ -371,7 +370,7 @@ export const getItem = async (listId: string,
 
 
 export type updateListItemResponse200 = {
-  data: ItemResponse
+  data: ItemDto
   status: 200
 }
 
@@ -496,7 +495,7 @@ export const deleteListItem = async (listId: string,
 
 
 export type completeItemResponse200 = {
-  data: ItemResponse
+  data: ItemDto
   status: 200
 }
 
@@ -551,7 +550,7 @@ export const completeItem = async (listId: string,
 
 
 export type reopenItemResponse200 = {
-  data: ItemResponse
+  data: ItemDto
   status: 200
 }
 
@@ -606,7 +605,7 @@ export const reopenItem = async (listId: string,
 
 
 export type setItemStatusResponse200 = {
-  data: ItemResponse
+  data: ItemDto
   status: 200
 }
 
@@ -667,7 +666,7 @@ export const setItemStatus = async (listId: string,
 
 
 export type setListItemMetadataResponse200 = {
-  data: ItemResponse
+  data: ItemDto
   status: 200
 }
 
@@ -728,7 +727,7 @@ export const setListItemMetadata = async (listId: string,
 
 
 export type moveItemResponse200 = {
-  data: ItemResponse
+  data: ItemDto
   status: 200
 }
 

@@ -10,7 +10,7 @@ import {
 } from '../data/db';
 import { type ClientOp, opToEvents } from '../domain/ops';
 import { applyListOp } from '../domain/listDoc';
-import type { ListResponse, PersonRef } from '../data/api/generated/models';
+import type { ListDto, PersonRef } from '../data/api/generated/models';
 import { useSyncStatus, bumpMirror } from './syncStatus';
 import { logDebug } from '../debug/log';
 
@@ -57,10 +57,10 @@ function actor(): string | null {
   return authPort().getActor();
 }
 
-/** A best-effort optimistic ListResponse so a list created offline shows immediately. The server
+/** A best-effort optimistic ListDto so a list created offline shows immediately. The server
  *  fills in the authoritative owner/members on the next pull; `self` may be null before the first
  *  `/me` resolves the principal id, in which case owner/members stay empty until then. */
-function optimisticListDoc(op: Extract<ClientOp, { kind: 'list.create' }>, self: PersonRef | null): ListResponse {
+function optimisticListDoc(op: Extract<ClientOp, { kind: 'list.create' }>, self: PersonRef | null): ListDto {
   return {
     id: op.listId,
     name: op.name,
@@ -93,7 +93,7 @@ async function applyOpLocally(db: Sql, op: ClientOp, who: string | null, self: P
   } else if (op.kind.startsWith('list.')) {
     // Optimistically patch the mirrored list doc (rename/recolor/membership). A null patch
     // means the change deleted the list locally (last owner leaving).
-    const current = await getListDoc<ListResponse>(db, op.listId);
+    const current = await getListDoc<ListDto>(db, op.listId);
     if (current) {
       const patched = applyListOp(current, op, self);
       if (patched === null) {

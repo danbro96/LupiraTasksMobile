@@ -5,8 +5,8 @@
  * Task and command processing backend for Lupira. Authenticate with a Bearer token issued by the OIDC provider (Authentik).
  * OpenAPI spec version: v1
  */
-import type { ItemResponse } from './itemResponse';
-import type { ListResponse } from './listResponse';
+import type { ItemDto } from './itemDto';
+import type { ListDto } from './listDto';
 
 /**
  * A full re-derive of a list and its live items, for the offline delta-pull. v1 is
@@ -15,8 +15,8 @@ import type { ListResponse } from './listResponse';
  * update timestamps (the client plumbs the cursor through but the server ignores it for now).
  */
 export interface SyncResponse {
-  list: ListResponse;
-  items: ItemResponse[];
+  list: ListDto;
+  items: ItemDto[];
   /** Opaque cursor to pass as `?since=` on the next pull. */
   nextCursor: number;
 }

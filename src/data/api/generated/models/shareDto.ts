@@ -8,9 +8,9 @@
 import type { ShareAccess } from './shareAccess';
 
 /**
- * A share link as the owner sees it, including the opaque string ShareResponse.Token and ready-to-copy string ShareResponse.Url.
+ * A share link as the owner sees it, including the opaque string ShareDto.Token and ready-to-copy string ShareDto.Url.
  */
-export interface ShareResponse {
+export interface ShareDto {
   shareId: string;
   token: string;
   url: string;

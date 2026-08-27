@@ -10,9 +10,9 @@ import type { JsonNode } from './jsonNode';
 import type { PersonRef } from './personRef';
 
 /**
- * An item's current snapshot. Clients nest by Guid? ItemResponse.ParentItemId.
+ * An item's current snapshot. Clients nest by Guid? ItemDto.ParentItemId.
  */
-export interface ItemResponse {
+export interface ItemDto {
   id: string;
   listId: string;
   /** @nullable */
@@ -20,7 +20,7 @@ export interface ItemResponse {
   title: string;
   /** @nullable */
   notes?: string | null;
-  /** The lifecycle status; bool ItemResponse.Completed is the derived `Status == Done` convenience. */
+  /** The lifecycle status; bool ItemDto.Completed is the derived `Status == Done` convenience. */
   status: ItemStatus;
   /** @nullable */
   statusReason?: string | null;

@@ -11,7 +11,7 @@ import type { PersonRef } from './personRef';
 /**
  * A member of a list: the stable `PrincipalId` plus resolved `Email`/`DisplayName`.
  */
-export interface MemberResponse {
+export interface MemberDto {
   principalId: string;
   email: string;
   /** @nullable */

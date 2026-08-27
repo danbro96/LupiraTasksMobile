@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { ListResponse } from '../../data/api/generated/models';
+import type { ListDto } from '../../data/api/generated/models';
 import type { ItemState } from '../../domain/itemState';
 import { diffItems, type ItemChange } from '../../domain/itemChange';
 import { sortActiveLists, sortArchivedLists } from '../../domain/listOrder';
@@ -34,16 +34,16 @@ function useUnchangedGuard<T>(): (rows: T[], apply: (rows: T[]) => void) => void
   };
 }
 
-export function useLists(): { lists: ListResponse[] } {
+export function useLists(): { lists: ListDto[] } {
   const rev = useSyncStatus(s => s.mirrorRevision);
-  const [lists, setLists] = useState<ListResponse[]>([]);
-  const publish = useUnchangedGuard<ListResponse>();
+  const [lists, setLists] = useState<ListDto[]>([]);
+  const publish = useUnchangedGuard<ListDto>();
 
   useEffect(() => {
     let cancelled = false;
     void (async () => {
       const db = await getDb();
-      const docs = sortActiveLists(await getListDocs<ListResponse>(db));
+      const docs = sortActiveLists(await getListDocs<ListDto>(db));
       logDebug('useLists', `count=${docs.length}`); // diagnostic: is the optimistic list in the mirror?
       if (!cancelled) publish(docs, setLists);
     })().catch(e => logReadError('useLists', e));
@@ -53,16 +53,16 @@ export function useLists(): { lists: ListResponse[] } {
   return { lists };
 }
 
-export function useArchivedLists(): { lists: ListResponse[] } {
+export function useArchivedLists(): { lists: ListDto[] } {
   const rev = useSyncStatus(s => s.mirrorRevision);
-  const [lists, setLists] = useState<ListResponse[]>([]);
-  const publish = useUnchangedGuard<ListResponse>();
+  const [lists, setLists] = useState<ListDto[]>([]);
+  const publish = useUnchangedGuard<ListDto>();
 
   useEffect(() => {
     let cancelled = false;
     void (async () => {
       const db = await getDb();
-      const docs = sortArchivedLists(await getArchivedListDocs<ListResponse>(db));
+      const docs = sortArchivedLists(await getArchivedListDocs<ListDto>(db));
       if (!cancelled) publish(docs, setLists);
     })().catch(e => logReadError('useArchivedLists', e));
     return () => { cancelled = true; };

@@ -4,7 +4,7 @@ import { itemResponseToState } from '../domain/itemMap';
 import { applyItemEvent } from '../domain/itemLww';
 import type { ClientOp } from '../domain/ops';
 import type { AuthPort } from '../data/api/authProvider';
-import type { ItemResponse, ListResponse, PersonRef } from '../data/api/generated/models';
+import type { ItemDto, ListDto, PersonRef } from '../data/api/generated/models';
 
 // Pull-path tests over a real in-memory SQLite (node:sqlite behind the expo-sqlite surface) with
 // the generated API mocked. Each test re-imports the module graph: getDb memoizes a connection
@@ -26,14 +26,14 @@ const T0 = '2026-01-01T00:00:00.000Z';
 const T1 = '2026-02-01T00:00:00.000Z';
 const T2 = '2026-03-01T00:00:00.000Z';
 
-function list(id: string, over: Partial<ListResponse> = {}): ListResponse {
+function list(id: string, over: Partial<ListDto> = {}): ListDto {
   return {
     id, name: `List ${id}`, kind: 'Todo', color: null, simplePriority: true,
     owner: ME, access: 'Owner', isArchived: false, createdAt: T0, updatedAt: T0, tags: [], members: [], ...over,
   };
 }
 
-function item(id: string, over: Partial<ItemResponse> = {}): ItemResponse {
+function item(id: string, over: Partial<ItemDto> = {}): ItemDto {
   return {
     id, listId: 'L1', parentItemId: null, title: `Item ${id}`, notes: null,
     status: 'Open', completed: false, completedAt: null, assignee: null, dueAt: null,
@@ -77,7 +77,7 @@ async function load() {
 
 type Ctx = Awaited<ReturnType<typeof load>>;
 
-async function seedList(c: Ctx, id: string, over: Partial<ListResponse> = {}) {
+async function seedList(c: Ctx, id: string, over: Partial<ListDto> = {}) {
   await c.dbm.putListDoc(c.db, { id, archived: over.isArchived ?? false, updatedAt: T0, doc: list(id, over) });
 }
 
@@ -147,7 +147,7 @@ describe('pullList', () => {
 
     await c.sync.pullList('L1');
 
-    expect((await c.dbm.getListDoc<ListResponse>(c.db, 'L1'))?.name).toBe('Local name');
+    expect((await c.dbm.getListDoc<ListDto>(c.db, 'L1'))?.name).toBe('Local name');
   });
 
   it('a pending list.delete is not resurrected by the pull', async () => {
@@ -182,13 +182,13 @@ describe('pullLists', () => {
     await seedList(c, 'B'); // was active locally, archived server-side since
     await seedList(c, 'C'); // no longer on the server at all
     c.listLists.mockImplementation(async params =>
-      ok({ lists: params?.archived ? [list('B', { isArchived: true })] : [list('A')] }));
+      ok(params?.archived ? [list('B', { isArchived: true })] : [list('A')]));
 
     const ids = await c.sync.pullLists();
 
     expect(ids).toEqual(['A']);
-    expect((await c.dbm.getListDocs<ListResponse>(c.db)).map(l => l.id)).toEqual(['A']);
-    expect((await c.dbm.getArchivedListDocs<ListResponse>(c.db)).map(l => l.id)).toEqual(['B']);
+    expect((await c.dbm.getListDocs<ListDto>(c.db)).map(l => l.id)).toEqual(['A']);
+    expect((await c.dbm.getArchivedListDocs<ListDto>(c.db)).map(l => l.id)).toEqual(['B']);
     expect(await c.dbm.getListDoc(c.db, 'C')).toBeNull();
   });
 
@@ -199,7 +199,7 @@ describe('pullLists', () => {
     await seedOp(c, { commandId: 'c1', occurredAt: T1, kind: 'list.create', listId: 'P', name: 'P', listKind: 'Todo', color: null });
     await seedOp(c, { commandId: 'c2', occurredAt: T1, kind: 'list.create', listId: 'Q', name: 'Q', listKind: 'Todo', color: null });
     await c.dbm.bumpOutboxFailure(c.db, 2, 'parked', '403 forbidden');
-    c.listLists.mockResolvedValue(ok({ lists: [] }));
+    c.listLists.mockResolvedValue(ok([]));
 
     await c.sync.pullLists();
 
@@ -213,7 +213,7 @@ describe('pullLists', () => {
     await seedOp(c, { commandId: 'c1', occurredAt: T1, kind: 'list.create', listId: 'P', name: 'P', listKind: 'Todo', color: null });
     c.listLists.mockImplementation(async () => {
       await c.dbm.deleteOutbox(c.db, 1); // acked while the response is in flight
-      return ok({ lists: [] });
+      return ok([]);
     });
 
     await c.sync.pullLists();
@@ -224,18 +224,18 @@ describe('pullLists', () => {
   it('rebases pending list.* ops onto pulled docs', async () => {
     const c = await load();
     await seedOp(c, { commandId: 'c1', occurredAt: T1, kind: 'list.archive', listId: 'A' });
-    c.listLists.mockImplementation(async params => ok({ lists: params?.archived ? [] : [list('A')] }));
+    c.listLists.mockImplementation(async params => ok(params?.archived ? [] : [list('A')]));
 
     await c.sync.pullLists();
 
-    expect((await c.dbm.getArchivedListDocs<ListResponse>(c.db)).map(l => l.id)).toEqual(['A']);
+    expect((await c.dbm.getArchivedListDocs<ListDto>(c.db)).map(l => l.id)).toEqual(['A']);
   });
 });
 
 describe('runSync', () => {
   function arm(c: Ctx) {
     c.getMe.mockResolvedValue(ok({ principalId: 'me-p', email: 'me@x', displayName: 'Me', isAdmin: false }));
-    c.listLists.mockImplementation(async params => ok({ lists: params?.archived ? [] : [list('A'), list('B')] }));
+    c.listLists.mockImplementation(async params => ok(params?.archived ? [] : [list('A'), list('B')]));
   }
 
   it('continues past a per-list failure (deleted-between-GETs 404)', async () => {

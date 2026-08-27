@@ -8,9 +8,8 @@
 import type {
   AddMemberRequest,
   CreateListRequest,
-  ListCollectionResponse,
+  ListDto,
   ListListsParams,
-  ListResponse,
   ProblemDetails,
   SetListOrderRequest,
   UpdateListRequest,
@@ -20,7 +19,7 @@ import type {
 import { apiFetch } from '../../mutator';
 
 export type listListsResponse200 = {
-  data: ListCollectionResponse
+  data: ListDto[]
   status: 200
 }
 
@@ -75,7 +74,7 @@ export const listLists = async (params?: ListListsParams, options?: Parameters<t
 
 
 export type createListResponse200 = {
-  data: ListResponse
+  data: ListDto
   status: 200
 }
 
@@ -128,7 +127,7 @@ export const createList = async (createListRequest: CreateListRequest, options?:
 
 
 export type getListResponse200 = {
-  data: ListResponse
+  data: ListDto
   status: 200
 }
 
@@ -180,7 +179,7 @@ export const getList = async (listId: string, options?: Parameters<typeof apiFet
 
 
 export type updateListResponse200 = {
-  data: ListResponse
+  data: ListDto
   status: 200
 }
 
@@ -291,7 +290,7 @@ export const deleteList = async (listId: string, options?: Parameters<typeof api
 
 
 export type archiveListResponse200 = {
-  data: ListResponse
+  data: ListDto
   status: 200
 }
 
@@ -343,7 +342,7 @@ export const archiveList = async (listId: string, options?: Parameters<typeof ap
 
 
 export type restoreListResponse200 = {
-  data: ListResponse
+  data: ListDto
   status: 200
 }
 
@@ -395,7 +394,7 @@ export const restoreList = async (listId: string, options?: Parameters<typeof ap
 
 
 export type reorderListItemsResponse200 = {
-  data: ListResponse
+  data: ListDto
   status: 200
 }
 
@@ -437,7 +436,7 @@ export const getReorderListItemsUrl = (listId: string,) => {
 }
 
 /**
- * Body `{ sortOrder }` — a fractional-index key generated between the neighbours the list was dropped between. Per-user: other members' ordering is untouched, and this does not count as a change to the list. Returned as `sortOrder` on the caller's `ListResponse`; lists the caller has never ordered come back null and sort by name after the ordered ones.
+ * Body `{ sortOrder }` — a fractional-index key generated between the neighbours the list was dropped between. Per-user: other members' ordering is untouched, and this does not count as a change to the list. Returned as `sortOrder` on the caller's `ListDto`; lists the caller has never ordered come back null and sort by name after the ordered ones.
  * @summary Set the caller's own position for this list (Viewer+).
  */
 export const reorderListItems = async (listId: string,
@@ -454,7 +453,7 @@ export const reorderListItems = async (listId: string,
 
 
 export type addListMemberResponse200 = {
-  data: ListResponse
+  data: ListDto
   status: 200
 }
 
@@ -513,7 +512,7 @@ export const addListMember = async (listId: string,
 
 
 export type updateListMemberResponse200 = {
-  data: ListResponse
+  data: ListDto
   status: 200
 }
 

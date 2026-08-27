@@ -7,8 +7,8 @@
  */
 import type { ListKind } from './listKind';
 import type { ShareAccess } from './shareAccess';
-import type { SharedItemResponse } from './sharedItemResponse';
-import type { SharedTagResponse } from './sharedTagResponse';
+import type { SharedItemDto } from './sharedItemDto';
+import type { SharedTagDto } from './sharedTagDto';
 
 /**
  * The public, account-less view of a shared list. Deliberately TRIMMED: it carries no member
@@ -22,6 +22,6 @@ export interface SharedListResponse {
   color?: string | null;
   simplePriority: boolean;
   access: ShareAccess;
-  tags: SharedTagResponse[];
-  items: SharedItemResponse[];
+  tags: SharedTagDto[];
+  items: SharedItemDto[];
 }

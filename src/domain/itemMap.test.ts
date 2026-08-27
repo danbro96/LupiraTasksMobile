@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import type { ItemResponse } from '../data/api/generated/models';
+import type { ItemDto } from '../data/api/generated/models';
 import { ItemStatus } from '../data/api/generated/models';
 import { itemResponseToState } from './itemMap';
 import { ZERO_GUID } from './itemState';
 
 const TS = '2026-06-01T10:00:00.000Z';
 
-function makeResponse(over: Partial<ItemResponse> = {}): ItemResponse {
+function makeResponse(over: Partial<ItemDto> = {}): ItemDto {
   return {
     id: 'item-1', listId: 'list-1',
     title: 'Buy milk', status: ItemStatus.Open, completed: false, priority: 0,

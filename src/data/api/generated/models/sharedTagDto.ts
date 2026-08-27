@@ -5,11 +5,12 @@
  * Task and command processing backend for Lupira. Authenticate with a Bearer token issued by the OIDC provider (Authentik).
  * OpenAPI spec version: v1
  */
-import type { ShareResponse } from './shareResponse';
 
 /**
- * Envelope for a list's active share links.
+ * A tag definition as shown on a shared list (no sensitive data).
  */
-export interface ShareCollectionResponse {
-  shares: ShareResponse[];
+export interface SharedTagDto {
+  id: string;
+  label: string;
+  color: string;
 }

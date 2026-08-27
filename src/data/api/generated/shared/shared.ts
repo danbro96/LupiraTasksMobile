@@ -11,7 +11,7 @@ import type {
   ItemTimestampRequest,
   MoveItemRequest,
   ProblemDetails,
-  SharedItemResponse,
+  SharedItemDto,
   SharedListResponse,
   UpdateItemRequest
 } from '../models';
@@ -72,7 +72,7 @@ export const getSharedList = async (token: string, options?: Parameters<typeof a
 
 
 export type createSharedItemResponse200 = {
-  data: SharedItemResponse
+  data: SharedItemDto
   status: 200
 }
 
@@ -135,7 +135,7 @@ export const createSharedItem = async (token: string,
 
 
 export type updateSharedItemResponse200 = {
-  data: SharedItemResponse
+  data: SharedItemDto
   status: 200
 }
 
@@ -268,7 +268,7 @@ export const deleteSharedItem = async (token: string,
 
 
 export type completeSharedItemResponse200 = {
-  data: SharedItemResponse
+  data: SharedItemDto
   status: 200
 }
 
@@ -328,7 +328,7 @@ export const completeSharedItem = async (token: string,
 
 
 export type reopenSharedItemResponse200 = {
-  data: SharedItemResponse
+  data: SharedItemDto
   status: 200
 }
 
@@ -388,7 +388,7 @@ export const reopenSharedItem = async (token: string,
 
 
 export type moveSharedItemResponse200 = {
-  data: SharedItemResponse
+  data: SharedItemDto
   status: 200
 }
 

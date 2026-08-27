@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Button as PaperButton, Card, List, Text } from 'react-native-paper';
 import * as Clipboard from 'expo-clipboard';
-import { ShareAccess, type ShareResponse } from '../../data/api/generated/models';
+import { ShareAccess, type ShareDto } from '../../data/api/generated/models';
 import { createShareLink, listShareLinks, revokeShareLink } from '../../data/shares';
 import { toast, toastError } from '../../feedback/toast';
 import { spacing, useColors, type Palette } from '../theme';
@@ -18,7 +18,7 @@ export function ShareLinks({ listId }: { listId: string }) {
   const confirm = useConfirm();
   const c = useColors();
   const styles = useMemo(() => makeStyles(c), [c]);
-  const [shares, setShares] = useState<ShareResponse[] | null>(null);
+  const [shares, setShares] = useState<ShareDto[] | null>(null);
   const [access, setAccess] = useState<ShareAccess>(ShareAccess.Read);
   const [busy, setBusy] = useState(false);
 

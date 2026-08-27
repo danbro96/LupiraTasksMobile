@@ -7,14 +7,14 @@
  */
 import type { ListKind } from './listKind';
 import type { ListRole } from './listRole';
-import type { MemberResponse } from './memberResponse';
+import type { MemberDto } from './memberDto';
 import type { PersonRef } from './personRef';
-import type { TagResponse } from './tagResponse';
+import type { TagDto } from './tagDto';
 
 /**
  * Full list metadata including members and tag definitions.
  */
-export interface ListResponse {
+export interface ListDto {
   id: string;
   name: string;
   kind: ListKind;
@@ -24,7 +24,7 @@ export interface ListResponse {
   owner: PersonRef;
   /**
      * The caller's own role on this list — server-authoritative, so clients gate owner/editor
-     *             UI on this instead of matching themselves against IReadOnlyList&lt;MemberResponse&gt; ListResponse.Members.
+     *             UI on this instead of matching themselves against IReadOnlyList&lt;MemberDto&gt; ListDto.Members.
      */
   access: ListRole;
   /**
@@ -37,12 +37,12 @@ export interface ListResponse {
   isArchived: boolean;
   /**
      * When the list was archived; null while active. Archived views sort on this rather than
-     *             DateTimeOffset ListResponse.UpdatedAt, which later edits bump.
+     *             DateTimeOffset ListDto.UpdatedAt, which later edits bump.
      * @nullable
      */
   archivedAt?: string | null;
   createdAt: string;
   updatedAt: string;
-  tags: TagResponse[];
-  members: MemberResponse[];
+  tags: TagDto[];
+  members: MemberDto[];
 }

@@ -7,7 +7,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import ReorderableList, { useReorderableDrag, useIsActive, reorderItems } from 'react-native-reorderable-list';
 import { Gesture } from 'react-native-gesture-handler';
 import { LinearTransition, runOnJS } from 'react-native-reanimated';
-import type { ListResponse } from '../../data/api/generated/models';
+import type { ListDto } from '../../data/api/generated/models';
 import type { RootStackParamList } from '../navigation/types';
 import { IconButton } from '../components/IconButton';
 import { SyncBanner } from '../components/SyncBanner';
@@ -25,11 +25,11 @@ import { stamp } from '../../domain/ops';
 import { radii, spacing, useColors, type Palette } from '../theme';
 
 interface RowProps {
-  list: ListResponse;
+  list: ListDto;
   status?: OpStatus;
   styles: ReturnType<typeof makeStyles>;
   palette: Palette;
-  onOpen: (list: ListResponse) => void;
+  onOpen: (list: ListDto) => void;
 }
 
 const ListRow = memo(function ListRow({ list, status, styles, palette, onOpen }: RowProps) {
@@ -77,7 +77,7 @@ export function ListsScreen() {
 
   const dragGesture = useMemo(() => Gesture.Pan().activateAfterLongPress(520), []);
 
-  const openList = useCallback((l: ListResponse) => {
+  const openList = useCallback((l: ListDto) => {
     nav.navigate('ListDetail', { listId: l.id, name: l.name });
   }, [nav]);
 

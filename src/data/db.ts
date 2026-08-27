@@ -8,7 +8,7 @@ import { logDebug } from '../debug/log';
 // The mirror is what the UI reads offline; the outbox is replayed on reconnect.
 
 const DB_NAME = 'lupira-tasks-offline.db';
-// The mirror stores whole-object ListResponse/ItemState JSON, so a server contract change (v2:
+// The mirror stores whole-object ListDto/ItemState JSON, so a server contract change (v2:
 // the email→principalId identity re-key) can't be migrated per-column — bumping this wipes every
 // table and forces a clean re-pull. A bump destroys the outbox too: un-pushed local edits exist
 // nowhere else and are lost. Bump only for genuinely incompatible persisted shapes; prefer
@@ -198,7 +198,7 @@ export async function deleteItemsNotIn(db: Sql, listId: string, keepIds: string[
   await db.runAsync(`DELETE FROM items WHERE list_id = ? AND id NOT IN (${placeholders})`, [listId, ...keepIds]);
 }
 
-// --- Lists mirror (stores the server ListResponse JSON; `doc` is opaque here) ---
+// --- Lists mirror (stores the server ListDto JSON; `doc` is opaque here) ---
 
 export async function putListDoc(
   db: Sql,

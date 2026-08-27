@@ -1,10 +1,10 @@
 import { generateKeyBetween } from 'fractional-indexing';
 
 // Pure helpers for the lists screen's order. The position is per-user and server-authoritative:
-// `sortOrder` on a ListResponse is the CALLER's own fractional-index key (null until they first
+// `sortOrder` on a ListDto is the CALLER's own fractional-index key (null until they first
 // drag it). Framework-free so it can be unit-tested in the node env (see listOrder.test.ts).
 
-/** The subset of a list doc these helpers order by — structural so ListResponse satisfies it. */
+/** The subset of a list doc these helpers order by — structural so ListDto satisfies it. */
 export interface OrderableList {
   id: string;
   name: string;

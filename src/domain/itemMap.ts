@@ -1,4 +1,4 @@
-import type { ItemResponse } from '../data/api/generated/models';
+import type { ItemDto } from '../data/api/generated/models';
 import { type ItemState, ZERO_GUID } from './itemState';
 
 // Server snapshot → mirror ItemState mapping. Pure (no SQLite/API), so the seeding rules are
@@ -10,7 +10,7 @@ import { type ItemState, ZERO_GUID } from './itemState';
  * an older one loses (v1 uses a single uniform guard per item — good enough at family scale;
  * per-field guards are a later refinement).
  */
-export function itemResponseToState(r: ItemResponse): ItemState {
+export function itemResponseToState(r: ItemDto): ItemState {
   const ts = r.updatedAt;
   const tagTs: Record<string, string> = {};
   const tagCmd: Record<string, string> = {};

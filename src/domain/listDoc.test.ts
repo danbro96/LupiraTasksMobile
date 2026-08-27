@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { applyListOp, applyListOps } from './listDoc';
-import type { ListResponse, MemberResponse, PersonRef } from '../data/api/generated/models';
+import type { ListDto, MemberDto, PersonRef } from '../data/api/generated/models';
 import { ListRole } from '../data/api/generated/models';
 import type { ClientOp } from './ops';
 
@@ -10,16 +10,16 @@ const BOB_ID = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
 const base = { commandId: '00000000-0000-0000-0000-000000000001', occurredAt: '2026-06-07T12:00:00.000Z' };
 const ownerRef: PersonRef = { principalId: OWNER_ID, email: 'owner@x', displayName: null };
 
-function member(principalId: string, email: string, role: ListRole = ListRole.Editor): MemberResponse {
+function member(principalId: string, email: string, role: ListRole = ListRole.Editor): MemberDto {
   return { principalId, email, displayName: null, role, addedAt: '2026-01-01T00:00:00.000Z', addedBy: null };
 }
 
-function doc(members: MemberResponse[], color: string | null = null): ListResponse {
+function doc(members: MemberDto[], color: string | null = null): ListDto {
   return {
     id: LIST, name: 'L', kind: 'Todo', color, simplePriority: true, owner: ownerRef,
     access: ListRole.Owner, isArchived: false, createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z',
     tags: [], members,
-  } as ListResponse;
+  } as ListDto;
 }
 
 const owner = () => member(OWNER_ID, 'owner@x', ListRole.Owner);

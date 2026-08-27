@@ -10,8 +10,7 @@ import type {
   ProblemDetails,
   RedeemShareRequest,
   RedeemShareResponse,
-  ShareCollectionResponse,
-  ShareResponse
+  ShareDto
 } from '../models';
 
 import { apiFetch } from '../../mutator';
@@ -75,7 +74,7 @@ export const redeemShare = async (redeemShareRequest: RedeemShareRequest, option
 
 
 export type createShareResponse200 = {
-  data: ShareResponse
+  data: ShareDto
   status: 200
 }
 
@@ -134,7 +133,7 @@ export const createShare = async (listId: string,
 
 
 export type listSharesResponse200 = {
-  data: ShareCollectionResponse
+  data: ShareDto[]
   status: 200
 }
 

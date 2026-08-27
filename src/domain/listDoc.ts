@@ -1,8 +1,8 @@
-import type { ListResponse, MemberResponse, PersonRef } from '../data/api/generated/models';
+import type { ListDto, MemberDto, PersonRef } from '../data/api/generated/models';
 import type { ClientOp } from './ops';
 
 // Pure optimistic patch of a mirrored list doc for `list.*` ops — the list equivalent of the
-// item LWW reducer. Returns the patched ListResponse, or `null` when the change deletes the list
+// item LWW reducer. Returns the patched ListDto, or `null` when the change deletes the list
 // locally (the last owner leaving / being removed), mirroring the server's auto-delete cascade.
 // Framework-free so it can be unit-tested (see listDoc.test.ts).
 //
@@ -15,19 +15,19 @@ function sameEmail(a: string, b: string): boolean {
 }
 
 function upsertInvite(
-  members: readonly MemberResponse[],
+  members: readonly MemberDto[],
   email: string,
-  role: MemberResponse['role'],
+  role: MemberDto['role'],
   at: string,
   actor: PersonRef | null,
-): MemberResponse[] {
+): MemberDto[] {
   if (members.some(m => sameEmail(m.email, email))) {
     return members.map(m => (sameEmail(m.email, email) ? { ...m, role } : m));
   }
   return [...members, { principalId: '', email, displayName: null, role, addedAt: at, addedBy: actor }];
 }
 
-export function applyListOp(doc: ListResponse, op: ClientOp, actor: PersonRef | null): ListResponse | null {
+export function applyListOp(doc: ListDto, op: ClientOp, actor: PersonRef | null): ListDto | null {
   switch (op.kind) {
     case 'list.rename':
       return { ...doc, name: op.name, updatedAt: op.occurredAt };
@@ -85,7 +85,7 @@ export function applyListOp(doc: ListResponse, op: ClientOp, actor: PersonRef | 
  * Fold pending ops over a pulled doc (the rebase of `list.*` ops onto a server base). Returns
  * null when any op deletes the list locally — the pull must not resurrect it.
  */
-export function applyListOps(doc: ListResponse, ops: ClientOp[], actor: PersonRef | null): ListResponse | null {
+export function applyListOps(doc: ListDto, ops: ClientOp[], actor: PersonRef | null): ListDto | null {
   let cur = doc;
   for (const op of ops) {
     const next = applyListOp(cur, op, actor);
