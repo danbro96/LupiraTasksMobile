@@ -86,7 +86,7 @@ export function ListsScreen() {
       headerRight: () => (
         <View style={styles.headerBtns}>
           <IconButton name="plus" accessibilityLabel="New list" onPress={() => nav.navigate('CreateList')} />
-          <IconButton name="account-circle-outline" accessibilityLabel="Account" onPress={() => nav.navigate('Account')} />
+          <IconButton name="cog-outline" accessibilityLabel="Settings" onPress={() => nav.navigate('Settings')} />
         </View>
       ),
     });

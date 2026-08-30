@@ -27,7 +27,7 @@ export const DEFAULT_AUTH_MODE: AuthMode =
 // foregrounded, so another member's edits appear without a manual pull-to-refresh. 0 disables it.
 export const LIST_POLL_MS = 5_000;
 
-// Human-readable app version, shown on the Account screen. Keep in sync with app.json's
+// Human-readable app version, shown on the Settings screen. Keep in sync with app.json's
 // `expo.version` (no expo-constants/expo-application dependency, so this is set by hand).
 export const APP_VERSION = '1.3.0';
 

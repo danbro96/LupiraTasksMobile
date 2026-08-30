@@ -6,6 +6,8 @@
 - **Dev backend switching**: `API_PRESETS` in `config/` (prod / LAN / emulator — the emulator preset
   uses `10.0.2.2`, since a LAN IP is unreachable from one). Settings → Developer switches at runtime;
   `authMode: 'dev'` swaps the bearer for `X-Dev-User`, which tasks-api accepts only in Development.
+- **Settings** is `SettingsScreen` (was `AccountScreen`), reached by the cog in the Lists header and
+  composed from `List.Subheader` + `List.Item` — the same shape as the sibling apps.
 - **Diagnostics**: `debug/log.ts` (redacted zustand buffer + Sentry breadcrumbs), `DebugLogScreen` and `DeveloperScreen` are shared with the sibling apps; Settings gates them on `debugEnabled`.
 - **Offline-first.** Writes go UI → `enqueue(op)` → one SQLite transaction (optimistic apply + outbox
   row) → background drain replaying to the API with an `Idempotency-Key`; pulls write the server base

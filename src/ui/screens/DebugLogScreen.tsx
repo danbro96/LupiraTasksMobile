@@ -7,7 +7,7 @@ import { spacing, useColors, type Palette } from '../theme';
 
 /**
  * On-device view of the shared debug buffer (the same trace the dev-only floating DebugPanel
- * shows). Reachable from Account when "Enable debug" is on, so it works in production builds —
+ * shows). Reachable from Settings when "Enable debug" is on, so it works in production builds —
  * unlike DebugPanel, which is __DEV__-gated. Newest-first; Share exports the whole buffer.
  */
 export function DebugLogScreen() {

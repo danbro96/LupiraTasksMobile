@@ -3,7 +3,7 @@ import { ListsScreen } from '../screens/ListsScreen';
 import { ListDetailScreen } from '../screens/ListDetailScreen';
 import { ListSettingsScreen } from '../screens/ListSettingsScreen';
 import { TaskDetailScreen } from '../screens/TaskDetailScreen';
-import { AccountScreen } from '../screens/AccountScreen';
+import { SettingsScreen } from '../screens/SettingsScreen';
 import { SyncIssuesScreen } from '../screens/SyncIssuesScreen';
 import { CreateListScreen } from '../screens/CreateListScreen';
 import { ImportListScreen } from '../screens/ImportListScreen';
@@ -27,7 +27,7 @@ export function RootStack() {
           <Stack.Screen name="ListDetail" component={ListDetailScreen} options={({ route }) => ({ title: route.params.name })} />
           <Stack.Screen name="ListSettings" component={ListSettingsScreen} options={{ title: 'List settings' }} />
           <Stack.Screen name="TaskDetail" component={TaskDetailScreen} options={{ title: 'Task' }} />
-          <Stack.Screen name="Account" component={AccountScreen} options={{ title: 'Account' }} />
+          <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
           <Stack.Screen name="SyncIssues" component={SyncIssuesScreen} options={{ title: 'Sync issues' }} />
           <Stack.Screen name="CreateList" component={CreateListScreen} options={{ title: 'New list', presentation: 'modal' }} />
           <Stack.Screen name="ImportList" component={ImportListScreen} options={{ title: 'Import list', presentation: 'modal' }} />
