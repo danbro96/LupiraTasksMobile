@@ -89,12 +89,20 @@ export function AccountScreen() {
         </View>
 
         {debugEnabled ? (
-          <Button
-            title="View debug log"
-            variant="secondary"
-            onPress={() => nav.navigate('DebugLog')}
-            style={styles.debugLogBtn}
-          />
+          <>
+            <Button
+              title="View debug log"
+              variant="secondary"
+              onPress={() => nav.navigate('DebugLog')}
+              style={styles.debugLogBtn}
+            />
+            <Button
+              title="Developer"
+              variant="secondary"
+              onPress={() => nav.navigate('Developer')}
+              style={styles.debugLogBtn}
+            />
+          </>
         ) : null}
 
         <Button title="Sign out" variant="destructive" onPress={() => void signOut()} style={styles.signOut} />

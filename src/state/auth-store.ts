@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import * as SecureStore from 'expo-secure-store';
 import * as Crypto from 'expo-crypto';
 import * as Sentry from '@sentry/react-native';
-import { DEFAULT_API_URL } from '../config';
+import { API_PRESETS, DEFAULT_API_URL, DEFAULT_AUTH_MODE, type AuthMode } from '../config';
 import { setAuthPort } from '../data/api/authProvider';
 import { adoptDbOwner } from '../data/db';
 import { refreshTokens, RefreshError } from '../data/auth/oidc';
@@ -32,6 +32,8 @@ async function setSentryUser(email: string | null): Promise<void> {
   }
 }
 
+const KEY_API_URL = 'lupira.tasks.apiUrl';
+const KEY_AUTH_MODE = 'lupira.tasks.authMode';
 const KEY_TOKEN = 'lupira.tasks.token';
 const KEY_REFRESH = 'lupira.tasks.refreshToken';
 const KEY_EXPIRES = 'lupira.tasks.expiresAt';
@@ -60,6 +62,7 @@ export type Session = {
 type AuthState = {
   loaded: boolean;
   apiUrl: string;
+  authMode: AuthMode;
   token: string | null; // access token — read by the api mutator
   refreshToken: string | null;
   expiresAt: number | null;
@@ -68,6 +71,8 @@ type AuthState = {
 
 type AuthActions = {
   load: () => Promise<void>;
+  /** Clears the session: a token minted for one backend is meaningless against another. */
+  setBackend: (url: string, authMode: AuthMode) => Promise<void>;
   setSession: (session: Session, user: AuthUser) => Promise<void>;
   /** Merge server profile fields (from `/me`) into the cached user; persists displayName + principalId. */
   updateProfile: (profile: { principalId?: string; displayName?: string | null; isAdmin?: boolean }) => Promise<void>;
@@ -85,13 +90,24 @@ type AuthActions = {
 export const useAuth = create<AuthState & AuthActions>((set, get) => ({
   loaded: false,
   apiUrl: DEFAULT_API_URL,
+  authMode: DEFAULT_AUTH_MODE,
   token: null,
   refreshToken: null,
   expiresAt: null,
   user: null,
 
+  setBackend: async (url, authMode) => {
+    await useAuth.getState().clearSession();
+    set({ apiUrl: url, authMode });
+    await SecureStore.setItemAsync(KEY_API_URL, url);
+    await SecureStore.setItemAsync(KEY_AUTH_MODE, authMode);
+    logDebug('auth', `backend → ${url} (${authMode})`);
+  },
+
   load: async () => {
-    const [token, refreshToken, expiresAt, userSub, userName, userPrincipal] = await Promise.all([
+    const [apiUrl, authMode, token, refreshToken, expiresAt, userSub, userName, userPrincipal] = await Promise.all([
+      SecureStore.getItemAsync(KEY_API_URL),
+      SecureStore.getItemAsync(KEY_AUTH_MODE),
       SecureStore.getItemAsync(KEY_TOKEN),
       SecureStore.getItemAsync(KEY_REFRESH),
       SecureStore.getItemAsync(KEY_EXPIRES),
@@ -101,6 +117,8 @@ export const useAuth = create<AuthState & AuthActions>((set, get) => ({
     ]);
     set({
       loaded: true,
+      apiUrl: apiUrl || DEFAULT_API_URL,
+      authMode: (authMode as AuthMode | null) ?? DEFAULT_AUTH_MODE,
       token: token ?? null,
       refreshToken: refreshToken ?? null,
       expiresAt: expiresAt ? Number(expiresAt) : null,
@@ -259,6 +277,7 @@ export const useAuth = create<AuthState & AuthActions>((set, get) => ({
 // at module load — App.tsx imports the store during bootstrap, before any request can fire.
 setAuthPort({
   getApiUrl: () => useAuth.getState().apiUrl,
+  getAuthMode: () => useAuth.getState().authMode,
   getToken: () => useAuth.getState().token,
   getActor: () => useAuth.getState().user?.principalId ?? null,
   getSelf: () => {
@@ -269,3 +288,8 @@ setAuthPort({
   applyProfile: profile => useAuth.getState().updateProfile(profile),
   onSignIn: cb => useAuth.subscribe((state, prev) => { if (!prev.token && state.token) cb(); }),
 });
+
+/** Which preset the current backend matches, or 'custom'. */
+export function presetFor(url: string, authMode: AuthMode): string {
+  return API_PRESETS.find(p => p.urls.api === url && p.authMode === authMode)?.key ?? 'custom';
+}

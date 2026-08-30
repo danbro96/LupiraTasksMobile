@@ -1,4 +1,5 @@
 import { authPort } from './authProvider';
+import { DEV_USER } from '../../config';
 import { ApiError, isNetworkError, REQUEST_TIMEOUT_MS } from '../../domain/apiError';
 import { MAX_RETRIES, isRetriableRequest, isTransientStatus, retryDelayMs } from '../../domain/retryPolicy';
 
@@ -57,7 +58,9 @@ export async function apiFetch<T>(
   if (!headers.has('Accept')) {
     headers.set('Accept', 'application/json');
   }
-  if (token && !headers.has('Authorization')) {
+  if (auth.getAuthMode() === 'dev') {
+    headers.set('X-Dev-User', DEV_USER);
+  } else if (token && !headers.has('Authorization')) {
     headers.set('Authorization', `Bearer ${token}`);
   }
   // RN on Android runs fetch through OkHttp, which installs a response cache. A polled read served

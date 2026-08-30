@@ -9,6 +9,7 @@ import type { PersonRef } from './generated/models';
 
 export interface AuthPort {
   getApiUrl: () => string;
+  getAuthMode: () => 'oidc' | 'dev';
   /** Current access token, or null when signed out. */
   getToken: () => string | null;
   /** The signed-in user's principal id (matches the server's PersonRef.principalId) — the actor

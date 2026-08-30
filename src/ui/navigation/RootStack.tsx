@@ -9,6 +9,7 @@ import { CreateListScreen } from '../screens/CreateListScreen';
 import { ImportListScreen } from '../screens/ImportListScreen';
 import { ArchivedListsScreen } from '../screens/ArchivedListsScreen';
 import { DebugLogScreen } from '../screens/DebugLogScreen';
+import { DeveloperScreen } from '../screens/DeveloperScreen';
 import { LoginScreen } from '../screens/LoginScreen';
 import { useAuth } from '../../state/auth-store';
 import type { RootStackParamList } from './types';
@@ -32,6 +33,7 @@ export function RootStack() {
           <Stack.Screen name="ImportList" component={ImportListScreen} options={{ title: 'Import list', presentation: 'modal' }} />
           <Stack.Screen name="ArchivedLists" component={ArchivedListsScreen} options={{ title: 'Archived lists' }} />
           <Stack.Screen name="DebugLog" component={DebugLogScreen} options={{ title: 'Debug log' }} />
+          <Stack.Screen name="Developer" component={DeveloperScreen} options={{ title: 'Developer' }} />
         </>
       ) : (
         <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />

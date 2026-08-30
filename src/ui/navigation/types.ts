@@ -12,4 +12,5 @@ export type RootStackParamList = {
   ImportList: undefined;
   ArchivedLists: undefined;
   DebugLog: undefined;
+  Developer: undefined;
 };

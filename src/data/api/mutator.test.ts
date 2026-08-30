@@ -11,6 +11,7 @@ const authState = {
 };
 setAuthPort({
   getApiUrl: () => authState.apiUrl,
+  getAuthMode: () => 'oidc' as const,
   getToken: () => authState.token,
   getActor: () => null,
   getSelf: () => null,

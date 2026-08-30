@@ -41,7 +41,7 @@ export default [
         { type: 'feedback', pattern: 'src/feedback/**' },
         { type: 'debug', pattern: 'src/debug/**' },
         { type: 'polyfills', pattern: 'src/polyfills/**' },
-        { type: 'config', pattern: 'src/config.ts', mode: 'file' },
+        { type: 'config', pattern: 'src/config' },
       ],
       'import/resolver': { typescript: { alwaysTryTypes: true } },
     },

@@ -50,6 +50,7 @@ async function load() {
   const { setAuthPort } = await import('../data/api/authProvider');
   const port: AuthPort = {
     getApiUrl: () => 'https://api.test',
+    getAuthMode: () => 'oidc' as const,
     getToken: () => 'tok',
     getActor: () => 'me-p',
     getSelf: () => ME,

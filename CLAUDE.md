@@ -3,6 +3,9 @@
 - **Primary product.** `../LupiraTasksWeb` mirrors this app's screen flow and structure; keep changes
   here coherent with it. Android-first (`eas.json` builds Android only), package `com.lupira.tasks`,
   scheme `lupiratasks`, live on Play — see `docs/RELEASE.md` for the EAS/OTA path.
+- **Dev backend switching**: `API_PRESETS` in `config/` (prod / LAN / emulator — the emulator preset
+  uses `10.0.2.2`, since a LAN IP is unreachable from one). Settings → Developer switches at runtime;
+  `authMode: 'dev'` swaps the bearer for `X-Dev-User`, which tasks-api accepts only in Development.
 - **Offline-first.** Writes go UI → `enqueue(op)` → one SQLite transaction (optimistic apply + outbox
   row) → background drain replaying to the API with an `Idempotency-Key`; pulls write the server base
   and rebase pending ops. All SQLite access passes a single serialization gate in `data/db.ts` — expo-sqlite's
