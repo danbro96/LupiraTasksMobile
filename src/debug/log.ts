@@ -1,12 +1,10 @@
 import { create } from 'zustand';
 import * as Sentry from '@sentry/react-native';
 
-// Shared in-memory debug trace, rendered on-device by DebugPanel (in __DEV__), echoed to the
-// console (Metro / `react-native log-android`), and recorded as Sentry breadcrumbs. Used by the
-// auth flow and the offline outbox/sync path to diagnose issues without a terminal attached.
+// SECURITY: everything is run through redact() so a device key/secret can't reach the buffer, console, or Sentry.
 
 export interface DebugLogEntry {
-  t: string; // ISO timestamp
+  t: string;
   stage: string;
   detail?: string;
 }
@@ -25,20 +23,29 @@ export const useDebugLog = create<DebugLogState>(set => ({
   clear: () => set({ entries: [] }),
 }));
 
-/** Record one stage to the buffer, the console, and a Sentry breadcrumb. No PII in details. */
+// Device key wire format is `{32hex}.{64hex}`, also carried in a `DeviceKey ` Authorization header.
+const DEVICE_KEY_RE = /\b[0-9a-fA-F]{32}\.[0-9a-fA-F]{16,}\b/g;
+const DEVICE_KEY_HEADER_RE = /DeviceKey\s+\S+/g;
+
+export function redact(value: string): string {
+  return value.replace(DEVICE_KEY_HEADER_RE, 'DeviceKey [redacted]').replace(DEVICE_KEY_RE, '[redacted-key]');
+}
+
 export function logDebug(stage: string, detail?: string): void {
   const t = new Date().toISOString();
-  useDebugLog.getState().push({ t, stage, detail });
-  console.log('[debug]', stage, detail ?? '');
+  const safeStage = redact(stage);
+  const safeDetail = detail !== undefined ? redact(detail) : undefined;
+  useDebugLog.getState().push({ t, stage: safeStage, detail: safeDetail });
+  console.log('[debug]', safeStage, safeDetail ?? '');
   try {
     Sentry.addBreadcrumb({
       category: 'debug',
       level: 'info',
-      message: stage,
-      data: detail ? { detail } : undefined,
+      message: safeStage,
+      data: safeDetail ? { detail: safeDetail } : undefined,
     });
   } catch {
-    // Sentry not initialised yet — the buffer + console still capture it.
+    // Sentry not initialised yet.
   }
 }
 
