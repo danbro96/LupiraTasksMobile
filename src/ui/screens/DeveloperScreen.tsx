@@ -22,8 +22,9 @@ export function DeveloperScreen() {
   const [customUrl, setCustomUrl] = useState(activeKey === 'custom' ? apiUrl : '');
   const [customMode, setCustomMode] = useState<AuthMode>(authMode);
 
-  const applyBackend = (url: string, mode: AuthMode) => {
-    void useAuth.getState().setBackend(url.trim().replace(/\/$/, ''), mode);
+  const applyBackend = (urls: Record<string, string>, mode: AuthMode) => {
+    const trimmed = Object.fromEntries(Object.entries(urls).map(([k, v]) => [k, v.trim().replace(/\/$/, '')]));
+    void useAuth.getState().setBackend(trimmed, mode);
   };
 
   return (
@@ -33,10 +34,10 @@ export function DeveloperScreen() {
       {API_PRESETS.filter((p) => __DEV__ || p.urls.api.startsWith('https')).map((p) => (
         <List.Item
           key={p.key}
-          onPress={() => applyBackend(p.urls.api, p.authMode)}
+          onPress={() => applyBackend(p.urls, p.authMode)}
           title={p.label}
           description={`${Object.values(p.urls).join(' · ')} · ${p.authMode === 'oidc' ? 'sign-in' : 'dev bypass'}`}
-          left={() => <RadioButton status={activeKey === p.key ? 'checked' : 'unchecked'} value={p.key} onPress={() => applyBackend(p.urls.api, p.authMode)} />}
+          left={() => <RadioButton status={activeKey === p.key ? 'checked' : 'unchecked'} value={p.key} onPress={() => applyBackend(p.urls, p.authMode)} />}
         />
       ))}
       <View style={styles.custom}>
@@ -57,7 +58,7 @@ export function DeveloperScreen() {
         <Button
           mode="outlined"
           disabled={!customUrl.trim()}
-          onPress={() => applyBackend(customUrl, customMode)}
+          onPress={() => applyBackend({ api: customUrl }, customMode)}
         >
           Use custom backend
         </Button>

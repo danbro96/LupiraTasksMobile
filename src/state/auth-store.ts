@@ -72,7 +72,7 @@ type AuthState = {
 type AuthActions = {
   load: () => Promise<void>;
   /** Clears the session: a token minted for one backend is meaningless against another. */
-  setBackend: (url: string, authMode: AuthMode) => Promise<void>;
+  setBackend: (urls: Record<string, string>, authMode: AuthMode) => Promise<void>;
   setSession: (session: Session, user: AuthUser) => Promise<void>;
   /** Merge server profile fields (from `/me`) into the cached user; persists displayName + principalId. */
   updateProfile: (profile: { principalId?: string; displayName?: string | null; isAdmin?: boolean }) => Promise<void>;
@@ -96,8 +96,9 @@ export const useAuth = create<AuthState & AuthActions>((set, get) => ({
   expiresAt: null,
   user: null,
 
-  setBackend: async (url, authMode) => {
+  setBackend: async (urls, authMode) => {
     await useAuth.getState().clearSession();
+    const url = urls.api;
     set({ apiUrl: url, authMode });
     await SecureStore.setItemAsync(KEY_API_URL, url);
     await SecureStore.setItemAsync(KEY_AUTH_MODE, authMode);
