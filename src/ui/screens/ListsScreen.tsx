@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, RefreshControl, StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Text } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
@@ -9,7 +9,6 @@ import { Gesture } from 'react-native-gesture-handler';
 import { LinearTransition, runOnJS } from 'react-native-reanimated';
 import type { ListDto } from '../../data/api/generated/models';
 import type { RootStackParamList } from '../navigation/types';
-import { IconButton } from '../components/IconButton';
 import { SyncBanner } from '../components/SyncBanner';
 import { SyncDot } from '../components/SyncDot';
 import { DebugPanel } from '../components/DebugPanel';
@@ -81,17 +80,6 @@ export function ListsScreen() {
     nav.navigate('ListDetail', { listId: l.id, name: l.name });
   }, [nav]);
 
-  useLayoutEffect(() => {
-    nav.setOptions({
-      headerRight: () => (
-        <View style={styles.headerBtns}>
-          <IconButton name="plus" accessibilityLabel="New list" onPress={() => nav.navigate('CreateList')} />
-          <IconButton name="cog-outline" accessibilityLabel="Settings" onPress={() => nav.navigate('Settings')} />
-        </View>
-      ),
-    });
-  }, [nav, styles]);
-
   async function refresh() {
     setRefreshing(true);
     try {
@@ -162,7 +150,6 @@ export function ListsScreen() {
 const makeStyles = (c: Palette) =>
   StyleSheet.create({
     fill: { flex: 1, backgroundColor: c.bg },
-    headerBtns: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg },
     row: {
       paddingVertical: 14,
       paddingHorizontal: spacing.lg,

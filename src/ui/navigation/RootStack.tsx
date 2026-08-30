@@ -13,6 +13,8 @@ import { DeveloperScreen } from '../screens/DeveloperScreen';
 import { LoginScreen } from '../screens/LoginScreen';
 import { useAuth } from '../../state/auth-store';
 import type { RootStackParamList } from './types';
+import { StyleSheet, View } from 'react-native';
+import { IconButton } from '../components/IconButton';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -23,8 +25,33 @@ export function RootStack() {
     <Stack.Navigator>
       {authed ? (
         <>
-          <Stack.Screen name="Lists" component={ListsScreen} options={{ title: 'Lupira Tasks' }} />
-          <Stack.Screen name="ListDetail" component={ListDetailScreen} options={({ route }) => ({ title: route.params.name })} />
+          <Stack.Screen
+            name="Lists"
+            component={ListsScreen}
+            options={({ navigation }) => ({
+              title: 'Lupira Tasks',
+              headerRight: () => (
+                <View style={styles.headerBtns}>
+                  <IconButton name="plus" accessibilityLabel="New list" onPress={() => navigation.navigate('CreateList')} />
+                  <IconButton name="cog-outline" accessibilityLabel="Settings" onPress={() => navigation.navigate('Settings')} />
+                </View>
+              ),
+            })}
+          />
+          <Stack.Screen
+            name="ListDetail"
+            component={ListDetailScreen}
+            options={({ navigation, route }) => ({
+              title: route.params.name,
+              headerRight: () => (
+                <IconButton
+                  name="cog-outline"
+                  accessibilityLabel="List settings"
+                  onPress={() => navigation.navigate('ListSettings', { listId: route.params.listId, name: route.params.name })}
+                />
+              ),
+            })}
+          />
           <Stack.Screen name="ListSettings" component={ListSettingsScreen} options={{ title: 'List settings' }} />
           <Stack.Screen name="TaskDetail" component={TaskDetailScreen} options={{ title: 'Task' }} />
           <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
@@ -41,3 +68,7 @@ export function RootStack() {
     </Stack.Navigator>
   );
 }
+
+const styles = StyleSheet.create({
+  headerBtns: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+});

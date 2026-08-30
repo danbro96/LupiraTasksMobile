@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { ActivityIndicator } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -217,18 +217,6 @@ export function ListDetailScreen() {
   // Gate the reorder drag behind a long-press so it doesn't claim the quick horizontal swipes used
   // for swipe-to-delete (slightly longer than the row's 500ms delayLongPress, per the lib's guidance).
   const dragGesture = useMemo(() => Gesture.Pan().activateAfterLongPress(520), []);
-
-  useLayoutEffect(() => {
-    nav.setOptions({
-      headerRight: () => (
-        <IconButton
-          name="cog-outline"
-          accessibilityLabel="List settings"
-          onPress={() => nav.navigate('ListSettings', { listId, name: params.name })}
-        />
-      ),
-    });
-  }, [nav, listId, params.name]);
 
   // Pull on focus (not just mount): native-stack keeps this screen mounted when TaskDetail /
   // ListSettings are pushed on top, so a mount-only effect would leave tasks stale on return.

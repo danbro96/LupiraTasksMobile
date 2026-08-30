@@ -42,8 +42,9 @@
   `ListDetailScreen` additionally interleaves long-press drag (`react-native-reorderable-list`), a
   hand-built swipe-to-delete (`Gesture.Pan` — `Swipeable`'s open callback doesn't fire reliably here),
   the remote-change flash, and a drag-freeze that pins rendered rows mid-gesture.
-- Native headers are set imperatively via `useLayoutEffect` + `nav.setOptions` in 5 screens — keep that
-  pattern rather than moving to Paper `Appbar`.
+- **Header actions are declared in the navigator's `options`**; `useLayoutEffect` + `setOptions` only
+  when the action gates on screen state (a Save enabled only when dirty).
+  React Navigation owns the header — Paper's `Appbar` is not used.
 - `react-native-worklets/plugin` must stay last in `babel.config.js`.
 - Latest stable deps, bump hard. vitest (node env, `*.test.ts` — pure logic only; no UI tests).
   Comment only the non-obvious *why*; docs = present state.
