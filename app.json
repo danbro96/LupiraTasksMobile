@@ -6,6 +6,8 @@
     "version": "1.3.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
+    "icon": "./assets/icon.png",
+    "primaryColor": "#E76F51",
     "runtimeVersion": {
       "policy": "fingerprint"
     },
@@ -17,7 +19,11 @@
     },
     "android": {
       "predictiveBackGestureEnabled": false,
-      "package": "com.lupira.tasks"
+      "package": "com.lupira.tasks",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0F172A"
+      }
     },
     "plugins": [
       "expo-secure-store",
@@ -33,7 +39,16 @@
       ],
       "expo-status-bar",
       "expo-font",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 180,
+          "resizeMode": "contain",
+          "backgroundColor": "#0F172A"
+        }
+      ]
     ],
     "extra": {
       "eas": {

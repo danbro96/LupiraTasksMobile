@@ -13,6 +13,9 @@ export interface Palette {
   textSubtle: string;
   textDisabled: string;
   danger: string;
+  /** Identity surfaces only — the mark, the splash, theme-color, primaryColor. Never the UI:
+   *  a second accent competing with `primary` is exactly what the palette work removed. */
+  brand: string;
   pending: string;
   failed: string;
   /** Backdrop for a row that just changed because someone else edited it. */
@@ -35,6 +38,7 @@ export const lightColors: Palette = {
   textMuted: '#6e7686',
   textSubtle: '#8a909c',
   textDisabled: '#9aa0ac',
+  brand: '#E76F51',
   danger: '#b3261e',
   pending: '#d8a200',
   failed: '#b3261e',
@@ -57,6 +61,7 @@ export const darkColors: Palette = {
   textMuted: '#9aa3b2',
   textSubtle: '#7c8492',
   textDisabled: '#5b626e',
+  brand: '#E76F51',
   danger: '#f2675e',
   pending: '#d8a200',
   failed: '#f2675e',
