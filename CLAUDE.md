@@ -6,6 +6,10 @@
 - **Dev backend switching**: `API_PRESETS` in `config/` (prod / LAN / emulator — the emulator preset
   uses `10.0.2.2`, since a LAN IP is unreachable from one). Settings → Developer switches at runtime;
   `authMode: 'dev'` swaps the bearer for `X-Dev-User`, which tasks-api accepts only in Development.
+- **Picker choice is by option-set shape, not by app**: `SegmentedPicker` (Paper `SegmentedButtons`)
+  for a fixed 2–5 required set; `ChoiceChips` (a wrapping Paper `Chip` row) for dynamic/unbounded sets
+  and for clearable single-select. Each lives only where it is used — copy it across when a second app
+  needs one, and keep the copies byte-identical.
 - **Settings** is `SettingsScreen` (was `AccountScreen`), reached by the cog in the Lists header and
   composed from `List.Subheader` + `List.Item` — the same shape as the sibling apps.
 - **Diagnostics**: `debug/log.ts` (redacted zustand buffer + Sentry breadcrumbs), `DebugLogScreen` and `DeveloperScreen` are shared with the sibling apps; Settings gates them on `debugEnabled`.
