@@ -3,7 +3,7 @@ import { Pressable, RefreshControl, StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Text } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import ReorderableList, { useReorderableDrag, useIsActive, reorderItems } from 'react-native-reorderable-list';
 import { Gesture } from 'react-native-gesture-handler';
 import { LinearTransition, runOnJS } from 'react-native-reanimated';
@@ -22,6 +22,7 @@ import { enqueueMany } from '../../sync/outbox';
 import { planListReorder } from '../../domain/listOrder';
 import { stamp } from '../../domain/ops';
 import { radii, spacing, useColors, type Palette } from '../theme';
+import { ICONS } from '../icons';
 
 interface RowProps {
   list: ListDto;
@@ -49,7 +50,7 @@ const ListRow = memo(function ListRow({ list, status, styles, palette, onOpen }:
       <Text variant="bodyLarge" style={styles.rowTitle} numberOfLines={1}>{list.name}</Text>
       <View style={styles.rowRight}>
         <SyncDot status={status} />
-        <MaterialCommunityIcons name="chevron-right" size={18} color={palette.textDisabled} />
+        <MaterialIcons name={ICONS.chevronRight} size={18} color={palette.textDisabled} />
       </View>
     </Pressable>
   );

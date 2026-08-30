@@ -15,6 +15,7 @@ import { useAuth } from '../../state/auth-store';
 import type { RootStackParamList } from './types';
 import { StyleSheet, View } from 'react-native';
 import { IconButton } from '../components/IconButton';
+import { ICONS } from '../icons';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -32,8 +33,8 @@ export function RootStack() {
               title: 'Lupira Tasks',
               headerRight: () => (
                 <View style={styles.headerBtns}>
-                  <IconButton name="plus" accessibilityLabel="New list" onPress={() => navigation.navigate('CreateList')} />
-                  <IconButton name="cog-outline" accessibilityLabel="Settings" onPress={() => navigation.navigate('Settings')} />
+                  <IconButton name={ICONS.add} accessibilityLabel="New list" onPress={() => navigation.navigate('CreateList')} />
+                  <IconButton name={ICONS.settings} accessibilityLabel="Settings" onPress={() => navigation.navigate('Settings')} />
                 </View>
               ),
             })}
@@ -45,7 +46,7 @@ export function RootStack() {
               title: route.params.name,
               headerRight: () => (
                 <IconButton
-                  name="cog-outline"
+                  name={ICONS.settings}
                   accessibilityLabel="List settings"
                   onPress={() => navigation.navigate('ListSettings', { listId: route.params.listId, name: route.params.name })}
                 />

@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { List, Switch, Text } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -13,6 +13,7 @@ import { useAuth } from '../../state/auth-store';
 import { usePrefs, type RowSpacing, type TextSize } from '../../state/prefs-store';
 import { APP_VERSION } from '../../config';
 import { radii, spacing, useColors, type Palette } from '../theme';
+import { ICONS } from '../icons';
 
 const TEXT_SIZES = ['small', 'default', 'large'] as const;
 const TEXT_SIZE_LABELS: Record<TextSize, string> = { small: 'Small', default: 'Default', large: 'Large' };
@@ -45,7 +46,7 @@ export function SettingsScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.identity}>
           <View style={styles.avatar}>
-            <MaterialCommunityIcons name="account" size={32} color={c.onPrimary} />
+            <MaterialIcons name={ICONS.account} size={32} color={c.onPrimary} />
           </View>
           {user?.displayName ? <Text variant="titleLarge">{user.displayName}</Text> : null}
           <Text variant="bodySmall" style={styles.email}>{user?.sub ?? 'Not signed in'}</Text>

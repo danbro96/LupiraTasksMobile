@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Chip, Dialog, Portal } from 'react-native-paper';
 import { HIT_SLOP, radii, spacing, useColors, type Palette } from '../theme';
+import { ICONS } from '../icons';
 
 const SCALE = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 
@@ -28,7 +29,7 @@ export function PriorityControl({
 
   if (simple) {
     const on = value > 0;
-    if (!editable) return on ? <MaterialCommunityIcons name="star" size={20} color={c.primary} /> : null;
+    if (!editable) return on ? <MaterialIcons name={ICONS.star} size={20} color={c.primary} /> : null;
     return (
       <Pressable
         onPress={() => onChange(on ? 0 : 1)}
@@ -38,7 +39,7 @@ export function PriorityControl({
         accessibilityState={{ selected: on }}
       >
         {({ pressed }) => (
-          <MaterialCommunityIcons
+          <MaterialIcons
             name={on ? 'star' : 'star-outline'}
             size={20}
             color={on ? c.primary : c.textSubtle}

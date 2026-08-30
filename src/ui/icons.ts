@@ -1,0 +1,58 @@
+/**
+ * The estate's icon vocabulary, resolved to `MaterialIcons` (Google Material — the same family the
+ * SPAs render through `@mui/icons-material`). Paper's `icon` prop defaults to MaterialCommunityIcons,
+ * so `App.tsx` overrides the renderer via `settings={{ icon }}`; after that override every `icon=`
+ * string must be a name from here. Pass `ICONS.x`, never a bare string — a wrong name renders
+ * nothing at all rather than failing the build.
+ */
+export const ICONS = {
+  account: 'account-circle',
+  add: 'add',
+  alert: 'error-outline',
+  cake: 'cake',
+  calendar: 'calendar-month',
+  celebration: 'celebration',
+  check: 'check',
+  checkBox: 'check-box',
+  checkCircle: 'check-circle',
+  chevronLeft: 'chevron-left',
+  chevronRight: 'chevron-right',
+  cleaning: 'cleaning-services',
+  clear: 'clear',
+  close: 'close',
+  contacts: 'contacts',
+  delete: 'delete',
+  email: 'email',
+  event: 'event',
+  expand: 'expand-more',
+  filter: 'filter-list',
+  group: 'group',
+  hotel: 'hotel',
+  inbox: 'inbox',
+  layers: 'layers',
+  link: 'link',
+  locationOff: 'location-off',
+  lock: 'lock',
+  luggage: 'luggage',
+  map: 'map',
+  medical: 'medical-services',
+  menu: 'menu',
+  more: 'more-horiz',
+  person: 'person',
+  photos: 'photo-library',
+  place: 'place',
+  restaurant: 'restaurant',
+  robot: 'smart-toy',
+  run: 'directions-run',
+  schedule: 'schedule',
+  search: 'search',
+  settings: 'settings',
+  star: 'star',
+  starOutline: 'star-border',
+  target: 'track-changes',
+  tools: 'construction',
+  tune: 'tune',
+  walk: 'directions-walk',
+} as const;
+
+export type IconKey = keyof typeof ICONS;

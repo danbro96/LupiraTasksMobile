@@ -1,11 +1,12 @@
 import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { List, Text } from 'react-native-paper';
 import { spacing, useColors, type Palette } from '../theme';
+import { ICONS } from '../icons';
 
 interface Props {
-  icon: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+  icon: React.ComponentProps<typeof MaterialIcons>['name'];
   label: string;
   value: string;
   valueColor?: string;
@@ -34,7 +35,7 @@ export function DetailRow({ icon, label, value, valueColor, onPress, disabled, d
           <Text variant="bodyLarge" style={[styles.value, valueColor ? { color: valueColor } : null]} numberOfLines={1}>
             {value}
           </Text>
-          {interactive ? <MaterialCommunityIcons name="chevron-right" size={18} color={c.textDisabled} /> : null}
+          {interactive ? <MaterialIcons name={ICONS.chevronRight} size={18} color={c.textDisabled} /> : null}
         </View>
       )}
     />

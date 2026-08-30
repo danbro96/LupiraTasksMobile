@@ -4,7 +4,7 @@ import { ActivityIndicator } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { generateKeyBetween } from 'fractional-indexing';
 import ReorderableList, { useReorderableDrag, useIsActive, reorderItems } from 'react-native-reorderable-list';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -36,6 +36,7 @@ import { pullList } from '../../sync/sync';
 import { newId, stamp } from '../../domain/ops';
 import { formatDue } from '../../domain/dueDate';
 import { spacing, useColors, type Palette } from '../theme';
+import { ICONS } from '../icons';
 
 const INDENT = spacing.lg; // left inset per nesting level
 const SWIPE_DELETE_THRESHOLD = -80; // swipe left past this (px) and release to delete
@@ -139,7 +140,7 @@ const TaskRow = memo(function TaskRow({ row, canEdit, draggable, isShopping, ass
       <SyncDot status={status} />
       {hasChildren ? (
         <IconButton
-          name={expanded ? 'chevron-down' : 'chevron-right'}
+          name={expanded ? ICONS.expand : ICONS.chevronRight}
           accessibilityLabel={expanded ? 'Collapse subtasks' : 'Expand subtasks'}
           color={palette.textSubtle}
           size={20}
@@ -175,7 +176,7 @@ const TaskRow = memo(function TaskRow({ row, canEdit, draggable, isShopping, ass
   return (
     <View style={styles.swipeContainer}>
       <Animated.View style={[styles.swipeDelete, deleteBgStyle]} pointerEvents="none">
-        <MaterialCommunityIcons name="trash-can" size={22} color="#fff" />
+        <MaterialIcons name={ICONS.delete} size={22} color="#fff" />
       </Animated.View>
       <GestureDetector gesture={swipe}>
         <Animated.View style={rowStyle} exiting={SlideOutLeft.duration(180)}>{inner}</Animated.View>

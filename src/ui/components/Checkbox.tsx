@@ -7,7 +7,7 @@ interface Props {
   accessibilityLabel?: string;
 }
 
-/** Accessible checkbox using a vector icon (replaces the ☑/☐ emoji glyphs). */
+/** Accessible checkbox drawn from the icon vocabulary, not a glyph pair. */
 export function Checkbox({ checked, onPress, disabled, accessibilityLabel }: Props) {
   return (
     <PaperCheckbox.Android

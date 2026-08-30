@@ -32,7 +32,10 @@
   `const c = useColors(); const styles = useMemo(() => makeStyles(c), [c])`, and a fresh object per
   render would defeat that. Deriving the palette from `useColorScheme()` instead is what this
   replaced: it was a second source that could disagree with the theme `PaperProvider` holds.
-  Icons are MaterialCommunityIcons (Paper's set). Confirms use `useConfirm()` (`ui/components/ConfirmDialog.tsx`).
+  Icons come from `ui/icons.ts` (Google `MaterialIcons`, the family the SPAs also render) — Paper's
+  MCI default is overridden by `settings={paperSettings}` in `App.tsx`, so every `icon=` string must
+  be an `ICONS.x` value; a wrong name renders nothing rather than failing the build. Inline glyphs
+  inside `<Text>` use `Glyph`. Confirms use `useConfirm()` (`ui/components/ConfirmDialog.tsx`).
   Tokens mirror the other repos' copies — see DevOps `Guides/design-tokens.md` and its drift check.
 - **Stay in step with the sibling Lupira frontends.** Same components, theme wiring and layout;
   match what they already do rather than inventing a local shape. Shared files stay byte-identical.

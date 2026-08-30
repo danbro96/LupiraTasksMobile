@@ -3,7 +3,7 @@ import { ActivityIndicator, List, Text } from 'react-native-paper';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import RNDateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { ListKind } from '../../data/api/generated/models';
 import type { RootStackParamList } from '../navigation/types';
@@ -28,6 +28,7 @@ import { newId, stamp } from '../../domain/ops';
 import { oneLine } from '../../domain/text';
 import { dueInDays, dueNextWeekend, dueOnDate, formatDue } from '../../domain/dueDate';
 import { radii, spacing, useColors, type Palette } from '../theme';
+import { ICONS } from '../icons';
 
 const DUE_QUICK: { label: string; iso: () => string }[] = [
   { label: 'Today', iso: () => dueInDays(0) },
@@ -296,14 +297,14 @@ export function TaskDetailScreen() {
 
         <View style={styles.card}>
           <DetailRow
-            icon="calendar-outline"
+            icon={ICONS.calendar}
             label="Due"
             value={due ? (due.overdue ? `Overdue · ${due.label}` : due.label) : 'None'}
             valueColor={due?.overdue ? c.danger : undefined}
             onPress={canEdit ? () => setDueMenu(true) : undefined}
           />
           <DetailRow
-            icon="account-outline"
+            icon={ICONS.account}
             label="Assignee"
             value={item.assignedTo ? personName(item.assignedTo) : 'Unassigned'}
             onPress={canEdit ? () => setAssigneeMenu(true) : undefined}
@@ -379,7 +380,7 @@ export function TaskDetailScreen() {
             onPress={() => nav.push('TaskDetail', { listId, itemId: st.id })}
             accessibilityHint="Opens subtask"
             left={() => <Checkbox checked={st.completed} disabled={!canEdit} onPress={() => void toggleSub(st)} />}
-            right={() => <MaterialCommunityIcons name="chevron-right" size={16} color={c.textDisabled} />}
+            right={() => <MaterialIcons name={ICONS.chevronRight} size={16} color={c.textDisabled} />}
           />
         ))}
         {canEdit ? (

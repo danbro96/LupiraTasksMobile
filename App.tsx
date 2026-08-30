@@ -16,6 +16,7 @@ import { usePrefs } from './src/state/prefs-store';
 import { startSync, syncAll } from './src/sync/sync';
 import { SENTRY_DSN, APP_VERSION } from './src/config';
 import { lightColors, darkColors, navDark, navLight, paperDark, paperLight, type Palette } from './src/ui/theme';
+import { paperSettings } from './src/ui/theme/paperSettings';
 
 // Crash analytics. SENTRY_DSN is a public client key in src/config.ts — Sentry no-ops when empty.
 // release/dist tie events to a version (and let source maps resolve); environment separates dev
@@ -76,7 +77,7 @@ function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <PaperProvider theme={scheme === 'dark' ? paperDark : paperLight}>
+        <PaperProvider theme={scheme === 'dark' ? paperDark : paperLight} settings={paperSettings}>
           <Sentry.ErrorBoundary fallback={<ErrorFallback palette={palette} />}>
             <ConfirmDialogHost>
               <NavigationContainer theme={scheme === 'dark' ? navDark : navLight} linking={linking}>

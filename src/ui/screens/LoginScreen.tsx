@@ -3,7 +3,7 @@ import { Linking, StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { OIDC_CLIENT_ID, OIDC_ISSUER, OIDC_REDIRECT_PATH, OIDC_SCHEME, OIDC_SCOPES } from '../../data/auth/oidcConfig';
 import { decodeJwt, exchangeAuthCode } from '../../data/auth/oidc';
 import { logAuth, clearAuthLog } from '../../data/auth/authDebug';
@@ -12,6 +12,7 @@ import { DebugPanel } from '../components/DebugPanel';
 import { useAuth } from '../../state/auth-store';
 import { usePrefs } from '../../state/prefs-store';
 import { radii, spacing, useColors, type Palette } from '../theme';
+import { ICONS } from '../icons';
 
 // Required so the auth redirect back into the app dismisses the in-app browser.
 WebBrowser.maybeCompleteAuthSession();
@@ -136,7 +137,7 @@ export function LoginScreen() {
       {/* Code-drawn brand mark (no asset pipeline); swap for the real Lupira SVG logo once
           react-native-svg lands (deferred — needs a dev-client rebuild). */}
       <View style={styles.logo}>
-        <MaterialCommunityIcons name="check-bold" size={52} color={c.onPrimary} />
+        <MaterialIcons name={ICONS.check} size={52} color={c.onPrimary} />
       </View>
       <Text variant="headlineSmall">Lupira Tasks</Text>
       <Text style={styles.subtitle}>Sign in with your family account.</Text>

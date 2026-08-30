@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { listColorOptions, radii, spacing, useColors, type Palette } from '../theme';
+import { ICONS } from '../icons';
 
 /** Row of selectable list colors (incl. "no color"). Shared by CreateList and ListSettings. */
 export function ColorSwatches({ value, onChange }: { value: string | null; onChange: (color: string | null) => void }) {
@@ -20,8 +21,8 @@ export function ColorSwatches({ value, onChange }: { value: string | null; onCha
             accessibilityState={{ selected }}
             style={[styles.swatch, { backgroundColor: col ?? c.bg }, selected && styles.selected]}
           >
-            {col === null && !selected ? <MaterialCommunityIcons name="cancel" size={16} color={c.textSubtle} /> : null}
-            {selected ? <MaterialCommunityIcons name="check" size={18} color={col ? c.onPrimary : c.primary} /> : null}
+            {col === null && !selected ? <MaterialIcons name={ICONS.close} size={16} color={c.textSubtle} /> : null}
+            {selected ? <MaterialIcons name={ICONS.check} size={18} color={col ? c.onPrimary : c.primary} /> : null}
           </Pressable>
         );
       })}

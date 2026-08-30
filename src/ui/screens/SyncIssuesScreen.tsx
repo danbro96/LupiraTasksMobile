@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Button } from '../components/Button';
 import { toast } from '../../feedback/toast';
 import { listParked, retryParked, discardParked, type ParkedOp } from '../../sync/outbox';
 import { useSyncStatus } from '../../sync/syncStatus';
 import type { ClientOp } from '../../domain/ops';
 import { spacing, useColors, type Palette } from '../theme';
+import { ICONS } from '../icons';
 
 // Human label per op kind. A Record over the union forces every new op kind to get a label.
 const OP_LABELS: Record<ClientOp['kind'], string> = {
@@ -69,7 +70,7 @@ export function SyncIssuesScreen() {
   if (rows.length === 0) {
     return (
       <View style={styles.empty}>
-        <MaterialCommunityIcons name="check-circle-outline" size={48} color={c.textDisabled} />
+        <MaterialIcons name={ICONS.checkCircle} size={48} color={c.textDisabled} />
         <Text variant="bodyLarge" style={styles.emptyText}>All changes are synced.</Text>
       </View>
     );

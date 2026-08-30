@@ -3,6 +3,7 @@ import { StyleSheet } from 'react-native';
 import { Button, Divider, List, Modal, Portal } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { radii, spacing, useColors, type Palette } from '../theme';
+import { ICONS } from '../icons';
 
 export interface ActionItem {
   label: string;
@@ -44,7 +45,7 @@ export function ActionMenu({
               title={a.label}
               titleNumberOfLines={1}
               titleStyle={{ color: a.destructive ? c.danger : c.primary }}
-              right={a.selected ? props => <List.Icon {...props} icon="check" color={c.primary} /> : undefined}
+              right={a.selected ? props => <List.Icon {...props} icon={ICONS.check} color={c.primary} /> : undefined}
               onPress={() => {
                 onClose();
                 a.onPress();
