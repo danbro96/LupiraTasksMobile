@@ -45,6 +45,10 @@
   `ListDetailScreen` additionally interleaves long-press drag (`react-native-reorderable-list`), a
   hand-built swipe-to-delete (`Gesture.Pan` — `Swipeable`'s open callback doesn't fire reliably here),
   the remote-change flash, and a drag-freeze that pins rendered rows mid-gesture.
+- **Topbar**: every root screen shows the navigator's native header — title from `options.title`,
+  actions from `headerRight`, and the cog is the shared `SettingsButton`. Never `headerShown: false`
+  on a root screen. A screen's own controls (search, period nav, filters) go in `ScreenToolbar`,
+  a row *under* the header, not instead of it. Status strips render nothing when healthy.
 - **Header actions are declared in the navigator's `options`**; `useLayoutEffect` + `setOptions` only
   when the action gates on screen state (a Save enabled only when dirty).
   React Navigation owns the header — Paper's `Appbar` is not used.

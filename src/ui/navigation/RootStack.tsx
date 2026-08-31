@@ -16,6 +16,7 @@ import type { RootStackParamList } from './types';
 import { StyleSheet, View } from 'react-native';
 import { IconButton } from '../components/IconButton';
 import { ICONS } from '../icons';
+import { SettingsButton } from '../components/SettingsButton';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -34,7 +35,7 @@ export function RootStack() {
               headerRight: () => (
                 <View style={styles.headerBtns}>
                   <IconButton name={ICONS.add} accessibilityLabel="New list" onPress={() => navigation.navigate('CreateList')} />
-                  <IconButton name={ICONS.settings} accessibilityLabel="Settings" onPress={() => navigation.navigate('Settings')} />
+                  <SettingsButton />
                 </View>
               ),
             })}
